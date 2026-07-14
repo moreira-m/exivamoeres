@@ -1,0 +1,35 @@
+# ===== Segredos e ambiente =====
+.env
+.env.local
+.env.*.local
+*.pem
+*.p12
+
+# ===== Java / Maven =====
+backend/target/
+*.class
+*.jar
+!.mvn/wrapper/maven-wrapper.jar
+.mvn/timing.properties
+hs_err_pid*
+replay_pid*
+
+# ===== Node / Frontend =====
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/*.tsbuildinfo
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ===== IDEs =====
+.idea/
+*.iml
+.vscode/
+*.swp
+.DS_Store
+
+# ===== Docker / dados locais =====
+postgres-data/
+*.log

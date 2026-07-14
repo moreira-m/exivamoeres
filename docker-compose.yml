@@ -1,0 +1,49 @@
+# Ambiente de desenvolvimento local.
+# Uso: cp .env.example .env (preencher) e depois `docker compose up -d`.
+# Para desenvolver o backend fora do Docker, suba só o banco:
+#   docker compose up -d postgres
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: exivamoeres-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-exivamoeres}
+      POSTGRES_USER: ${POSTGRES_USER:-exivamoeres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-exivamoeres} -d ${POSTGRES_DB:-exivamoeres}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build: ./backend
+    container_name: exivamoeres-backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # Dentro da rede do compose o host do banco é o nome do serviço.
+      DATABASE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-exivamoeres}
+      POSTGRES_USER: ${POSTGRES_USER:-exivamoeres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ACCESS_TOKEN_MINUTES: ${JWT_ACCESS_TOKEN_MINUTES:-30}
+      JWT_REFRESH_TOKEN_DAYS: ${JWT_REFRESH_TOKEN_DAYS:-14}
+      DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID:-}
+      DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
+      OAUTH2_REDIRECT_URL: ${OAUTH2_REDIRECT_URL:-http://localhost:5173/oauth/callback}
+      TIBIADATA_BASE_URL: ${TIBIADATA_BASE_URL:-https://api.tibiadata.com}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+    ports:
+      - "8080:8080"
+
+volumes:
+  postgres-data:

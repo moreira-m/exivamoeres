@@ -45,6 +45,12 @@ spring:
 
 server:
   port: 8080
+  # Railway (e proxies reversos em geral) terminam TLS e encaminham a
+  # requisição em HTTP puro internamente, sinalizando o scheme original via
+  # X-Forwarded-Proto/-Host/-Port. Sem confiar nesses headers, o Spring monta
+  # o redirect_uri do OAuth2 ({baseUrl}) como http://, causando
+  # redirect_uri_mismatch no Google/Discord em produção.
+  forward-headers-strategy: framework
 
 # ----- Configurações próprias da aplicação -----
 app:

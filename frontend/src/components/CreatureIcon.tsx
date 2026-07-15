@@ -13,6 +13,7 @@ export function CreatureIcon({ imageUrl, name, size = 40 }: Props) {
         alt={name}
         width={size}
         height={size}
+        /* Fundo branco fixo: sprites do Tibia foram feitos para fundo claro. */
         className="border-2 border-ink bg-white object-contain"
       />
     )
@@ -20,7 +21,7 @@ export function CreatureIcon({ imageUrl, name, size = 40 }: Props) {
   return (
     <div
       style={{ width: size, height: size }}
-      className="flex items-center justify-center border-2 border-ink bg-white text-xs font-black text-ink"
+      className="flex items-center justify-center border-2 border-ink bg-surface text-xs font-black text-ink"
     >
       {name.slice(0, 2).toUpperCase()}
     </div>

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Layout } from '../../components/Layout'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
@@ -20,6 +21,7 @@ const statusTone: Record<ClaimStatus, 'primary' | 'accent' | 'muted'> = {
  * campo Comment do Tibia.com) e permite forçar a checagem imediata.
  */
 export function CharactersPage() {
+  const { t } = useTranslation()
   const [name, setName] = useState('')
   const [error, setError] = useState('')
   const claims = useClaims()
@@ -40,28 +42,24 @@ export function CharactersPage() {
   return (
     <Layout>
       <h1 className="mb-6 text-3xl text-white drop-shadow-[3px_3px_0_#1a1a1a]">
-        Meus personagens
+        {t('characters.title')}
       </h1>
 
       <Card className="mb-6 p-5">
-        <h2 className="mb-1 text-xl text-ink">Verificar um personagem</h2>
-        <p className="mb-4 text-sm font-bold text-ink/70">
-          Informe o nome exato do personagem no Tibia.com. Geramos um código que você cola
-          no campo <span className="text-accent">Comment</span> do personagem; verificamos
-          automaticamente a cada 15 minutos (ou use “Verificar agora”).
-        </p>
+        <h2 className="mb-1 text-xl text-ink">{t('characters.verifyTitle')}</h2>
+        <p className="mb-4 text-sm font-bold text-ink/70">{t('characters.verifyHelp')}</p>
         <form onSubmit={submit} className="flex flex-wrap items-end gap-3 [&_span]:text-ink">
           <div className="min-w-[240px] flex-1">
             <Input
-              label="Nome do personagem"
+              label={t('characters.characterName')}
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Ex.: Bubble"
+              placeholder={t('characters.characterNamePlaceholder')}
               required
             />
           </div>
           <Button type="submit" disabled={createClaim.isPending}>
-            Iniciar verificação
+            {t('characters.startVerification')}
           </Button>
         </form>
         {error && <p className="mt-3 font-bold text-accent">{error}</p>}
@@ -76,12 +74,16 @@ export function CharactersPage() {
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <h3 className="text-lg text-ink">{claim.characterName}</h3>
-                  <Badge tone={statusTone[claim.status]}>{claim.status}</Badge>
+                  <Badge tone={statusTone[claim.status]}>
+                    {t(`enums.claimStatus.${claim.status}`)}
+                  </Badge>
                 </div>
-                <p className="text-sm font-bold text-ink/70">Mundo: {claim.world}</p>
+                <p className="text-sm font-bold text-ink/70">
+                  {t('characters.world')}: {claim.world}
+                </p>
                 {claim.status === 'PENDING' && (
                   <p className="mt-1 text-sm text-ink">
-                    Cole no Comment:{' '}
+                    {t('characters.pasteCode')}{' '}
                     <code className="border-2 border-ink bg-canvas px-2 py-0.5 font-mono font-bold text-accent">
                       {claim.verificationCode}
                     </code>
@@ -94,16 +96,14 @@ export function CharactersPage() {
                   onClick={() => verifyNow.mutate(claim.id)}
                   disabled={verifyNow.isPending}
                 >
-                  Verificar agora
+                  {t('characters.verifyNow')}
                 </Button>
               )}
             </Card>
           ))}
         </div>
       ) : (
-        <Card className="p-6 text-center font-bold">
-          Você ainda não verificou nenhum personagem.
-        </Card>
+        <Card className="p-6 text-center font-bold">{t('characters.empty')}</Card>
       )}
     </Layout>
   )

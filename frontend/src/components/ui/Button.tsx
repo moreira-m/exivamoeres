@@ -9,7 +9,7 @@ interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
 const variants: Record<Variant, string> = {
   primary: 'bg-primary text-white',
   accent: 'bg-accent text-white',
-  neutral: 'bg-white text-ink',
+  neutral: 'bg-surface text-ink',
 }
 
 /** Botão "retro": borda preta grossa e sombra dura que afunda ao clicar. */

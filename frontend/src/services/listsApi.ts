@@ -47,6 +47,9 @@ export const listsApi = {
 
   leave: (id: number) => apiClient.post<void>(`/api/lists/${id}/leave`).then(() => undefined),
 
+  renew: (id: number) =>
+    apiClient.post<ListDetailResponse>(`/api/lists/${id}/renew`).then((r) => r.data),
+
   pendingRequests: (id: number) =>
     apiClient.get<MembershipResponse[]>(`/api/lists/${id}/requests`).then((r) => r.data),
 

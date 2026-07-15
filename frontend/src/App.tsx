@@ -6,6 +6,7 @@ import { TeamDetailPage } from './pages/TeamDetailPage'
 import { CharactersPage } from './pages/account/CharactersPage'
 import { MyTeamsPage } from './pages/account/MyTeamsPage'
 import { CreateTeamPage } from './pages/account/CreateTeamPage'
+import { BillingPage } from './pages/account/BillingPage'
 import { ProtectedRoute } from './components/ProtectedRoute'
 
 export function App() {
@@ -40,6 +41,14 @@ export function App() {
           element={
             <ProtectedRoute>
               <CreateTeamPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/account/billing"
+          element={
+            <ProtectedRoute>
+              <BillingPage />
             </ProtectedRoute>
           }
         />

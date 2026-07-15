@@ -1,0 +1,151 @@
+{
+  "common": {
+    "loading": "Loading…",
+    "all": "All",
+    "allF": "All",
+    "select": "Select…",
+    "noResults": "No results"
+  },
+  "nav": {
+    "tagline": "soul core teams",
+    "myTeams": "My teams",
+    "characters": "Characters",
+    "createTeam": "Create team",
+    "billing": "Subscription",
+    "login": "Sign in",
+    "logout": "Sign out",
+    "menu": "Menu",
+    "language": "Language",
+    "theme": "Theme",
+    "themeLight": "Light",
+    "themeDark": "Dark"
+  },
+  "home": {
+    "title": "Find your Soul Core team",
+    "subtitle": "Groups organized to hunt Tibia bosses and trade soul cores. Filter by world, creature and open slots — join a team or create your own.",
+    "world": "World",
+    "creature": "Creature",
+    "slots": "Slots",
+    "openOnly": "Only with open slots",
+    "searchPlaceholder": "Type to search…",
+    "empty": "No teams found with these filters. How about creating one?"
+  },
+  "login": {
+    "login": "Sign in",
+    "register": "Sign up",
+    "displayName": "Display name",
+    "email": "Email",
+    "password": "Password",
+    "withGoogle": "Continue with Google",
+    "withDiscord": "Continue with Discord",
+    "anonymous": "Continue as guest"
+  },
+  "oauth": {
+    "finishing": "Finishing sign in…"
+  },
+  "characters": {
+    "title": "My characters",
+    "verifyTitle": "Verify a character",
+    "verifyHelp": "Enter the exact character name on Tibia.com. We generate a code you paste into the character's Comment field; we check automatically every 15 minutes (or use \"Verify now\").",
+    "characterName": "Character name",
+    "characterNamePlaceholder": "e.g. Bubble",
+    "startVerification": "Start verification",
+    "world": "World",
+    "pasteCode": "Paste into the Comment:",
+    "verifyNow": "Verify now",
+    "empty": "You haven't verified any character yet."
+  },
+  "myTeams": {
+    "title": "My teams",
+    "freePlan": "Free plan: {{count}}/{{limit}} active teams",
+    "subscribePremium": "Go premium",
+    "tabActive": "Active ({{count}})",
+    "tabInactive": "Completed / archived ({{count}})",
+    "emptyActive": "No active teams. Create one or find one on the home page.",
+    "emptyInactive": "No completed or archived teams.",
+    "renew": "Renew"
+  },
+  "createTeam": {
+    "title": "Create team",
+    "needCharacter": "You need a verified character to create a team. Go to My characters.",
+    "freeSlots": "Free plan: {{count}}/{{limit}} active teams",
+    "atLimit": "You've reached the limit of {{limit}} active teams on the free plan. Complete, let one expire or renew a team, or go premium to create more.",
+    "teamName": "Team name",
+    "yourCharacter": "Your character",
+    "worldInfo": "The team will be on world {{world}}.",
+    "targetCreature": "Target creature (boss)",
+    "joinPolicy": "Join policy",
+    "joinPolicyManual": "Manual approval",
+    "joinPolicyAuto": "Auto accept",
+    "chooseCharacter": "Choose a verified character",
+    "submit": "Create team"
+  },
+  "billing": {
+    "title": "Subscription",
+    "yourPlan": "Your plan",
+    "freeB1": "Up to 3 active teams",
+    "freeB2": "Teams last 7 days",
+    "premiumB1": "Unlimited teams",
+    "premiumB2": "Teams last 30 days",
+    "premiumB3": "Your listings featured in search",
+    "paymentSoon": "Payment coming soon"
+  },
+  "teamDetail": {
+    "notFound": "Team not found.",
+    "target": "Target",
+    "world": "World",
+    "members": "Members",
+    "membersCount": "{{count}}/{{max}} members",
+    "join": "Join the team",
+    "loginToJoin": "to join this team.",
+    "loginLink": "Sign in",
+    "teamFull": "This team is full.",
+    "noCharacterInWorld": "You have no verified character on world {{world}}.",
+    "character": "Character",
+    "sendRequest": "Request to join",
+    "requestSent": "Request sent!",
+    "youParticipate": "You are part of this team.",
+    "leave": "Leave",
+    "requests": "Join requests",
+    "noPendingRequests": "No pending requests.",
+    "approve": "Accept",
+    "reject": "Decline",
+    "suggestions": "Suggested next bosses",
+    "renewInfo": "This team is archived. Renew it to reopen the hunt (uses one slot of your plan).",
+    "renewButton": "Renew team",
+    "teamStatusInfo": "Team {{status}}"
+  },
+  "soulcore": {
+    "title": "Soul cores",
+    "loading": "Loading board…",
+    "empty": "No core registered yet.",
+    "by": "by {{name}}",
+    "unlock": "Unlock",
+    "registerObtained": "Register obtained core…",
+    "markObtained": "Mark obtained"
+  },
+  "chat": {
+    "title": "Team chat",
+    "empty": "No messages yet.",
+    "placeholder": "Message…",
+    "send": "Send"
+  },
+  "teamCard": {
+    "featured": "★ featured",
+    "auto": "auto",
+    "manual": "manual"
+  },
+  "enums": {
+    "claimStatus": { "PENDING": "PENDING", "APPROVED": "APPROVED", "REJECTED": "REJECTED" },
+    "teamStatus": { "ACTIVE": "Active", "COMPLETED": "Completed", "ARCHIVED": "Archived" },
+    "soulcoreStatus": { "OBTAINED": "OBTAINED", "UNLOCKED": "UNLOCKED" },
+    "plan": { "FREE": "Free", "PREMIUM": "Premium" }
+  },
+  "expiry": {
+    "expired": "expired",
+    "days": "expires in {{count}} days",
+    "tomorrow": "expires tomorrow",
+    "hours": "expires in {{count}}h",
+    "soon": "expires in under 1h"
+  }
+}

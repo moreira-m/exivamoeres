@@ -70,6 +70,12 @@ public class ListController {
         listService.leaveList(user.id(), id);
     }
 
+    /** Reativa um time arquivado (só o dono, se tiver vaga no plano). */
+    @PostMapping("/{id}/renew")
+    public ListDetailResponse renew(@AuthenticationPrincipal AuthenticatedUser user, @PathVariable Long id) {
+        return listService.renewTeam(user.id(), id);
+    }
+
     @GetMapping("/{id}/requests")
     public List<MembershipResponse> pendingRequests(@AuthenticationPrincipal AuthenticatedUser user,
                                                     @PathVariable Long id) {

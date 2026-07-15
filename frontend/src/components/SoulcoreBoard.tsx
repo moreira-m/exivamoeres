@@ -5,6 +5,7 @@ import { Badge } from './ui/Badge'
 import { Button } from './ui/Button'
 import { Spinner } from './ui/Spinner'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { getApiErrorMessage } from '../lib/apiError'
 
 interface Props {
@@ -15,6 +16,7 @@ interface Props {
 
 /** Board dos soul cores rastreados no time; membros marcam obtido/desbloqueado. */
 export function SoulcoreBoard({ listId, actingCharacterId }: Props) {
+  const { t } = useTranslation()
   const board = useSoulcoreBoard(listId)
   const creatures = useCreatures()
   const { obtain, unlock } = useSoulcoreActions(listId)
@@ -34,18 +36,22 @@ export function SoulcoreBoard({ listId, actingCharacterId }: Props) {
 
   return (
     <Card className="p-4">
-      <h3 className="mb-3 text-lg text-ink">Soul cores</h3>
+      <h3 className="mb-3 text-lg text-ink">{t('soulcore.title')}</h3>
 
       {board.isLoading ? (
-        <Spinner label="Carregando board…" />
+        <Spinner label={t('soulcore.loading')} />
       ) : board.data && board.data.length > 0 ? (
         <ul className="space-y-2">
           {board.data.map((sc) => (
             <li key={sc.id} className="flex flex-wrap items-center gap-2 border-b-2 border-ink/10 pb-2">
               <span className="font-bold text-ink">{sc.creatureName}</span>
-              <Badge tone={sc.status === 'UNLOCKED' ? 'primary' : 'accent'}>{sc.status}</Badge>
+              <Badge tone={sc.status === 'UNLOCKED' ? 'primary' : 'accent'}>
+                {t(`enums.soulcoreStatus.${sc.status}`)}
+              </Badge>
               {sc.obtainedByCharacterName && (
-                <span className="text-sm text-ink/60">por {sc.obtainedByCharacterName}</span>
+                <span className="text-sm text-ink/60">
+                  {t('soulcore.by', { name: sc.obtainedByCharacterName })}
+                </span>
               )}
               {actingCharacterId && sc.status === 'OBTAINED' && (
                 <Button
@@ -53,14 +59,14 @@ export function SoulcoreBoard({ listId, actingCharacterId }: Props) {
                   className="ml-auto !px-3 !py-1 !text-xs"
                   onClick={() => act('unlock', sc.creatureId)}
                 >
-                  Desbloquear
+                  {t('soulcore.unlock')}
                 </Button>
               )}
             </li>
           ))}
         </ul>
       ) : (
-        <p className="text-sm font-bold text-ink/50">Nenhum core registrado ainda.</p>
+        <p className="text-sm font-bold text-ink/50">{t('soulcore.empty')}</p>
       )}
 
       {actingCharacterId && (
@@ -68,9 +74,9 @@ export function SoulcoreBoard({ listId, actingCharacterId }: Props) {
           <select
             value={creatureId}
             onChange={(e) => setCreatureId(e.target.value)}
-            className="border-[3px] border-ink bg-white px-3 py-2 font-mono text-ink"
+            className="border-[3px] border-ink bg-surface px-3 py-2 font-mono text-ink"
           >
-            <option value="">Registrar core obtido…</option>
+            <option value="">{t('soulcore.registerObtained')}</option>
             {creatures.data?.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
@@ -82,7 +88,7 @@ export function SoulcoreBoard({ listId, actingCharacterId }: Props) {
             disabled={!creatureId}
             onClick={() => creatureId && act('obtain', Number(creatureId))}
           >
-            Marcar obtido
+            {t('soulcore.markObtained')}
           </Button>
         </div>
       )}

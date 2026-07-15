@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { authService } from '../services/authService'
 import { useAuthStore } from '../store/authStore'
 
@@ -29,9 +30,14 @@ export function OAuthCallbackPage() {
       .catch(() => navigate('/login', { replace: true }))
   }, [navigate, setSession])
 
+  return <OAuthCallbackMessage />
+}
+
+function OAuthCallbackMessage() {
+  const { t } = useTranslation()
   return (
     <div className="flex min-h-screen items-center justify-center font-black uppercase text-white">
-      Finalizando login…
+      {t('oauth.finishing')}
     </div>
   )
 }

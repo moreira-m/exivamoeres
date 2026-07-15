@@ -1,0 +1,151 @@
+{
+  "common": {
+    "loading": "Carregando…",
+    "all": "Todos",
+    "allF": "Todas",
+    "select": "Selecione…",
+    "noResults": "Nenhum resultado"
+  },
+  "nav": {
+    "tagline": "times de soul core",
+    "myTeams": "Meus times",
+    "characters": "Personagens",
+    "createTeam": "Criar time",
+    "billing": "Assinatura",
+    "login": "Entrar",
+    "logout": "Sair",
+    "menu": "Menu",
+    "language": "Idioma",
+    "theme": "Tema",
+    "themeLight": "Claro",
+    "themeDark": "Escuro"
+  },
+  "home": {
+    "title": "Encontre seu time de Soul Core",
+    "subtitle": "Grupos organizados para caçar bosses do Tibia e trocar soul cores. Filtre por mundo, criatura e vagas — entre em um time ou crie o seu.",
+    "world": "Mundo",
+    "creature": "Criatura",
+    "slots": "Vagas",
+    "openOnly": "Só com vaga aberta",
+    "searchPlaceholder": "Digite para buscar…",
+    "empty": "Nenhum time encontrado com esses filtros. Que tal criar um?"
+  },
+  "login": {
+    "login": "Entrar",
+    "register": "Criar conta",
+    "displayName": "Nome de exibição",
+    "email": "Email",
+    "password": "Senha",
+    "withGoogle": "Continuar com Google",
+    "withDiscord": "Continuar com Discord",
+    "anonymous": "Entrar como anônimo"
+  },
+  "oauth": {
+    "finishing": "Finalizando login…"
+  },
+  "characters": {
+    "title": "Meus personagens",
+    "verifyTitle": "Verificar um personagem",
+    "verifyHelp": "Informe o nome exato do personagem no Tibia.com. Geramos um código que você cola no campo Comment do personagem; verificamos automaticamente a cada 15 minutos (ou use \"Verificar agora\").",
+    "characterName": "Nome do personagem",
+    "characterNamePlaceholder": "Ex.: Bubble",
+    "startVerification": "Iniciar verificação",
+    "world": "Mundo",
+    "pasteCode": "Cole no Comment:",
+    "verifyNow": "Verificar agora",
+    "empty": "Você ainda não verificou nenhum personagem."
+  },
+  "myTeams": {
+    "title": "Meus times",
+    "freePlan": "Plano free: {{count}}/{{limit}} times ativos",
+    "subscribePremium": "Assinar premium",
+    "tabActive": "Ativos ({{count}})",
+    "tabInactive": "Concluídos / arquivados ({{count}})",
+    "emptyActive": "Nenhum time ativo. Crie um ou encontre um na página inicial.",
+    "emptyInactive": "Nenhum time concluído ou arquivado.",
+    "renew": "Renovar"
+  },
+  "createTeam": {
+    "title": "Criar time",
+    "needCharacter": "Você precisa de um personagem verificado para criar um time. Vá em Meus personagens.",
+    "freeSlots": "Plano free: {{count}}/{{limit}} times ativos",
+    "atLimit": "Você atingiu o limite de {{limit}} times ativos do plano free. Conclua, deixe expirar ou renove um time, ou assine o premium para criar mais.",
+    "teamName": "Nome do time",
+    "yourCharacter": "Seu personagem",
+    "worldInfo": "O time será do mundo {{world}}.",
+    "targetCreature": "Criatura-alvo (boss)",
+    "joinPolicy": "Política de entrada",
+    "joinPolicyManual": "Aprovação manual",
+    "joinPolicyAuto": "Entrada automática",
+    "chooseCharacter": "Escolha um personagem verificado",
+    "submit": "Criar time"
+  },
+  "billing": {
+    "title": "Assinatura",
+    "yourPlan": "Seu plano",
+    "freeB1": "Até 3 times ativos",
+    "freeB2": "Times duram 7 dias",
+    "premiumB1": "Times ilimitados",
+    "premiumB2": "Times duram 30 dias",
+    "premiumB3": "Seus anúncios em destaque na busca",
+    "paymentSoon": "Pagamento em breve"
+  },
+  "teamDetail": {
+    "notFound": "Time não encontrado.",
+    "target": "Alvo",
+    "world": "Mundo",
+    "members": "Membros",
+    "membersCount": "{{count}}/{{max}} membros",
+    "join": "Entrar no time",
+    "loginToJoin": "para participar deste time.",
+    "loginLink": "Entre",
+    "teamFull": "Este time está cheio.",
+    "noCharacterInWorld": "Você não tem personagem verificado no mundo {{world}}.",
+    "character": "Personagem",
+    "sendRequest": "Pedir para entrar",
+    "requestSent": "Pedido enviado!",
+    "youParticipate": "Você participa deste time.",
+    "leave": "Sair",
+    "requests": "Pedidos de entrada",
+    "noPendingRequests": "Nenhum pedido pendente.",
+    "approve": "Aceitar",
+    "reject": "Recusar",
+    "suggestions": "Sugestões de próximos bosses",
+    "renewInfo": "Este time está arquivado. Renove para reabrir a caçada (consome uma vaga do seu plano).",
+    "renewButton": "Renovar time",
+    "teamStatusInfo": "Time {{status}}"
+  },
+  "soulcore": {
+    "title": "Soul cores",
+    "loading": "Carregando board…",
+    "empty": "Nenhum core registrado ainda.",
+    "by": "por {{name}}",
+    "unlock": "Desbloquear",
+    "registerObtained": "Registrar core obtido…",
+    "markObtained": "Marcar obtido"
+  },
+  "chat": {
+    "title": "Chat do time",
+    "empty": "Nenhuma mensagem ainda.",
+    "placeholder": "Mensagem…",
+    "send": "Enviar"
+  },
+  "teamCard": {
+    "featured": "★ destaque",
+    "auto": "auto",
+    "manual": "manual"
+  },
+  "enums": {
+    "claimStatus": { "PENDING": "PENDENTE", "APPROVED": "APROVADO", "REJECTED": "RECUSADO" },
+    "teamStatus": { "ACTIVE": "Ativo", "COMPLETED": "Concluído", "ARCHIVED": "Arquivado" },
+    "soulcoreStatus": { "OBTAINED": "OBTIDO", "UNLOCKED": "DESBLOQUEADO" },
+    "plan": { "FREE": "Free", "PREMIUM": "Premium" }
+  },
+  "expiry": {
+    "expired": "expirado",
+    "days": "expira em {{count}} dias",
+    "tomorrow": "expira amanhã",
+    "hours": "expira em {{count}}h",
+    "soon": "expira em menos de 1h"
+  }
+}

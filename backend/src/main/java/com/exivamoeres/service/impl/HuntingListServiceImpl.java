@@ -7,6 +7,7 @@ import com.exivamoeres.domain.HuntingList;
 import com.exivamoeres.domain.JoinPolicy;
 import com.exivamoeres.domain.ListMembership;
 import com.exivamoeres.domain.MembershipStatus;
+import com.exivamoeres.domain.TeamStatus;
 import com.exivamoeres.domain.User;
 import com.exivamoeres.domain.exception.BusinessRuleException;
 import com.exivamoeres.domain.exception.ResourceNotFoundException;
@@ -21,6 +22,7 @@ import com.exivamoeres.repository.HuntingListRepository;
 import com.exivamoeres.repository.ListMembershipRepository;
 import com.exivamoeres.repository.UserRepository;
 import com.exivamoeres.service.HuntingListService;
+import com.exivamoeres.service.PlanPolicy;
 import com.exivamoeres.service.ShareCodeGenerator;
 import com.exivamoeres.service.TeamEligibilityService;
 import lombok.extern.slf4j.Slf4j;
@@ -29,6 +31,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -42,6 +45,7 @@ public class HuntingListServiceImpl implements HuntingListService {
     private final CreatureRepository creatureRepository;
     private final UserRepository userRepository;
     private final TeamEligibilityService eligibilityService;
+    private final PlanPolicy planPolicy;
     private final ShareCodeGenerator shareCodeGenerator;
     private final int maxMembers;
 
@@ -51,6 +55,7 @@ public class HuntingListServiceImpl implements HuntingListService {
                                   CreatureRepository creatureRepository,
                                   UserRepository userRepository,
                                   TeamEligibilityService eligibilityService,
+                                  PlanPolicy planPolicy,
                                   ShareCodeGenerator shareCodeGenerator,
                                   TeamProperties teamProperties) {
         this.listRepository = listRepository;
@@ -59,6 +64,7 @@ public class HuntingListServiceImpl implements HuntingListService {
         this.creatureRepository = creatureRepository;
         this.userRepository = userRepository;
         this.eligibilityService = eligibilityService;
+        this.planPolicy = planPolicy;
         this.shareCodeGenerator = shareCodeGenerator;
         this.maxMembers = teamProperties.maxMembers();
     }
@@ -72,6 +78,8 @@ public class HuntingListServiceImpl implements HuntingListService {
                 .orElseThrow(() -> new ResourceNotFoundException("Criatura não encontrada"));
         Character character = loadOwnedCharacter(request.characterId(), ownerId);
 
+        // Limite de times ativos conforme o plano (free tem teto; premium não).
+        assertWithinActiveTeamLimit(owner);
         // A elegibilidade do criador é validada com o world do próprio time.
         eligibilityService.assertEligible(character, request.world());
 
@@ -82,6 +90,8 @@ public class HuntingListServiceImpl implements HuntingListService {
         list.setTargetCreature(target);
         list.setJoinPolicy(request.joinPolicy());
         list.setShareCode(generateUniqueShareCode());
+        list.setStatus(TeamStatus.ACTIVE);
+        list.setExpiresAt(Instant.now().plus(planPolicy.teamDuration(owner.getPlan())));
         listRepository.save(list);
 
         // O criador entra já aprovado como primeiro membro.
@@ -106,6 +116,9 @@ public class HuntingListServiceImpl implements HuntingListService {
                 .getId();
         // Trava a linha do time: impede corrida no limite de vagas.
         HuntingList list = listRepository.findByIdForUpdate(listId).orElseThrow();
+        if (list.getStatus() != TeamStatus.ACTIVE) {
+            throw new BusinessRuleException("Este time não está aceitando novos membros");
+        }
 
         Character character = loadOwnedCharacter(request.characterId(), userId);
         eligibilityService.assertEligible(character, list.getWorld());
@@ -177,6 +190,21 @@ public class HuntingListServiceImpl implements HuntingListService {
         // Sair nunca deleta histórico — só desativa (regra herdada da sessão 1).
         memberships.forEach(m -> m.setActive(false));
         log.info("list.leave listId={} userId={} count={}", listId, userId, memberships.size());
+    }
+
+    @Override
+    @Transactional
+    public ListDetailResponse renewTeam(Long ownerId, Long listId) {
+        HuntingList list = loadOwnedListForUpdate(listId, ownerId);
+        if (list.getStatus() != TeamStatus.ARCHIVED) {
+            throw new BusinessRuleException("Só é possível renovar um time arquivado");
+        }
+        // Renovar consome uma vaga do plano, igual criar.
+        assertWithinActiveTeamLimit(list.getOwner());
+        list.setStatus(TeamStatus.ACTIVE);
+        list.setExpiresAt(Instant.now().plus(planPolicy.teamDuration(list.getOwner().getPlan())));
+        log.info("team.renewed listId={} ownerId={} newExpiresAt={}", listId, ownerId, list.getExpiresAt());
+        return buildDetail(list);
     }
 
     @Override
@@ -278,6 +306,16 @@ public class HuntingListServiceImpl implements HuntingListService {
             throw new BusinessRuleException("Este pedido não está mais pendente");
         }
         return membership;
+    }
+
+    private void assertWithinActiveTeamLimit(User owner) {
+        long activeTeams = listRepository.countByOwnerIdAndStatus(owner.getId(), TeamStatus.ACTIVE);
+        int limit = planPolicy.maxActiveTeams(owner.getPlan());
+        if (activeTeams >= limit) {
+            throw new BusinessRuleException(
+                    "Você atingiu o limite de " + limit + " times ativos do seu plano. "
+                            + "Conclua, deixe expirar ou assine o premium para criar mais.");
+        }
     }
 
     private void assertHasOpenSlot(Long listId) {

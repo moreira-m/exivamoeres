@@ -6,7 +6,7 @@ const tones: Record<Tone, string> = {
   primary: 'bg-primary text-white',
   accent: 'bg-accent text-white',
   neutral: 'bg-ink text-white',
-  muted: 'bg-white text-ink',
+  muted: 'bg-surface text-ink',
 }
 
 interface Props extends HTMLAttributes<HTMLSpanElement> {

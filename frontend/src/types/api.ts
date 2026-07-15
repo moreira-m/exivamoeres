@@ -6,6 +6,8 @@ export type ClaimStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
 export type SoulcoreStatus = 'OBTAINED' | 'UNLOCKED'
 export type JoinPolicy = 'MANUAL_APPROVAL' | 'AUTO_ACCEPT'
 export type MembershipStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
+export type Plan = 'FREE' | 'PREMIUM'
+export type TeamStatus = 'ACTIVE' | 'COMPLETED' | 'ARCHIVED'
 
 export interface UserResponse {
   id: number
@@ -13,6 +15,7 @@ export interface UserResponse {
   email: string | null
   authProvider: AuthProvider
   anonymous: boolean
+  plan: Plan
 }
 
 export interface AuthResponse {
@@ -66,6 +69,9 @@ export interface ListSummaryResponse {
   targetCreatureName: string
   targetCreatureImageUrl: string | null
   joinPolicy: JoinPolicy
+  status: TeamStatus
+  expiresAt: string
+  featured: boolean
   memberCount: number
   maxMembers: number
   hasOpenSlots: boolean

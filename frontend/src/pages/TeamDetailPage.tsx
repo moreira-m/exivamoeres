@@ -17,12 +17,16 @@ import {
   useRequestDecision,
   useSuggestions,
   useDismissSuggestion,
+  useRenewTeam,
 } from '../hooks/useLists'
 import { useMyCharacters } from '../hooks/useCharacters'
 import { useAuthStore } from '../store/authStore'
 import { getApiErrorMessage } from '../lib/apiError'
+import { formatExpiry } from '../lib/format'
+import { useTranslation } from 'react-i18next'
 
 export function TeamDetailPage() {
+  const { t } = useTranslation()
   const { id } = useParams()
   const listId = Number(id)
   const detail = useListDetail(listId)
@@ -39,13 +43,14 @@ export function TeamDetailPage() {
   if (!detail.data) {
     return (
       <Layout>
-        <Card className="p-6 text-center font-bold">Time não encontrado.</Card>
+        <Card className="p-6 text-center font-bold">{t('teamDetail.notFound')}</Card>
       </Layout>
     )
   }
 
   const team = detail.data.summary
   const isOwner = !!user && detail.data.ownerId === user.id
+  const isActive = team.status === 'ACTIVE'
 
   // Personagem meu que é membro ativo/aprovado deste time (para agir no time).
   const myCharacterIds = new Set((myChars.data ?? []).map((c) => c.id))
@@ -54,51 +59,94 @@ export function TeamDetailPage() {
   )
   const actingCharacterId = myActiveMembership?.characterId
   const isMember = !!actingCharacterId
+  // Escrita (soulcore, chat) só em time ativo — reflete a regra do backend.
+  const canWrite = isActive && isMember ? actingCharacterId : undefined
 
   return (
     <Layout>
       <Card className="mb-6 flex flex-wrap items-center gap-4 p-5">
         <CreatureIcon imageUrl={team.targetCreatureImageUrl} name={team.targetCreatureName} size={64} />
         <div className="min-w-0 flex-1">
-          <h1 className="text-3xl text-ink">{team.name}</h1>
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-3xl text-ink">{team.name}</h1>
+            {team.featured && <Badge tone="accent">{t('teamCard.featured')}</Badge>}
+            {!isActive && <Badge tone="neutral">{t(`enums.teamStatus.${team.status}`)}</Badge>}
+          </div>
           <p className="font-bold text-ink/70">
-            Alvo: {team.targetCreatureName} · Mundo: {team.world}
+            {t('teamDetail.target')}: {team.targetCreatureName} · {t('teamDetail.world')}: {team.world}
+          </p>
+          <p className="text-sm font-bold text-ink/50">
+            {isActive
+              ? formatExpiry(team.expiresAt)
+              : t('teamDetail.teamStatusInfo', { status: t(`enums.teamStatus.${team.status}`) })}
           </p>
         </div>
         <div className="flex flex-col items-end gap-1">
-          <Badge tone={team.hasOpenSlots ? 'primary' : 'neutral'}>
-            {team.memberCount}/{team.maxMembers} membros
+          <Badge tone={team.hasOpenSlots && isActive ? 'primary' : 'neutral'}>
+            {t('teamDetail.membersCount', { count: team.memberCount, max: team.maxMembers })}
           </Badge>
           <Badge tone={team.joinPolicy === 'AUTO_ACCEPT' ? 'accent' : 'muted'}>
-            {team.joinPolicy === 'AUTO_ACCEPT' ? 'entrada automática' : 'aprovação manual'}
+            {team.joinPolicy === 'AUTO_ACCEPT'
+              ? t('createTeam.joinPolicyAuto')
+              : t('createTeam.joinPolicyManual')}
           </Badge>
         </div>
       </Card>
 
+      {isOwner && team.status === 'ARCHIVED' && <RenewCard listId={listId} />}
+
       <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
         <div className="space-y-6">
           <MembersCard members={detail.data.members} />
-          {!isMember && <JoinCard listId={listId} teamWorld={team.world} full={!team.hasOpenSlots} />}
-          {isMember && <LeaveCard listId={listId} />}
-          {isOwner && <RequestsCard listId={listId} />}
-          {isMember && <SuggestionsCard listId={listId} />}
+          {isActive && !isMember && (
+            <JoinCard listId={listId} teamWorld={team.world} full={!team.hasOpenSlots} />
+          )}
+          {isMember && isActive && <LeaveCard listId={listId} />}
+          {isOwner && isActive && <RequestsCard listId={listId} />}
+          {isMember && isActive && <SuggestionsCard listId={listId} />}
         </div>
         <div className="space-y-6">
-          <SoulcoreBoard listId={listId} actingCharacterId={actingCharacterId} />
-          {isMember && actingCharacterId && (
-            <ChatPanel listId={listId} actingCharacterId={actingCharacterId} />
-          )}
+          {/* Board sempre visível (leitura); ações só passam actingCharacterId em time ativo. */}
+          <SoulcoreBoard listId={listId} actingCharacterId={canWrite} />
+          {canWrite && <ChatPanel listId={listId} actingCharacterId={canWrite} />}
         </div>
       </div>
     </Layout>
   )
 }
 
+function RenewCard({ listId }: { listId: number }) {
+  const { t } = useTranslation()
+  const renew = useRenewTeam()
+  const [error, setError] = useState('')
+  return (
+    <Card className="mb-6 flex flex-wrap items-center justify-between gap-3 p-4">
+      <span className="font-bold text-ink">{t('teamDetail.renewInfo')}</span>
+      <Button
+        variant="accent"
+        disabled={renew.isPending}
+        onClick={async () => {
+          setError('')
+          try {
+            await renew.mutateAsync(listId)
+          } catch (err) {
+            setError(getApiErrorMessage(err))
+          }
+        }}
+      >
+        {t('teamDetail.renewButton')}
+      </Button>
+      {error && <p className="w-full font-bold text-accent">{error}</p>}
+    </Card>
+  )
+}
+
 function MembersCard({ members }: { members: { id: number; characterName: string; vocation: string | null; status: string; active: boolean }[] }) {
+  const { t } = useTranslation()
   const active = members.filter((m) => m.active && m.status === 'APPROVED')
   return (
     <Card className="p-4">
-      <h3 className="mb-3 text-lg text-ink">Membros</h3>
+      <h3 className="mb-3 text-lg text-ink">{t('teamDetail.members')}</h3>
       <ul className="space-y-2">
         {active.map((m) => (
           <li key={m.id} className="flex items-center gap-2">
@@ -112,6 +160,7 @@ function MembersCard({ members }: { members: { id: number; characterName: string
 }
 
 function JoinCard({ listId, teamWorld, full }: { listId: number; teamWorld: string; full: boolean }) {
+  const { t } = useTranslation()
   const user = useAuthStore((s) => s.user)
   const myChars = useMyCharacters()
   const detail = useListDetail(listId)
@@ -130,9 +179,9 @@ function JoinCard({ listId, teamWorld, full }: { listId: number; teamWorld: stri
     return (
       <Card className="p-4 text-center font-bold text-ink">
         <a href="/login" className="text-accent underline">
-          Entre
+          {t('teamDetail.loginLink')}
         </a>{' '}
-        para participar deste time.
+        {t('teamDetail.loginToJoin')}
       </Card>
     )
   }
@@ -142,7 +191,7 @@ function JoinCard({ listId, teamWorld, full }: { listId: number; teamWorld: stri
     setOk('')
     try {
       await join.mutateAsync({ shareCode: detail.data!.summary.shareCode, characterId: Number(characterId) })
-      setOk('Pedido enviado!')
+      setOk(t('teamDetail.requestSent'))
     } catch (err) {
       setError(getApiErrorMessage(err))
     }
@@ -150,21 +199,21 @@ function JoinCard({ listId, teamWorld, full }: { listId: number; teamWorld: stri
 
   return (
     <Card className="p-4">
-      <h3 className="mb-3 text-lg text-ink">Entrar no time</h3>
+      <h3 className="mb-3 text-lg text-ink">{t('teamDetail.join')}</h3>
       {full ? (
-        <p className="font-bold text-accent">Este time está cheio.</p>
+        <p className="font-bold text-accent">{t('teamDetail.teamFull')}</p>
       ) : eligible.length === 0 ? (
         <p className="text-sm font-bold text-ink/70">
-          Você não tem personagem verificado no mundo {teamWorld}.
+          {t('teamDetail.noCharacterInWorld', { world: teamWorld })}
         </p>
       ) : (
         <div className="flex flex-wrap items-end gap-2 [&_span]:text-ink">
           <Select
-            label="Personagem"
+            label={t('teamDetail.character')}
             value={characterId}
             onChange={(e) => setCharacterId(e.target.value)}
           >
-            <option value="">Selecione…</option>
+            <option value="">{t('common.select')}</option>
             {eligible.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
@@ -172,7 +221,7 @@ function JoinCard({ listId, teamWorld, full }: { listId: number; teamWorld: stri
             ))}
           </Select>
           <Button variant="accent" disabled={!characterId || join.isPending} onClick={submit}>
-            Pedir para entrar
+            {t('teamDetail.sendRequest')}
           </Button>
         </div>
       )}
@@ -183,11 +232,12 @@ function JoinCard({ listId, teamWorld, full }: { listId: number; teamWorld: stri
 }
 
 function LeaveCard({ listId }: { listId: number }) {
+  const { t } = useTranslation()
   const leave = useLeaveList()
   const [error, setError] = useState('')
   return (
     <Card className="flex items-center justify-between p-4">
-      <span className="font-bold text-ink">Você participa deste time.</span>
+      <span className="font-bold text-ink">{t('teamDetail.youParticipate')}</span>
       <Button
         variant="neutral"
         onClick={async () => {
@@ -199,7 +249,7 @@ function LeaveCard({ listId }: { listId: number }) {
           }
         }}
       >
-        Sair
+        {t('teamDetail.leave')}
       </Button>
       {error && <p className="w-full font-bold text-accent">{error}</p>}
     </Card>
@@ -207,30 +257,31 @@ function LeaveCard({ listId }: { listId: number }) {
 }
 
 function RequestsCard({ listId }: { listId: number }) {
+  const { t } = useTranslation()
   const requests = usePendingRequests(listId, true)
   const { approve, reject } = useRequestDecision(listId)
 
   if (!requests.data || requests.data.length === 0) {
     return (
       <Card className="p-4">
-        <h3 className="mb-2 text-lg text-ink">Pedidos de entrada</h3>
-        <p className="text-sm font-bold text-ink/50">Nenhum pedido pendente.</p>
+        <h3 className="mb-2 text-lg text-ink">{t('teamDetail.requests')}</h3>
+        <p className="text-sm font-bold text-ink/50">{t('teamDetail.noPendingRequests')}</p>
       </Card>
     )
   }
 
   return (
     <Card className="p-4">
-      <h3 className="mb-3 text-lg text-ink">Pedidos de entrada</h3>
+      <h3 className="mb-3 text-lg text-ink">{t('teamDetail.requests')}</h3>
       <ul className="space-y-2">
         {requests.data.map((r) => (
           <li key={r.id} className="flex items-center gap-2">
             <span className="flex-1 font-bold text-ink">{r.characterName}</span>
             <Button variant="primary" className="!px-3 !py-1 !text-xs" onClick={() => approve.mutate(r.id)}>
-              Aceitar
+              {t('teamDetail.approve')}
             </Button>
             <Button variant="neutral" className="!px-3 !py-1 !text-xs" onClick={() => reject.mutate(r.id)}>
-              Recusar
+              {t('teamDetail.reject')}
             </Button>
           </li>
         ))}
@@ -240,6 +291,7 @@ function RequestsCard({ listId }: { listId: number }) {
 }
 
 function SuggestionsCard({ listId }: { listId: number }) {
+  const { t } = useTranslation()
   const suggestions = useSuggestions(listId, true)
   const dismiss = useDismissSuggestion(listId)
 
@@ -247,7 +299,7 @@ function SuggestionsCard({ listId }: { listId: number }) {
 
   return (
     <Card className="p-4">
-      <h3 className="mb-3 text-lg text-ink">Sugestões de próximos bosses</h3>
+      <h3 className="mb-3 text-lg text-ink">{t('teamDetail.suggestions')}</h3>
       <ul className="space-y-2">
         {suggestions.data.map((s) => (
           <li key={s.id} className="flex items-center gap-2">

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Layout } from '../components/Layout'
 import { TeamCard } from '../components/TeamCard'
 import { Card } from '../components/ui/Card'
@@ -12,6 +13,7 @@ import { useWorlds, useCreatures } from '../hooks/useCatalog'
  * e vaga disponível. Experiência principal de quem quer só encontrar um time.
  */
 export function HomePage() {
+  const { t } = useTranslation()
   const [world, setWorld] = useState('')
   const [creatureId, setCreatureId] = useState('')
   const [onlyOpen, setOnlyOpen] = useState('')
@@ -36,38 +38,33 @@ export function HomePage() {
   return (
     <Layout>
       <section className="mb-8">
-        <h1 className="text-4xl text-white drop-shadow-[3px_3px_0_#1a1a1a]">
-          Encontre seu time de Soul Core
-        </h1>
-        <p className="mt-2 max-w-2xl font-bold text-white/90">
-          Grupos organizados para caçar bosses do Tibia e trocar soul cores. Filtre por
-          mundo, criatura e vagas — entre em um time ou crie o seu.
-        </p>
+        <h1 className="text-4xl text-white drop-shadow-[3px_3px_0_#1a1a1a]">{t('home.title')}</h1>
+        <p className="mt-2 max-w-2xl font-bold text-white/90">{t('home.subtitle')}</p>
       </section>
 
       <Card className="mb-6 grid gap-4 p-4 sm:grid-cols-3">
         <Combobox
-          label="Mundo"
+          label={t('home.world')}
           value={world}
           onChange={setWorld}
           options={worldOptions}
-          allLabel="Todos"
-          placeholder="Digite para buscar…"
+          allLabel={t('common.all')}
+          placeholder={t('home.searchPlaceholder')}
         />
         <Combobox
-          label="Criatura"
+          label={t('home.creature')}
           value={creatureId}
           onChange={setCreatureId}
           options={creatureOptions}
-          allLabel="Todas"
-          placeholder="Digite para buscar…"
+          allLabel={t('common.allF')}
+          placeholder={t('home.searchPlaceholder')}
         />
         <Combobox
-          label="Vagas"
+          label={t('home.slots')}
           value={onlyOpen}
           onChange={setOnlyOpen}
-          options={[{ value: 'open', label: 'Só com vaga aberta' }]}
-          allLabel="Todos"
+          options={[{ value: 'open', label: t('home.openOnly') }]}
+          allLabel={t('common.all')}
           searchable={false}
         />
       </Card>
@@ -81,9 +78,7 @@ export function HomePage() {
           ))}
         </div>
       ) : (
-        <Card className="p-6 text-center font-bold">
-          Nenhum time encontrado com esses filtros. Que tal criar um?
-        </Card>
+        <Card className="p-6 text-center font-bold">{t('home.empty')}</Card>
       )}
     </Layout>
   )

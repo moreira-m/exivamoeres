@@ -1,20 +1,27 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Layout } from '../../components/Layout'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
 import { Input, Select } from '../../components/ui/Input'
-import { useCreateList } from '../../hooks/useLists'
+import { useCreateList, useMyLists } from '../../hooks/useLists'
 import { useCreatures } from '../../hooks/useCatalog'
 import { useMyCharacters } from '../../hooks/useCharacters'
+import { useAuth } from '../../hooks/useAuth'
 import { getApiErrorMessage } from '../../lib/apiError'
 import type { JoinPolicy } from '../../types/api'
 
+const FREE_ACTIVE_LIMIT = 3
+
 export function CreateTeamPage() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const creatures = useCreatures()
   const characters = useMyCharacters()
   const createList = useCreateList()
+  const myLists = useMyLists()
+  const { user } = useAuth()
 
   const [name, setName] = useState('')
   const [characterId, setCharacterId] = useState('')
@@ -32,7 +39,7 @@ export function CreateTeamPage() {
     e.preventDefault()
     setError('')
     if (!selectedCharacter) {
-      setError('Escolha um personagem verificado')
+      setError(t('createTeam.chooseCharacter'))
       return
     }
     try {
@@ -51,34 +58,59 @@ export function CreateTeamPage() {
 
   const noCharacters = characters.data && characters.data.length === 0
 
+  // Vagas do plano free (o backend é quem garante o limite; aqui é só UX).
+  const activeCount = (myLists.data ?? []).filter((t) => t.status === 'ACTIVE').length
+  const isFree = user?.plan === 'FREE'
+  const atLimit = isFree && activeCount >= FREE_ACTIVE_LIMIT
+
   return (
     <Layout>
-      <h1 className="mb-6 text-3xl text-white drop-shadow-[3px_3px_0_#1a1a1a]">Criar time</h1>
+      <h1 className="mb-6 text-3xl text-white drop-shadow-[3px_3px_0_#1a1a1a]">
+        {t('createTeam.title')}
+      </h1>
+
+      {isFree && (
+        <Card className="mb-4 flex max-w-xl items-center justify-between p-4">
+          <span className="font-bold text-ink">
+            {t('createTeam.freeSlots', { count: activeCount, limit: FREE_ACTIVE_LIMIT })}
+          </span>
+          {atLimit && (
+            <a href="/account/billing" className="font-extrabold uppercase text-accent underline">
+              {t('myTeams.subscribePremium')}
+            </a>
+          )}
+        </Card>
+      )}
+
+      {atLimit && (
+        <Card className="mb-4 max-w-xl p-4 font-bold text-accent">
+          {t('createTeam.atLimit', { limit: FREE_ACTIVE_LIMIT })}
+        </Card>
+      )}
 
       <Card className="max-w-xl p-6">
         {noCharacters ? (
           <p className="font-bold text-ink">
-            Você precisa de um personagem verificado para criar um time. Vá em{' '}
+            {t('createTeam.needCharacter')}{' '}
             <a href="/account/characters" className="text-accent underline">
-              Meus personagens
+              {t('nav.characters')}
             </a>
-            .
           </p>
         ) : (
           <form onSubmit={submit} className="space-y-4 [&_span]:text-ink">
             <Input
-              label="Nome do time"
+              label={t('createTeam.teamName')}
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
             />
             <Select
-              label="Seu personagem"
+              label={t('createTeam.yourCharacter')}
               value={characterId}
               onChange={(e) => setCharacterId(e.target.value)}
               required
             >
-              <option value="">Selecione…</option>
+              <option value="">{t('common.select')}</option>
               {characters.data?.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name} · {c.world}
@@ -87,16 +119,16 @@ export function CreateTeamPage() {
             </Select>
             {selectedCharacter && (
               <p className="text-sm font-bold text-ink/70">
-                O time será do mundo <span className="text-accent">{selectedCharacter.world}</span>.
+                {t('createTeam.worldInfo', { world: selectedCharacter.world })}
               </p>
             )}
             <Select
-              label="Criatura-alvo (boss)"
+              label={t('createTeam.targetCreature')}
               value={creatureId}
               onChange={(e) => setCreatureId(e.target.value)}
               required
             >
-              <option value="">Selecione…</option>
+              <option value="">{t('common.select')}</option>
               {creatures.data?.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
@@ -105,18 +137,18 @@ export function CreateTeamPage() {
               ))}
             </Select>
             <Select
-              label="Política de entrada"
+              label={t('createTeam.joinPolicy')}
               value={joinPolicy}
               onChange={(e) => setJoinPolicy(e.target.value as JoinPolicy)}
             >
-              <option value="MANUAL_APPROVAL">Aprovação manual</option>
-              <option value="AUTO_ACCEPT">Entrada automática</option>
+              <option value="MANUAL_APPROVAL">{t('createTeam.joinPolicyManual')}</option>
+              <option value="AUTO_ACCEPT">{t('createTeam.joinPolicyAuto')}</option>
             </Select>
 
             {error && <p className="font-bold text-accent">{error}</p>}
 
-            <Button type="submit" disabled={createList.isPending}>
-              Criar time
+            <Button type="submit" disabled={createList.isPending || atLimit}>
+              {t('createTeam.submit')}
             </Button>
           </form>
         )}

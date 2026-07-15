@@ -43,6 +43,19 @@ public class User {
     @Column(name = "provider_id")
     private String providerId;
 
+    /**
+     * Plano da conta. É o cache rápido consultado nas autorizações (limite de
+     * times, destaque); a fonte de verdade da assinatura é a entidade
+     * Subscription, sincronizada pelo webhook do Stripe.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private Plan plan = Plan.FREE;
+
+    /** Id do cliente no Stripe, criado no primeiro checkout. Nulo até então. */
+    @Column(name = "stripe_customer_id")
+    private String stripeCustomerId;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -62,5 +75,9 @@ public class User {
 
     public boolean isAnonymous() {
         return authProvider == AuthProvider.ANONYMOUS;
+    }
+
+    public boolean isPremium() {
+        return plan == Plan.PREMIUM;
     }
 }

@@ -1,7 +1,7 @@
 import type { InputHTMLAttributes, SelectHTMLAttributes, ReactNode } from 'react'
 
 const fieldClass =
-  'w-full border-[3px] border-ink bg-white px-3 py-2.5 font-mono text-ink outline-none ' +
+  'w-full border-[3px] border-ink bg-surface px-3 py-2.5 font-mono text-ink outline-none ' +
   'focus:shadow-retro-sm focus:-translate-x-0.5 focus:-translate-y-0.5 transition-transform'
 
 function Field({ label, children }: { label?: string; children: ReactNode }) {

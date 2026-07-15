@@ -45,6 +45,14 @@ public class HuntingList {
     @Column(name = "join_policy", nullable = false, length = 20)
     private JoinPolicy joinPolicy;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private TeamStatus status = TeamStatus.ACTIVE;
+
+    /** Momento em que o time expira (some da busca e vira só leitura). */
+    @Column(name = "expires_at", nullable = false)
+    private Instant expiresAt;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -60,5 +68,9 @@ public class HuntingList {
     @PreUpdate
     void onUpdate() {
         updatedAt = Instant.now();
+    }
+
+    public boolean allowsWrites() {
+        return status.allowsWrites();
     }
 }

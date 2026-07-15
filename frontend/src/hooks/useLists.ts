@@ -41,6 +41,14 @@ export function useLeaveList() {
   })
 }
 
+export function useRenewTeam() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => listsApi.renew(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['lists'] }),
+  })
+}
+
 export function usePendingRequests(listId: number, enabled: boolean) {
   return useQuery({
     queryKey: ['lists', listId, 'requests'],

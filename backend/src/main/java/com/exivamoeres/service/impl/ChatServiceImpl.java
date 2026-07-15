@@ -49,7 +49,7 @@ public class ChatServiceImpl implements ChatService {
     @Transactional
     public ChatMessageResponse sendMessage(Long userId, Long listId, Long characterId, String content) {
         // Autorização: personagem próprio + membro ativo/aprovado do time.
-        Character character = membershipGuard.requireActiveMember(userId, listId, characterId);
+        Character character = membershipGuard.requireActiveMemberForAction(userId, listId, characterId);
         if (!rateLimiter.tryConsume(userId)) {
             throw new BusinessRuleException("Você está enviando mensagens rápido demais; aguarde um pouco");
         }

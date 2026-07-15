@@ -16,6 +16,7 @@ import com.exivamoeres.repository.HuntingListRepository;
 import com.exivamoeres.repository.ListSoulcoreRepository;
 import com.exivamoeres.service.SoulcoreService;
 import com.exivamoeres.service.SuggestionService;
+import com.exivamoeres.service.TeamLifecycleService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,25 +33,28 @@ public class SoulcoreServiceImpl implements SoulcoreService {
     private final CreatureRepository creatureRepository;
     private final TeamMembershipGuard membershipGuard;
     private final SuggestionService suggestionService;
+    private final TeamLifecycleService teamLifecycleService;
 
     public SoulcoreServiceImpl(ListSoulcoreRepository listSoulcoreRepository,
                                CharacterSoulcoreRepository characterSoulcoreRepository,
                                HuntingListRepository listRepository,
                                CreatureRepository creatureRepository,
                                TeamMembershipGuard membershipGuard,
-                               SuggestionService suggestionService) {
+                               SuggestionService suggestionService,
+                               TeamLifecycleService teamLifecycleService) {
         this.listSoulcoreRepository = listSoulcoreRepository;
         this.characterSoulcoreRepository = characterSoulcoreRepository;
         this.listRepository = listRepository;
         this.creatureRepository = creatureRepository;
         this.membershipGuard = membershipGuard;
         this.suggestionService = suggestionService;
+        this.teamLifecycleService = teamLifecycleService;
     }
 
     @Override
     @Transactional
     public ListSoulcoreResponse markObtained(Long userId, Long listId, Long creatureId, Long characterId) {
-        Character character = membershipGuard.requireActiveMember(userId, listId, characterId);
+        Character character = membershipGuard.requireActiveMemberForAction(userId, listId, characterId);
         HuntingList list = loadList(listId);
         Creature creature = loadCreature(creatureId);
 
@@ -71,7 +75,7 @@ public class SoulcoreServiceImpl implements SoulcoreService {
     @Override
     @Transactional
     public ListSoulcoreResponse markUnlocked(Long userId, Long listId, Long creatureId, Long characterId) {
-        Character character = membershipGuard.requireActiveMember(userId, listId, characterId);
+        Character character = membershipGuard.requireActiveMemberForAction(userId, listId, characterId);
         HuntingList list = loadList(listId);
         Creature creature = loadCreature(creatureId);
 
@@ -89,6 +93,9 @@ public class SoulcoreServiceImpl implements SoulcoreService {
             unlocked.setCreature(creature);
             characterSoulcoreRepository.save(unlocked);
         }
+
+        // Se era o core da criatura-alvo, o time cumpriu a missão (vira COMPLETED).
+        teamLifecycleService.completeIfTargetUnlocked(list, creatureId);
 
         // Um membro desbloqueou: sugere pros demais que ainda não têm.
         suggestionService.generateSuggestions(listId);

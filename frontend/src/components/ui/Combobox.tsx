@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { fuzzyFilter, type FuzzyOption } from '../../lib/fuzzy'
 
 interface Props {
@@ -33,6 +34,7 @@ export function Combobox({
   allLabel = 'Todos',
   searchable = true,
 }: Props) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [highlight, setHighlight] = useState(0)
@@ -88,7 +90,7 @@ export function Combobox({
   }
 
   const triggerClass =
-    'w-full border-[3px] border-ink bg-white px-3 py-2.5 font-mono text-ink outline-none ' +
+    'w-full border-[3px] border-ink bg-surface px-3 py-2.5 font-mono text-ink outline-none ' +
     'focus:shadow-retro-sm focus:-translate-x-0.5 focus:-translate-y-0.5 transition-transform'
 
   return (
@@ -126,7 +128,7 @@ export function Combobox({
       )}
 
       {open && (
-        <ul className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto border-[3px] border-ink bg-white shadow-retro-sm">
+        <ul className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto border-[3px] border-ink bg-surface shadow-retro-sm">
           {items.map((option, i) => (
             <li key={option.value || '__all__'}>
               <button
@@ -145,7 +147,7 @@ export function Combobox({
             </li>
           ))}
           {searchable && items.length === 1 && (
-            <li className="px-3 py-2 text-sm font-bold text-ink/50">Nenhum resultado</li>
+            <li className="px-3 py-2 text-sm font-bold text-ink/50">{t('common.noResults')}</li>
           )}
         </ul>
       )}

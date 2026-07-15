@@ -72,6 +72,13 @@ app:
     worlds-ttl: ${WORLDS_CACHE_TTL:24h}
   team:
     max-members: 5
+    # Quantos times ATIVOS uma conta free pode manter ao mesmo tempo.
+    free-active-limit: ${TEAM_FREE_ACTIVE_LIMIT:3}
+    # Prazo de vida de um time por plano (dias) — free menor que premium.
+    free-duration-days: ${TEAM_FREE_DURATION_DAYS:7}
+    premium-duration-days: ${TEAM_PREMIUM_DURATION_DAYS:30}
+    # Frequência do job que arquiva times expirados.
+    expiration-check-interval: ${TEAM_EXPIRATION_CHECK_INTERVAL:1h}
   chat:
     # Rate limit de mensagens por usuário (mensagens por minuto).
     messages-per-minute: ${CHAT_MESSAGES_PER_MINUTE:20}

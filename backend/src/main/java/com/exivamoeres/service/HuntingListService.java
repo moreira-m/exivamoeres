@@ -34,6 +34,12 @@ public interface HuntingListService {
     /** Sai do time = active=false; histórico nunca é deletado. */
     void leaveList(Long userId, Long listId);
 
+    /**
+     * Reativa um time ARQUIVADO (só o dono), renovando o prazo. Consome uma
+     * vaga do limite de times ativos do plano.
+     */
+    ListDetailResponse renewTeam(Long ownerId, Long listId);
+
     /** Times em que o usuário é dono ou membro ativo aprovado. */
     List<ListSummaryResponse> listMyLists(Long userId);
 

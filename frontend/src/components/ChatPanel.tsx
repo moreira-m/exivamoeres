@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useChat } from '../hooks/useChat'
 import { Card } from './ui/Card'
 import { Button } from './ui/Button'
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export function ChatPanel({ listId, actingCharacterId }: Props) {
+  const { t } = useTranslation()
   const { messages, send } = useChat(listId)
   const [text, setText] = useState('')
   const [error, setError] = useState('')
@@ -35,10 +37,10 @@ export function ChatPanel({ listId, actingCharacterId }: Props) {
 
   return (
     <Card className="flex h-96 flex-col p-4">
-      <h3 className="mb-2 text-lg text-ink">Chat do time</h3>
+      <h3 className="mb-2 text-lg text-ink">{t('chat.title')}</h3>
       <div className="flex-1 space-y-2 overflow-y-auto border-2 border-ink/20 bg-canvas p-2">
         {messages.length === 0 && (
-          <p className="text-sm font-bold text-ink/50">Nenhuma mensagem ainda.</p>
+          <p className="text-sm font-bold text-ink/50">{t('chat.empty')}</p>
         )}
         {messages.map((m) => (
           <div key={m.id} className="text-sm text-ink">
@@ -52,12 +54,12 @@ export function ChatPanel({ listId, actingCharacterId }: Props) {
         <input
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="Mensagem…"
+          placeholder={t('chat.placeholder')}
           maxLength={1000}
-          className="flex-1 border-[3px] border-ink bg-white px-3 py-2 font-mono text-ink outline-none"
+          className="flex-1 border-[3px] border-ink bg-surface px-3 py-2 font-mono text-ink outline-none"
         />
         <Button type="submit" variant="accent">
-          Enviar
+          {t('chat.send')}
         </Button>
       </form>
       {error && <p className="mt-2 text-sm font-bold text-accent">{error}</p>}

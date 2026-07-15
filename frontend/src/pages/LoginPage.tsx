@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Layout } from '../components/Layout'
 import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
@@ -12,6 +13,7 @@ type Mode = 'login' | 'register'
 const API_URL = import.meta.env.VITE_API_URL as string
 
 export function LoginPage() {
+  const { t } = useTranslation()
   const [mode, setMode] = useState<Mode>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -57,14 +59,14 @@ export function LoginPage() {
               onClick={() => setMode('login')}
               type="button"
             >
-              Entrar
+              {t('login.login')}
             </Button>
             <Button
               variant={mode === 'register' ? 'primary' : 'neutral'}
               onClick={() => setMode('register')}
               type="button"
             >
-              Criar conta
+              {t('login.register')}
             </Button>
           </div>
 
@@ -72,7 +74,7 @@ export function LoginPage() {
             {mode === 'register' && (
               <div className="[&_span]:text-ink">
                 <Input
-                  label="Nome de exibição"
+                  label={t('login.displayName')}
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
                   required
@@ -81,7 +83,7 @@ export function LoginPage() {
             )}
             <div className="[&_span]:text-ink">
               <Input
-                label="Email"
+                label={t('login.email')}
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -90,7 +92,7 @@ export function LoginPage() {
             </div>
             <div className="[&_span]:text-ink">
               <Input
-                label="Senha"
+                label={t('login.password')}
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -101,7 +103,7 @@ export function LoginPage() {
             {error && <p className="font-bold text-accent">{error}</p>}
 
             <Button type="submit" disabled={busy} className="w-full">
-              {mode === 'login' ? 'Entrar' : 'Criar conta'}
+              {mode === 'login' ? t('login.login') : t('login.register')}
             </Button>
           </form>
 
@@ -110,12 +112,12 @@ export function LoginPage() {
           <div className="space-y-2">
             <a href={`${API_URL}/oauth2/authorization/google`} className="block">
               <Button variant="neutral" className="w-full" type="button">
-                Continuar com Google
+                {t('login.withGoogle')}
               </Button>
             </a>
             <a href={`${API_URL}/oauth2/authorization/discord`} className="block">
               <Button variant="neutral" className="w-full" type="button">
-                Continuar com Discord
+                {t('login.withDiscord')}
               </Button>
             </a>
             <Button
@@ -125,7 +127,7 @@ export function LoginPage() {
               onClick={enterAnonymous}
               disabled={busy}
             >
-              Entrar como anônimo
+              {t('login.anonymous')}
             </Button>
           </div>
         </Card>

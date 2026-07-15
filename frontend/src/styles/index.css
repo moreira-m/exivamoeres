@@ -2,9 +2,29 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Tokens de tema. Claro (padrão) e escuro (.dark no <html>). As cores de marca
+   primary/accent ficam no tailwind.config e valem nos dois temas. */
+:root {
+  --color-page: #288dfe; /* fundo da página (azul de marca) */
+  --color-surface: #ffffff; /* cards, inputs */
+  --color-base: #fdfdfd; /* fundos sutis dentro de cards */
+  --color-content: #1a1a1a; /* texto e bordas sobre superfícies */
+  --color-shadow: #1a1a1a; /* sombra dura */
+  --grid-line: rgba(255, 255, 255, 0.12);
+}
+
+:root.dark {
+  --color-page: #0f172a; /* slate-900 */
+  --color-surface: #1e293b; /* slate-800 */
+  --color-base: #0b1220;
+  --color-content: #e2e8f0; /* slate-200 */
+  --color-shadow: #000000;
+  --grid-line: rgba(255, 255, 255, 0.05);
+}
+
 @layer base {
   body {
-    @apply bg-primary text-white font-sans antialiased min-h-screen;
+    @apply bg-page text-white font-sans antialiased min-h-screen;
   }
 
   h1,
@@ -19,8 +39,8 @@ body::before {
   content: '';
   position: fixed;
   inset: 0;
-  background-image: linear-gradient(rgba(255, 255, 255, 0.12) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.12) 1px, transparent 1px);
+  background-image: linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
   background-size: 40px 40px;
   z-index: 0;
   pointer-events: none;

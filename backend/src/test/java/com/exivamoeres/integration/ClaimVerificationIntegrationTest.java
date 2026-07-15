@@ -229,6 +229,8 @@ class ClaimVerificationIntegrationTest extends IntegrationTestBase {
         // target_creature_id e join_policy passaram a ser obrigatórios na V5.
         list.setTargetCreature(creatureRepository.findByNameIgnoreCase("Dragon").orElseThrow());
         list.setJoinPolicy(com.exivamoeres.domain.JoinPolicy.AUTO_ACCEPT);
+        // expires_at passou a ser obrigatório na V7.
+        list.setExpiresAt(java.time.Instant.now().plus(java.time.Duration.ofDays(7)));
         huntingListRepository.save(list);
 
         ListMembership membership = new ListMembership();

@@ -1,6 +1,7 @@
 package com.exivamoeres.dto.auth;
 
 import com.exivamoeres.domain.AuthProvider;
+import com.exivamoeres.domain.Plan;
 import com.exivamoeres.domain.User;
 
 public record UserResponse(
@@ -8,7 +9,8 @@ public record UserResponse(
         String displayName,
         String email,
         AuthProvider authProvider,
-        boolean anonymous
+        boolean anonymous,
+        Plan plan
 ) {
     public static UserResponse from(User user) {
         return new UserResponse(
@@ -16,6 +18,7 @@ public record UserResponse(
                 user.getDisplayName(),
                 user.getEmail(),
                 user.getAuthProvider(),
-                user.isAnonymous());
+                user.isAnonymous(),
+                user.getPlan());
     }
 }

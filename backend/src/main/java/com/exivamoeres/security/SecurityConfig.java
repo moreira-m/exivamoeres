@@ -1,6 +1,7 @@
 package com.exivamoeres.security;
 
 import com.exivamoeres.security.oauth.CustomOAuth2UserService;
+import com.exivamoeres.security.oauth.CustomOidcUserService;
 import com.exivamoeres.security.oauth.OAuth2LoginSuccessHandler;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -28,17 +29,20 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final RateLimitFilter rateLimitFilter;
     private final CustomOAuth2UserService customOAuth2UserService;
+    private final CustomOidcUserService customOidcUserService;
     private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
     private final String allowedOrigin;
 
     public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
                           RateLimitFilter rateLimitFilter,
                           CustomOAuth2UserService customOAuth2UserService,
+                          CustomOidcUserService customOidcUserService,
                           OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler,
                           @Value("${app.cors.allowed-origin}") String allowedOrigin) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.rateLimitFilter = rateLimitFilter;
         this.customOAuth2UserService = customOAuth2UserService;
+        this.customOidcUserService = customOidcUserService;
         this.oAuth2LoginSuccessHandler = oAuth2LoginSuccessHandler;
         this.allowedOrigin = allowedOrigin;
     }
@@ -72,7 +76,12 @@ public class SecurityConfig {
                         // Sem token válido = 401 puro, sem redirect pra página de login.
                         handler.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
                 .oauth2Login(oauth -> oauth
-                        .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
+                        .userInfoEndpoint(userInfo -> userInfo
+                                // .userService cobre OAuth2 comum (Discord); providers OIDC
+                                // (Google, por causa do scope "openid") são roteados por
+                                // .oidcUserService — os dois precisam ser registrados.
+                                .userService(customOAuth2UserService)
+                                .oidcUserService(customOidcUserService))
                         .successHandler(oAuth2LoginSuccessHandler))
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(rateLimitFilter, JwtAuthenticationFilter.class);

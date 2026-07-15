@@ -66,6 +66,15 @@ app:
     poll-interval: ${CLAIM_POLL_INTERVAL:15m}
     # Claim não verificado em 24h expira
     expiration-hours: 24
+  cache:
+    # TTL da checagem de elegibilidade (world + Free/Premium) por personagem.
+    character-eligibility-ttl: ${CHARACTER_ELIGIBILITY_CACHE_TTL:1h}
+    worlds-ttl: ${WORLDS_CACHE_TTL:24h}
+  team:
+    max-members: 5
+  chat:
+    # Rate limit de mensagens por usuário (mensagens por minuto).
+    messages-per-minute: ${CHAT_MESSAGES_PER_MINUTE:20}
 
 resilience4j:
   retry:

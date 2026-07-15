@@ -1,28 +1,30 @@
 package com.exivamoeres.service;
 
+import com.exivamoeres.dto.soulcore.CharacterSoulcoreResponse;
+import com.exivamoeres.dto.soulcore.ListSoulcoreResponse;
+
+import java.util.List;
+
 /**
- * ESQUELETO PARA A SESSÃO 2 — rastreamento de soul cores nas listas.
- * Entidades e migrations (list_soulcores, character_soulcores) já existem.
+ * Rastreamento de soul cores dentro de um time: quem lootou (OBTAINED) e
+ * quando o core é gasto no Soulpit (UNLOCKED). Só membros ativos e aprovados
+ * do time podem registrar ações, sempre com um personagem próprio.
  */
 public interface SoulcoreService {
 
-    /**
-     * Marca que um personagem lootou o core de uma criatura na lista
-     * (status OBTAINED). Só membros ativos da lista podem marcar.
-     * TODO(sessão 2): implementar.
-     */
-    Object markObtained(Long userId, Long listId, Long creatureId, Long characterId);
+    /** Marca que um personagem lootou o core de uma criatura no time (OBTAINED). */
+    ListSoulcoreResponse markObtained(Long userId, Long listId, Long creatureId, Long characterId);
 
     /**
-     * Marca o core como gasto no Soulpit (OBTAINED -> UNLOCKED) e registra o
-     * Animus Mastery em character_soulcores na MESMA transação.
-     * TODO(sessão 2): implementar.
+     * Gasta o core no Soulpit (OBTAINED -> UNLOCKED) e registra o Animus
+     * Mastery em character_soulcores na MESMA transação. Dispara a geração de
+     * sugestões para os demais membros que ainda não têm esse core.
      */
-    Object markUnlocked(Long userId, Long listId, Long creatureId, Long characterId);
+    ListSoulcoreResponse markUnlocked(Long userId, Long listId, Long creatureId, Long characterId);
 
-    /** TODO(sessão 2): cores desbloqueados de um personagem (perfil). */
-    Object listCharacterSoulcores(Long userId, Long characterId);
+    /** Cores já desbloqueados por um personagem (perfil). */
+    List<CharacterSoulcoreResponse> listCharacterSoulcores(Long characterId);
 
-    /** TODO(sessão 2): estado de todos os cores de uma lista. */
-    Object listBoard(Long userId, Long listId);
+    /** Estado de todos os cores rastreados num time. */
+    List<ListSoulcoreResponse> listBoard(Long listId);
 }

@@ -8,11 +8,17 @@ import lombok.Setter;
 import java.time.Instant;
 
 /**
- * Participação de um usuário numa lista através de um personagem específico.
- * active = false quando o membro sai ou quando o personagem troca de dono
- * (a aprovação de um CharacterClaim desativa as memberships do dono anterior).
+ * Participação (ou pedido de participação) de um usuário num time através de
+ * um personagem específico.
  *
- * NOTA (sessão 2): lógica de entrar/sair de lista ainda não implementada.
+ * active = false quando o membro sai ou quando o personagem troca de dono
+ * (a aprovação de um CharacterClaim desativa as memberships do dono anterior)
+ * — histórico nunca é deletado, só desativado.
+ *
+ * status controla o fluxo de aprovação: PENDING (aguardando o dono do time),
+ * APPROVED (membro de fato) ou REJECTED (pedido recusado). Uma linha é
+ * reaproveitada (nunca duplicada) para o mesmo par (list, character) —
+ * pedir de novo depois de sair/ser recusado reativa o registro existente.
  */
 @Entity
 @Table(name = "list_memberships")
@@ -40,11 +46,18 @@ public class ListMembership {
     @Column(nullable = false)
     private boolean active = true;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private MembershipStatus status;
+
     @Column(name = "joined_at", nullable = false, updatable = false)
     private Instant joinedAt;
 
     @PrePersist
     void onCreate() {
         joinedAt = Instant.now();
+        if (status == null) {
+            status = MembershipStatus.PENDING;
+        }
     }
 }

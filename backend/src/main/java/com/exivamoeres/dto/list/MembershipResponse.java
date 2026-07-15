@@ -1,0 +1,27 @@
+package com.exivamoeres.dto.list;
+
+import com.exivamoeres.domain.ListMembership;
+import com.exivamoeres.domain.MembershipStatus;
+
+import java.time.Instant;
+
+public record MembershipResponse(
+        Long id,
+        Long characterId,
+        String characterName,
+        String vocation,
+        MembershipStatus status,
+        boolean active,
+        Instant joinedAt
+) {
+    public static MembershipResponse from(ListMembership membership) {
+        return new MembershipResponse(
+                membership.getId(),
+                membership.getCharacter().getId(),
+                membership.getCharacter().getName(),
+                membership.getCharacter().getVocation(),
+                membership.getStatus(),
+                membership.isActive(),
+                membership.getJoinedAt());
+    }
+}

@@ -64,6 +64,7 @@ class ClaimVerificationIntegrationTest extends IntegrationTestBase {
     @Autowired UserRepository userRepository;
     @Autowired HuntingListRepository huntingListRepository;
     @Autowired ListMembershipRepository membershipRepository;
+    @Autowired com.exivamoeres.repository.CreatureRepository creatureRepository;
     @Autowired JdbcTemplate jdbcTemplate;
 
     @BeforeEach
@@ -225,6 +226,9 @@ class ClaimVerificationIntegrationTest extends IntegrationTestBase {
         list.setWorld("Antica");
         list.setShareCode("SHARE123");
         list.setOwner(owner);
+        // target_creature_id e join_policy passaram a ser obrigatórios na V5.
+        list.setTargetCreature(creatureRepository.findByNameIgnoreCase("Dragon").orElseThrow());
+        list.setJoinPolicy(com.exivamoeres.domain.JoinPolicy.AUTO_ACCEPT);
         huntingListRepository.save(list);
 
         ListMembership membership = new ListMembership();
@@ -232,6 +236,7 @@ class ClaimVerificationIntegrationTest extends IntegrationTestBase {
         membership.setUser(owner);
         membership.setCharacter(character);
         membership.setActive(true);
+        membership.setStatus(com.exivamoeres.domain.MembershipStatus.APPROVED);
         return membershipRepository.save(membership);
     }
 

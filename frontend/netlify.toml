@@ -1,0 +1,13 @@
+# Build e deploy do frontend no Netlify.
+# Definir VITE_API_URL nas variáveis de ambiente do site (Netlify UI) apontando
+# para a URL pública do backend no Railway.
+[build]
+  base = "frontend"
+  command = "npm run build"
+  publish = "dist"
+
+# SPA: qualquer rota cai no index.html (o React Router resolve no cliente).
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

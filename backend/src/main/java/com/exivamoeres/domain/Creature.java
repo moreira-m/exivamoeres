@@ -24,7 +24,19 @@ public class Creature {
     @Column(nullable = false, unique = true, length = 80)
     private String name;
 
-    /** Estrelas do Bestiary: 1 (Harmless) a 5 (Challenging). */
-    @Column(nullable = false)
-    private int difficulty;
+    /**
+     * Estrelas do Bestiary: 1 (Harmless) a 5 (Challenging). Nula para as
+     * criaturas importadas da TibiaData (que não expõe esse dado); preenchida
+     * apenas nos seeds da V3.
+     */
+    @Column
+    private Integer difficulty;
+
+    /** Slug usado pela TibiaData para resolver o ícone (ex.: "dragon_lord"). */
+    @Column(length = 80)
+    private String race;
+
+    /** URL da imagem, resolvida e cacheada localmente por CreatureCatalogService. */
+    @Column(name = "image_url", length = 300)
+    private String imageUrl;
 }

@@ -8,4 +8,6 @@ import java.util.List;
 public interface SoulcoreSuggestionRepository extends JpaRepository<SoulcoreSuggestion, Long> {
 
     List<SoulcoreSuggestion> findAllByListIdAndDismissedFalse(Long listId);
+
+    boolean existsByListIdAndCreatureIdAndDismissedFalse(Long listId, Long creatureId);
 }

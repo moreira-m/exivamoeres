@@ -12,9 +12,9 @@ import com.exivamoeres.domain.exception.ExternalServiceException;
 import com.exivamoeres.domain.exception.ResourceNotFoundException;
 import com.exivamoeres.dto.claim.ClaimResponse;
 import com.exivamoeres.repository.CharacterClaimRepository;
-import com.exivamoeres.repository.CharacterRepository;
 import com.exivamoeres.repository.UserRepository;
 import com.exivamoeres.service.CharacterClaimService;
+import com.exivamoeres.service.CharacterSyncService;
 import com.exivamoeres.service.ClaimVerificationService;
 import com.exivamoeres.service.VerificationCodeGenerator;
 import lombok.extern.slf4j.Slf4j;
@@ -31,7 +31,7 @@ public class CharacterClaimServiceImpl implements CharacterClaimService {
     private static final Duration FETCH_TIMEOUT = Duration.ofSeconds(20);
 
     private final CharacterClaimRepository claimRepository;
-    private final CharacterRepository characterRepository;
+    private final CharacterSyncService characterSyncService;
     private final UserRepository userRepository;
     private final TibiaDataClient tibiaDataClient;
     private final VerificationCodeGenerator codeGenerator;
@@ -39,14 +39,14 @@ public class CharacterClaimServiceImpl implements CharacterClaimService {
     private final ClaimProperties claimProperties;
 
     public CharacterClaimServiceImpl(CharacterClaimRepository claimRepository,
-                                     CharacterRepository characterRepository,
+                                     CharacterSyncService characterSyncService,
                                      UserRepository userRepository,
                                      TibiaDataClient tibiaDataClient,
                                      VerificationCodeGenerator codeGenerator,
                                      ClaimVerificationService verificationService,
                                      ClaimProperties claimProperties) {
         this.claimRepository = claimRepository;
-        this.characterRepository = characterRepository;
+        this.characterSyncService = characterSyncService;
         this.userRepository = userRepository;
         this.tibiaDataClient = tibiaDataClient;
         this.codeGenerator = codeGenerator;
@@ -68,7 +68,7 @@ public class CharacterClaimServiceImpl implements CharacterClaimService {
                     "Personagem '" + characterName + "' não encontrado no Tibia.com");
         }
 
-        Character character = findOrCreateCharacter(snapshot);
+        Character character = characterSyncService.findOrCreateFromSnapshot(snapshot);
         validateClaimAllowed(character, claimant);
 
         CharacterClaim claim = new CharacterClaim();
@@ -125,20 +125,6 @@ public class CharacterClaimServiceImpl implements CharacterClaimService {
             throw new ExternalServiceException("TibiaData não respondeu");
         }
         return snapshot;
-    }
-
-    private Character findOrCreateCharacter(TibiaCharacterSnapshot snapshot) {
-        Character character = characterRepository.findByNameIgnoreCase(snapshot.name())
-                .orElseGet(() -> {
-                    Character created = new Character();
-                    created.setName(snapshot.name());
-                    return created;
-                });
-        // Nome e mundo sempre sincronizados com o Tibia.com (world transfer
-        // e formatação canônica do nome).
-        character.setName(snapshot.name());
-        character.setWorld(snapshot.world());
-        return characterRepository.save(character);
     }
 
     private void validateClaimAllowed(Character character, User claimant) {

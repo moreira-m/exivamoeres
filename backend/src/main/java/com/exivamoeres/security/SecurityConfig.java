@@ -5,6 +5,7 @@ import com.exivamoeres.security.oauth.OAuth2LoginSuccessHandler;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -56,6 +57,16 @@ public class SecurityConfig {
                         .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
                         .requestMatchers("/actuator/health").permitAll()
                         .requestMatchers("/error").permitAll()
+                        // Handshake do chat: a autenticação real acontece no
+                        // frame STOMP CONNECT (StompAuthChannelInterceptor).
+                        .requestMatchers("/ws/**").permitAll()
+                        // "/api/lists/mine" precisa de auth — declarado ANTES do
+                        // curinga público para não ser capturado por ele.
+                        .requestMatchers(HttpMethod.GET, "/api/lists/mine").authenticated()
+                        // Área pública (home sem login): buscar times, ver
+                        // detalhe, listar worlds e criaturas para os filtros.
+                        .requestMatchers(HttpMethod.GET, "/api/lists/search", "/api/lists/*").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/worlds", "/api/creatures").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(handler ->
                         // Sem token válido = 401 puro, sem redirect pra página de login.

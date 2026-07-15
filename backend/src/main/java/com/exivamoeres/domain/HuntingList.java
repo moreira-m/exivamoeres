@@ -8,12 +8,9 @@ import lombok.Setter;
 import java.time.Instant;
 
 /**
- * Lista colaborativa de soul cores de um grupo de caça. Vinculada a um world
- * porque personagens só caçam juntos no mesmo mundo. O shareCode permite
- * entrar na lista por link, sem convite individual.
- *
- * NOTA (sessão 2): a lógica de negócio (criar/entrar/gerenciar) ainda não foi
- * implementada — ver HuntingListService.
+ * Time organizado para caçar UMA criatura-alvo (targetCreature) e conseguir
+ * o Soul Core dela. Vinculado a um world porque personagens só caçam juntos
+ * no mesmo mundo. O shareCode permite entrar no time por link.
  */
 @Entity
 @Table(name = "hunting_lists")
@@ -38,6 +35,15 @@ public class HuntingList {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "owner_id", nullable = false)
     private User owner;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "target_creature_id", nullable = false)
+    private Creature targetCreature;
+
+    /** Escolhida pelo criador: aprovação manual ou entrada automática. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "join_policy", nullable = false, length = 20)
+    private JoinPolicy joinPolicy;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

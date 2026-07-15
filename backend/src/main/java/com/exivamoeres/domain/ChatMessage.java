@@ -8,10 +8,9 @@ import lombok.Setter;
 import java.time.Instant;
 
 /**
- * Mensagem no chat de uma lista de caça.
- *
- * NOTA (sessão 2): envio/histórico via WebSocket ainda não implementados —
- * ver ChatService e o placeholder em config/WebSocketConfig.
+ * Mensagem no chat de um time. Vinculada a personagem (não só usuário): um
+ * mesmo usuário pode falar em nome de personagens diferentes em times
+ * diferentes.
  */
 @Entity
 @Table(name = "chat_messages")
@@ -31,6 +30,10 @@ public class ChatMessage {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "sender_id", nullable = false)
     private User sender;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "character_id", nullable = false)
+    private Character character;
 
     @Column(nullable = false, length = 1000)
     private String content;

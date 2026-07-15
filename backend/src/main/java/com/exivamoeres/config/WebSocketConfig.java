@@ -1,21 +1,51 @@
 package com.exivamoeres.config;
 
-/**
- * Placeholder para a sessão 2: o chat das listas usará WebSocket (STOMP).
- *
- * Plano previsto:
- * - dependência spring-boot-starter-websocket no pom;
- * - @EnableWebSocketMessageBroker, endpoint /ws com allowed-origin do
- *   frontend (mesma env var FRONTEND_URL usada no CORS);
- * - broker simples /topic/lists/{listId}/chat;
- * - autenticação do handshake reaproveitando o JwtService
- *   (token via query param ou header, validado num HandshakeInterceptor).
- *
- * Mantido como classe vazia (e não config ativa) para não carregar
- * infraestrutura WebSocket antes de existir chat.
- */
-public final class WebSocketConfig {
+import com.exivamoeres.security.StompAuthChannelInterceptor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.messaging.simp.config.ChannelRegistration;
+import org.springframework.messaging.simp.config.MessageBrokerRegistry;
+import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
+import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
+import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
 
-    private WebSocketConfig() {
+/**
+ * Chat por time via STOMP sobre WebSocket.
+ *
+ * - endpoint de handshake: /ws (origem restrita ao frontend, igual ao CORS);
+ * - broker simples em memória: destinos /topic/lists/{id}/chat;
+ * - autenticação: JWT no header STOMP CONNECT, validado pelo
+ *   StompAuthChannelInterceptor (mesma JwtService do REST).
+ *
+ * O broker simples é single-instance; se o backend escalar, trocar por um
+ * broker externo (RabbitMQ/ActiveMQ) — documentado em docs/proxima-sessao.md.
+ */
+@Configuration
+@EnableWebSocketMessageBroker
+public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
+
+    private final StompAuthChannelInterceptor authChannelInterceptor;
+    private final String allowedOrigin;
+
+    public WebSocketConfig(StompAuthChannelInterceptor authChannelInterceptor,
+                           @Value("${app.cors.allowed-origin}") String allowedOrigin) {
+        this.authChannelInterceptor = authChannelInterceptor;
+        this.allowedOrigin = allowedOrigin;
+    }
+
+    @Override
+    public void registerStompEndpoints(StompEndpointRegistry registry) {
+        registry.addEndpoint("/ws").setAllowedOrigins(allowedOrigin);
+    }
+
+    @Override
+    public void configureMessageBroker(MessageBrokerRegistry registry) {
+        registry.enableSimpleBroker("/topic");
+        registry.setApplicationDestinationPrefixes("/app");
+    }
+
+    @Override
+    public void configureClientInboundChannel(ChannelRegistration registration) {
+        registration.interceptors(authChannelInterceptor);
     }
 }

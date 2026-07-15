@@ -30,6 +30,10 @@ public class Character {
     @Column(nullable = false, length = 40)
     private String world;
 
+    /** Sincronizada da TibiaData sempre que o personagem é consultado (claim, elegibilidade). */
+    @Column(length = 30)
+    private String vocation;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private User owner;

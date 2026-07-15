@@ -11,19 +11,20 @@ problema que o site resolve.
 
 ## Estado atual do projeto
 
-Este repositório contém a **fundação** do sistema (sessão 1 de 2):
-
 | Área | Estado |
 |---|---|
 | Monorepo, Docker Compose, envs | ✅ Completo |
-| Modelo de dados (10 entidades + migrations Flyway) | ✅ Completo |
+| Modelo de dados (entidades + migrations Flyway V1–V5) | ✅ Completo |
 | Autenticação (JWT + refresh token + OAuth2 Discord/Google + anônimo) | ✅ Completo |
 | Fluxo de verificação de personagem (CharacterClaim) | ✅ Completo, com testes de integração |
-| Listas de caça, soulcores, sugestões, chat | 🔲 Só entidades/migrations/interfaces — ver `docs/proxima-sessao.md` |
-| Frontend | 🔲 Só setup (Vite/Tailwind/React Query/Zustand/Router + client HTTP) |
-| Deploy real (Railway/Netlify) | 🔲 Preparado (Dockerfile, envs), não configurado |
+| Times de soul core (criar, entrar, aprovar/recusar, limite de 5, world, Free/Premium) | ✅ Completo |
+| Soul cores (obtido/desbloqueado) + sugestões automáticas | ✅ Completo |
+| Chat por time (WebSocket/STOMP autenticado por JWT) | ✅ Completo |
+| Frontend (área pública + área logada) | ✅ Completo |
+| Deploy (Railway/Netlify) | ⚙️ Configurado (railway.json, netlify.toml, Dockerfile), falta provisionar |
 
-**Leia `docs/proxima-sessao.md` antes de continuar o desenvolvimento.**
+Sessão 1 entregou a fundação (auth + claim). Sessão 2 entregou os times,
+soul cores, chat e o frontend. Histórico de decisões em `docs/proxima-sessao.md`.
 
 ## Stack
 
@@ -115,10 +116,20 @@ creatures ──< character_soulcores >── characters
 - `character_claims` — código de verificação, status
   PENDING/APPROVED/REJECTED, índice **parcial** em `status = 'PENDING'`
   (o job só varre pendentes).
-- `creatures` — catálogo do Bestiary (seed parcial; importar completo na
-  sessão 2).
-- Demais tabelas (listas/soulcores/sugestões/chat) já existem com índices e
-  constraints, aguardando a lógica da sessão 2.
+- `creatures` — catálogo do Bestiary importado da TibiaData no boot
+  (`CreatureCatalogService` chama `/v4/creatures`: ~719 criaturas com nome,
+  `race` e `image_url`). A TibiaData não expõe as estrelas do Bestiary, então
+  `difficulty` é opcional (preenchida só nos 12 seeds da V3, que priorizam as
+  sugestões).
+- `hunting_lists` — time com `target_creature_id` (criatura-alvo) e
+  `join_policy` (MANUAL_APPROVAL/AUTO_ACCEPT).
+- `list_memberships` — participação por personagem, com `status`
+  (PENDING/APPROVED/REJECTED) e `active`; índice **parcial** para pedidos
+  pendentes. `chat_messages` é vinculada a personagem (`character_id`).
+
+O schema evoluiu por migrations aditivas: V1–V4 (fundação) e **V5** (times,
+join requests, chat por personagem, world/ícones). Nenhuma migration aplicada
+é editada — mudanças futuras entram em V6+.
 
 ## Fluxo de verificação de personagem (parte crítica)
 
@@ -143,6 +154,37 @@ nas chamadas à TibiaData; falha de rede **não** atualiza `last_checked_at`
 nem expira o claim. Todo polling gera log estruturado
 (`claim.poll.*`, `tibiadata.fetch*`, `claim.approved`, ...).
 
+## Estrutura de navegação (frontend)
+
+Duas áreas distintas:
+
+- **Área pública (sem login):** página inicial (`/`) com filtros no topo para
+  **buscar** times por mundo, criatura-alvo e vaga disponível; e o detalhe
+  público de cada time (`/teams/:id`). É a experiência de quem só quer achar
+  um time para entrar.
+- **Área logada (`/account/*`, protegida):** criar times
+  (`/account/teams/new`), gerenciar os próprios times e pedidos de entrada
+  (`/account/teams`), e a aba de configuração de personagem
+  (`/account/characters`) com o fluxo de claim/verificação e o botão
+  "verificar agora". O callback do login social é `/oauth/callback`.
+
+## Regras de negócio dos times
+
+- **Máximo de 5 jogadores** por time (validado no backend com lock pessimista
+  na linha do time durante join/aprovação; refletido na UI).
+- **Mesmo world**: todos os personagens de um time são do mesmo mundo; ao
+  entrar, o backend revalida o world do personagem via TibiaData.
+- **Sem Free Account**: personagens Free Account não participam; o status de
+  conta é consultado na TibiaData e **cacheado** (TTL configurável, default 1h).
+- **Política de entrada** escolhida por quem cria: `MANUAL_APPROVAL` (pedidos
+  ficam PENDING até o dono aceitar/recusar) ou `AUTO_ACCEPT` (entra direto,
+  ainda respeitando as três regras acima).
+- Sair de um time nunca deleta histórico (`active = false`); recusar um pedido
+  marca `REJECTED`. Ao trocar o dono de um personagem (claim aprovado), as
+  memberships do dono anterior são desativadas.
+- Ao um membro **desbloquear** um core, geram-se **sugestões** de próximos
+  bosses para o time (criaturas que nenhum membro ativo tem, por dificuldade).
+
 ## Endpoints atuais
 
 | Método | Rota | Descrição |
@@ -153,10 +195,21 @@ nem expira o claim. Todo polling gera log estruturado
 | POST | `/api/auth/refresh` | Rotaciona refresh token |
 | POST | `/api/auth/logout` | Revoga refresh token |
 | GET | `/oauth2/authorization/{google\|discord}` | Início do login social |
-| POST | `/api/claims` | Inicia claim de personagem |
-| GET | `/api/claims` | Meus claims |
-| GET | `/api/claims/{id}` | Detalhe do claim |
+| POST | `/api/claims` · GET `/api/claims` · GET `/api/claims/{id}` | Claims do usuário |
 | POST | `/api/claims/{id}/verify-now` | Verificação sob demanda |
+| GET | `/api/lists/search` | **Público** — busca de times (world, creatureId, hasOpenSlots) |
+| GET | `/api/lists/{id}` | **Público** — detalhe do time |
+| POST | `/api/lists` · GET `/api/lists/mine` | Criar / meus times |
+| POST | `/api/lists/{shareCode}/join` | Pedir entrada com um personagem |
+| POST | `/api/lists/{id}/leave` | Sair do time |
+| GET | `/api/lists/{id}/requests` | Pedidos pendentes (só dono) |
+| POST | `/api/lists/{id}/requests/{mid}/approve\|reject` | Aceitar/recusar pedido (só dono) |
+| GET/POST | `/api/lists/{id}/soulcores[...]/obtain\|unlock` | Board e ações de soul core |
+| GET | `/api/lists/{id}/suggestions` · POST `/api/suggestions/{id}/dismiss` | Sugestões |
+| GET/POST | `/api/lists/{id}/chat` | Histórico e envio de mensagem |
+| WS | `/ws` → `/topic/lists/{id}/chat` | Chat em tempo real (STOMP, JWT no CONNECT) |
+| GET | `/api/worlds` · `/api/creatures` | **Público** — catálogos para filtros |
+| GET | `/api/characters/mine` · `/api/characters/{id}/soulcores` | Personagens e cores |
 | GET | `/actuator/health` | Health check |
 
 ## Segurança
@@ -185,15 +238,22 @@ nem expira o claim. Todo polling gera log estruturado
 - **Prefixo `EXIVA-` no código**: reconhecível pelo usuário e elimina falso
   positivo do `contains` em comments longos.
 
-## Deploy (preparado, não configurado)
+## Deploy
 
-- **Backend + Postgres → Railway**: usar `backend/Dockerfile`; configurar as
-  envs do `.env.example`; `DATABASE_URL` vem do plugin Postgres do Railway
-  (atenção: Railway fornece URL no formato `postgres://...` — converter para
+- **Backend + Postgres → Railway** (`backend/railway.json`): build via
+  `backend/Dockerfile`, healthcheck em `/actuator/health`. Configurar as envs
+  do `.env.example`; `DATABASE_URL` vem do plugin Postgres do Railway
+  (atenção: Railway fornece `postgres://...` — converter para
   `jdbc:postgresql://...`).
-- **Frontend → Netlify**: build `npm run build`, publicar `dist/`; definir
-  `VITE_API_URL` apontando pro Railway; adicionar redirect SPA
-  (`/* /index.html 200`).
+- **Frontend → Netlify** (`frontend/netlify.toml`): build `npm run build`,
+  publica `dist/`, redirect SPA já configurado. Definir `VITE_API_URL`
+  (URL do backend no Railway) nas variáveis do site.
+- **CORS e WebSocket** em produção: `FRONTEND_URL` = domínio do Netlify
+  (https) — vale tanto para o CORS REST quanto para a origem do handshake
+  `/ws`. `OAUTH2_REDIRECT_URL` = `<FRONTEND_URL>/oauth/callback`.
 - Callbacks OAuth em produção: registrar
   `https://<backend>/login/oauth2/code/{google|discord}` nos portais dos
-  providers e ajustar `OAUTH2_REDIRECT_URL`/`FRONTEND_URL`.
+  providers.
+- **Escala**: o scheduler de claims, o rate limit e o broker STOMP são
+  single-instance (documentado em `docs/proxima-sessao.md`). Rodar 1 réplica
+  do backend, ou adotar ShedLock/Bucket4j distribuído/broker externo.

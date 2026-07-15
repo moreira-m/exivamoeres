@@ -1,19 +1,19 @@
 package com.exivamoeres.service;
 
+import com.exivamoeres.dto.chat.ChatMessageResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 /**
- * ESQUELETO PARA A SESSÃO 2 — chat por lista via WebSocket (STOMP).
- * Ver o plano em config/WebSocketConfig. A entidade ChatMessage e a
- * migration já existem; o histórico é paginado por sent_at DESC
- * (índice ix_chat_messages_list_sent).
+ * Chat por time. Cada mensagem é enviada "como" um personagem (ChatMessage é
+ * vinculada a Character, não só a User). Só membros ativos e aprovados do time
+ * podem enviar/ler. O envio tem rate limit por usuário (ver ChatProperties).
  */
 public interface ChatService {
 
-    /**
-     * Persiste e distribui uma mensagem para os membros ativos da lista.
-     * TODO(sessão 2): implementar + broadcast em /topic/lists/{listId}/chat.
-     */
-    Object sendMessage(Long userId, Long listId, String content);
+    /** Persiste a mensagem e faz broadcast em /topic/lists/{listId}/chat. */
+    ChatMessageResponse sendMessage(Long userId, Long listId, Long characterId, String content);
 
-    /** TODO(sessão 2): histórico paginado (só para membros ativos). */
-    Object getHistory(Long userId, Long listId, int page, int size);
+    /** Histórico paginado (mais recentes primeiro). */
+    Page<ChatMessageResponse> getHistory(Long userId, Long listId, Pageable pageable);
 }

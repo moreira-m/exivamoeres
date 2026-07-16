@@ -23,7 +23,6 @@ export interface SearchListsParams {
   world?: string
   creatureId?: number
   hasOpenSlots?: boolean
-  characterLevel?: number
   page?: number
   size?: number
 }

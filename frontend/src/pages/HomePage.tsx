@@ -4,7 +4,6 @@ import { Layout } from '../components/Layout'
 import { TeamCard } from '../components/TeamCard'
 import { Card } from '../components/ui/Card'
 import { Combobox } from '../components/ui/Combobox'
-import { Input } from '../components/ui/Input'
 import { Spinner } from '../components/ui/Spinner'
 import { useSearchLists } from '../hooks/useLists'
 import { useWorlds, useCreatures } from '../hooks/useCatalog'
@@ -18,7 +17,6 @@ export function HomePage() {
   const [world, setWorld] = useState('')
   const [creatureId, setCreatureId] = useState('')
   const [onlyOpen, setOnlyOpen] = useState('')
-  const [level, setLevel] = useState('')
 
   const worlds = useWorlds()
   const creatures = useCreatures()
@@ -26,7 +24,6 @@ export function HomePage() {
     world: world || undefined,
     creatureId: creatureId ? Number(creatureId) : undefined,
     hasOpenSlots: onlyOpen === 'open' ? true : undefined,
-    characterLevel: level ? Number(level) : undefined,
   })
 
   const worldOptions = useMemo(
@@ -45,7 +42,7 @@ export function HomePage() {
         <p className="mt-2 max-w-2xl font-bold text-white/90">{t('home.subtitle')}</p>
       </section>
 
-      <Card className="mb-6 grid gap-4 p-4 sm:grid-cols-2 lg:grid-cols-4">
+      <Card className="mb-6 grid gap-4 p-4 sm:grid-cols-3">
         <Combobox
           label={t('home.world')}
           value={world}
@@ -70,15 +67,6 @@ export function HomePage() {
           allLabel={t('common.all')}
           searchable={false}
         />
-        <div className="[&_span]:!text-ink">
-          <Input
-            label={t('home.minLevelFilter')}
-            type="number"
-            min={1}
-            value={level}
-            onChange={(e) => setLevel(e.target.value)}
-          />
-        </div>
       </Card>
 
       {search.isLoading ? (

@@ -60,12 +60,11 @@ public interface HuntingListService {
     ListDetailResponse getList(Long listId);
 
     /**
-     * Busca pública (home): filtros opcionais por world, criatura-alvo, vaga
-     * disponível e level do personagem (retorna times cujo level mínimo o
-     * aceite, ou sem restrição).
+     * Busca pública (home): filtros opcionais por world, criatura-alvo e vaga
+     * disponível. NÃO filtra por level — quem procura vê todos os times; o
+     * requisito de level mínimo é só exibido e validado na entrada.
      */
-    Page<ListSummaryResponse> search(String world, Long creatureId, Boolean hasOpenSlots,
-                                     Integer characterLevel, Pageable pageable);
+    Page<ListSummaryResponse> search(String world, Long creatureId, Boolean hasOpenSlots, Pageable pageable);
 
     /** Pedidos pendentes do time — só o dono enxerga. */
     List<MembershipResponse> listPendingRequests(Long ownerId, Long listId);

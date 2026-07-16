@@ -29,8 +29,7 @@
     "slots": "Slots",
     "openOnly": "Only with open slots",
     "searchPlaceholder": "Type to search…",
-    "empty": "No teams found with these filters. How about creating one?",
-    "minLevelFilter": "Your level"
+    "empty": "No teams found with these filters. How about creating one?"
   },
   "login": {
     "login": "Sign in",

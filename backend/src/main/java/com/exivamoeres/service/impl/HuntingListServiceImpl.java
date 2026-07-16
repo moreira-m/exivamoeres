@@ -286,9 +286,9 @@ public class HuntingListServiceImpl implements HuntingListService {
     @Override
     @Transactional(readOnly = true)
     public Page<ListSummaryResponse> search(String world, Long creatureId, Boolean hasOpenSlots,
-                                            Integer characterLevel, Pageable pageable) {
+                                            Pageable pageable) {
         Page<ListSummaryResponse> page = listRepository
-                .search(blankToNull(world), creatureId, characterLevel, pageable)
+                .search(blankToNull(world), creatureId, pageable)
                 .map(this::toSummary);
         if (Boolean.TRUE.equals(hasOpenSlots)) {
             List<ListSummaryResponse> filtered = page.getContent().stream()

@@ -112,7 +112,7 @@ class TeamManagementIntegrationTest extends TeamIntegrationTestBase {
 
         assertThat(listRepository.findById(listId).orElseThrow().getStatus()).isEqualTo(TeamStatus.CLOSED);
         // Some da busca pública.
-        var found = listService.search(world, null, null, null, PageRequest.of(0, 20)).getContent();
+        var found = listService.search(world, null, null, PageRequest.of(0, 20)).getContent();
         assertThat(found).noneMatch(s -> s.id().equals(listId));
         // Mas continua acessível pelo link.
         assertThat(listService.getList(listId).summary().status()).isEqualTo(TeamStatus.CLOSED);

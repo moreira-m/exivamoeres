@@ -29,8 +29,7 @@
     "slots": "Vagas",
     "openOnly": "Só com vaga aberta",
     "searchPlaceholder": "Digite para buscar…",
-    "empty": "Nenhum time encontrado com esses filtros. Que tal criar um?",
-    "minLevelFilter": "Seu level"
+    "empty": "Nenhum time encontrado com esses filtros. Que tal criar um?"
   },
   "login": {
     "login": "Entrar",

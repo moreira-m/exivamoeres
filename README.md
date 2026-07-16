@@ -167,8 +167,8 @@ Duas áreas distintas:
 - **Área logada (`/account/*`, protegida):** criar times
   (`/account/teams/new`), gerenciar os próprios times e pedidos de entrada
   (`/account/teams`), e a aba de configuração de personagem
-  (`/account/characters`) com o fluxo de claim/verificação e o botão
-  "verificar agora". O callback do login social é `/oauth/callback`.
+  (`/account/characters`) com o fluxo de claim/verificação (automática). O
+  callback do login social é `/oauth/callback`.
 
 ## Regras de negócio dos times
 
@@ -187,8 +187,10 @@ Duas áreas distintas:
 - Ao um membro **desbloquear** um core, geram-se **sugestões** de próximos
   bosses para o time (criaturas que nenhum membro ativo tem, por dificuldade).
 - **Level mínimo** (opcional): ao entrar, o backend consulta o level do
-  personagem na TibiaData e recusa quem estiver abaixo do exigido. A busca
-  pública filtra por `characterLevel` (times que aceitam aquele level).
+  personagem na TibiaData e recusa quem estiver abaixo do exigido, com
+  mensagem clara (level do personagem × mínimo do time). A busca pública
+  **não** filtra por level — quem procura vê todos os times; o requisito é só
+  exibido (badge no card) e validado na entrada.
 - **Preço por vaga** (opcional): valor **informativo** em gold do jogo — não é
   transação processada pelo sistema (não confundir com o Stripe do plano).
 - **Expulsar** (`kickMember`) e **encerrar** (`deleteTeam`) são ações **só do
@@ -216,7 +218,7 @@ Duas áreas distintas:
 | POST | `/api/auth/logout` | Revoga refresh token |
 | GET | `/oauth2/authorization/{google\|discord}` | Início do login social |
 | POST | `/api/claims` · GET `/api/claims` · GET `/api/claims/{id}` | Claims do usuário (verificação só automática) |
-| GET | `/api/lists/search` | **Público** — busca (world, creatureId, hasOpenSlots, characterLevel) |
+| GET | `/api/lists/search` | **Público** — busca (world, creatureId, hasOpenSlots) |
 | GET | `/api/lists/{id}` | **Público** — detalhe do time |
 | POST | `/api/lists` · GET `/api/lists/mine` | Criar / meus times |
 | POST | `/api/lists/{shareCode}/join` | Pedir entrada com um personagem |

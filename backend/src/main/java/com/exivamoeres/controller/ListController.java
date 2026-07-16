@@ -28,16 +28,14 @@ public class ListController {
 
     // ----- Público (sem login) -----
 
-    /** Busca da home: filtros opcionais por world, criatura-alvo, vaga e level do personagem. */
+    /** Busca da home: filtros opcionais por world, criatura-alvo e vaga disponível. */
     @GetMapping("/search")
     public Page<ListSummaryResponse> search(@RequestParam(required = false) String world,
                                             @RequestParam(required = false) Long creatureId,
                                             @RequestParam(required = false) Boolean hasOpenSlots,
-                                            @RequestParam(required = false) Integer characterLevel,
                                             @RequestParam(defaultValue = "0") int page,
                                             @RequestParam(defaultValue = "20") int size) {
-        return listService.search(world, creatureId, hasOpenSlots, characterLevel,
-                PageRequest.of(page, Math.min(size, 50)));
+        return listService.search(world, creatureId, hasOpenSlots, PageRequest.of(page, Math.min(size, 50)));
     }
 
     @GetMapping("/{id}")

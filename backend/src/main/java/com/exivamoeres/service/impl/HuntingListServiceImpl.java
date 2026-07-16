@@ -10,6 +10,7 @@ import com.exivamoeres.domain.MembershipStatus;
 import com.exivamoeres.domain.TeamStatus;
 import com.exivamoeres.domain.User;
 import com.exivamoeres.domain.exception.BusinessRuleException;
+import com.exivamoeres.domain.exception.ForbiddenOperationException;
 import com.exivamoeres.domain.exception.ResourceNotFoundException;
 import com.exivamoeres.dto.list.CreateListRequest;
 import com.exivamoeres.dto.list.JoinListRequest;
@@ -22,6 +23,7 @@ import com.exivamoeres.repository.HuntingListRepository;
 import com.exivamoeres.repository.ListMembershipRepository;
 import com.exivamoeres.repository.UserRepository;
 import com.exivamoeres.service.HuntingListService;
+import com.exivamoeres.service.NotificationService;
 import com.exivamoeres.service.PlanPolicy;
 import com.exivamoeres.service.ShareCodeGenerator;
 import com.exivamoeres.service.TeamEligibilityService;
@@ -47,6 +49,7 @@ public class HuntingListServiceImpl implements HuntingListService {
     private final TeamEligibilityService eligibilityService;
     private final PlanPolicy planPolicy;
     private final ShareCodeGenerator shareCodeGenerator;
+    private final NotificationService notificationService;
     private final int maxMembers;
 
     public HuntingListServiceImpl(HuntingListRepository listRepository,
@@ -57,6 +60,7 @@ public class HuntingListServiceImpl implements HuntingListService {
                                   TeamEligibilityService eligibilityService,
                                   PlanPolicy planPolicy,
                                   ShareCodeGenerator shareCodeGenerator,
+                                  NotificationService notificationService,
                                   TeamProperties teamProperties) {
         this.listRepository = listRepository;
         this.membershipRepository = membershipRepository;
@@ -66,6 +70,7 @@ public class HuntingListServiceImpl implements HuntingListService {
         this.eligibilityService = eligibilityService;
         this.planPolicy = planPolicy;
         this.shareCodeGenerator = shareCodeGenerator;
+        this.notificationService = notificationService;
         this.maxMembers = teamProperties.maxMembers();
     }
 
@@ -80,8 +85,9 @@ public class HuntingListServiceImpl implements HuntingListService {
 
         // Limite de times ativos conforme o plano (free tem teto; premium não).
         assertWithinActiveTeamLimit(owner);
-        // A elegibilidade do criador é validada com o world do próprio time.
-        eligibilityService.assertEligible(character, request.world());
+        // A elegibilidade do criador é validada com o world e o level mínimo
+        // do próprio time (o criador precisa atender ao requisito que define).
+        eligibilityService.assertEligible(character, request.world(), request.minimumLevel());
 
         HuntingList list = new HuntingList();
         list.setName(request.name());
@@ -89,6 +95,8 @@ public class HuntingListServiceImpl implements HuntingListService {
         list.setOwner(owner);
         list.setTargetCreature(target);
         list.setJoinPolicy(request.joinPolicy());
+        list.setMinimumLevel(request.minimumLevel());
+        list.setPricePerSlot(request.pricePerSlot());
         list.setShareCode(generateUniqueShareCode());
         list.setStatus(TeamStatus.ACTIVE);
         list.setExpiresAt(Instant.now().plus(planPolicy.teamDuration(owner.getPlan())));
@@ -121,7 +129,7 @@ public class HuntingListServiceImpl implements HuntingListService {
         }
 
         Character character = loadOwnedCharacter(request.characterId(), userId);
-        eligibilityService.assertEligible(character, list.getWorld());
+        eligibilityService.assertEligible(character, list.getWorld(), list.getMinimumLevel());
 
         ListMembership membership = membershipRepository
                 .findByListIdAndCharacterId(list.getId(), character.getId())
@@ -140,6 +148,8 @@ public class HuntingListServiceImpl implements HuntingListService {
             membership.setStatus(MembershipStatus.APPROVED);
         } else {
             membership.setStatus(MembershipStatus.PENDING);
+            // Aprovação manual: avisa o dono que há um pedido a decidir (item 7).
+            notificationService.notifyJoinRequestReceived(list.getOwner().getId(), list);
         }
         membership.setActive(true);
         membershipRepository.save(membership);
@@ -157,6 +167,7 @@ public class HuntingListServiceImpl implements HuntingListService {
 
         assertHasOpenSlot(list.getId());
         membership.setStatus(MembershipStatus.APPROVED);
+        notificationService.notifyJoinRequestApproved(membership.getUser().getId(), list);
         log.info("list.request.approved listId={} membershipId={}", listId, membershipId);
     }
 
@@ -169,6 +180,7 @@ public class HuntingListServiceImpl implements HuntingListService {
         // Recusa preserva o histórico: marca REJECTED e desativa, nunca deleta.
         membership.setStatus(MembershipStatus.REJECTED);
         membership.setActive(false);
+        notificationService.notifyJoinRequestRejected(membership.getUser().getId(), list);
         log.info("list.request.rejected listId={} membershipId={}", listId, membershipId);
     }
 
@@ -208,6 +220,45 @@ public class HuntingListServiceImpl implements HuntingListService {
     }
 
     @Override
+    @Transactional
+    public void kickMember(Long ownerId, Long listId, Long membershipId) {
+        HuntingList list = loadOwnedList(listId, ownerId); // 403 se não for o dono
+        ListMembership membership = membershipRepository.findById(membershipId)
+                .orElseThrow(() -> new ResourceNotFoundException("Membro não encontrado"));
+        if (!membership.getList().getId().equals(listId)) {
+            throw new ResourceNotFoundException("Membro não pertence a este time");
+        }
+        if (membership.getUser().getId().equals(ownerId)) {
+            throw new BusinessRuleException("O dono não pode expulsar a si mesmo");
+        }
+        // Nunca deleta: desativa e preserva o histórico (mensagens de chat ficam).
+        membership.setActive(false);
+        // Notifica o expulso (item 7).
+        notificationService.notifyKicked(membership.getUser().getId(), list);
+        log.info("list.member.kicked listId={} membershipId={} kickedUserId={}",
+                listId, membershipId, membership.getUser().getId());
+    }
+
+    @Override
+    @Transactional
+    public void deleteTeam(Long ownerId, Long listId) {
+        HuntingList list = loadOwnedList(listId, ownerId); // 403 se não for o dono
+        if (list.getStatus() == TeamStatus.CLOSED) {
+            throw new BusinessRuleException("Este time já foi encerrado");
+        }
+        // Exclusão lógica: preserva o histórico (padrão do projeto). Some da
+        // busca e vira só leitura; membros continuam vendo em "meus times".
+        list.setStatus(TeamStatus.CLOSED);
+        // Notifica todos os membros ativos aprovados, exceto o próprio dono (item 7).
+        membershipRepository.findAllByListIdAndStatusAndActiveTrue(listId, MembershipStatus.APPROVED).stream()
+                .map(m -> m.getUser().getId())
+                .filter(uid -> !uid.equals(ownerId))
+                .distinct()
+                .forEach(uid -> notificationService.notifyTeamDeleted(uid, list));
+        log.info("team.closed listId={} ownerId={}", listId, ownerId);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public List<ListSummaryResponse> listMyLists(Long userId) {
         // Times onde é dono OU membro ativo aprovado — sem duplicar.
@@ -234,9 +285,10 @@ public class HuntingListServiceImpl implements HuntingListService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<ListSummaryResponse> search(String world, Long creatureId, Boolean hasOpenSlots, Pageable pageable) {
+    public Page<ListSummaryResponse> search(String world, Long creatureId, Boolean hasOpenSlots,
+                                            Integer characterLevel, Pageable pageable) {
         Page<ListSummaryResponse> page = listRepository
-                .search(blankToNull(world), creatureId, pageable)
+                .search(blankToNull(world), creatureId, characterLevel, pageable)
                 .map(this::toSummary);
         if (Boolean.TRUE.equals(hasOpenSlots)) {
             List<ListSummaryResponse> filtered = page.getContent().stream()
@@ -292,7 +344,7 @@ public class HuntingListServiceImpl implements HuntingListService {
 
     private void assertOwner(HuntingList list, Long ownerId) {
         if (!list.getOwner().getId().equals(ownerId)) {
-            throw new BusinessRuleException("Apenas o dono do time pode fazer isso");
+            throw new ForbiddenOperationException("Apenas o dono do time pode fazer isso");
         }
     }
 

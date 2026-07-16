@@ -2,6 +2,7 @@ package com.exivamoeres.controller;
 
 import com.exivamoeres.domain.exception.BusinessRuleException;
 import com.exivamoeres.domain.exception.ExternalServiceException;
+import com.exivamoeres.domain.exception.ForbiddenOperationException;
 import com.exivamoeres.domain.exception.ResourceNotFoundException;
 import com.exivamoeres.dto.error.ApiErrorResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +31,12 @@ public class ApiExceptionHandler {
     @ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
     public ApiErrorResponse handleBusinessRule(BusinessRuleException e) {
         return ApiErrorResponse.of(422, e.getMessage());
+    }
+
+    @ExceptionHandler(ForbiddenOperationException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ApiErrorResponse handleForbidden(ForbiddenOperationException e) {
+        return ApiErrorResponse.of(403, e.getMessage());
     }
 
     @ExceptionHandler(ExternalServiceException.class)

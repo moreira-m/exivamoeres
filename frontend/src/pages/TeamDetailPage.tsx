@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { Layout } from '../components/Layout'
 import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
@@ -18,12 +18,15 @@ import {
   useSuggestions,
   useDismissSuggestion,
   useRenewTeam,
+  useKickMember,
+  useDeleteTeam,
 } from '../hooks/useLists'
 import { useMyCharacters } from '../hooks/useCharacters'
 import { useAuthStore } from '../store/authStore'
 import { getApiErrorMessage } from '../lib/apiError'
 import { formatExpiry } from '../lib/format'
 import { useTranslation } from 'react-i18next'
+import type { MembershipResponse } from '../types/api'
 
 export function TeamDetailPage() {
   const { t } = useTranslation()
@@ -65,21 +68,35 @@ export function TeamDetailPage() {
   return (
     <Layout>
       <Card className="mb-6 flex flex-wrap items-center gap-4 p-5">
-        <CreatureIcon imageUrl={team.targetCreatureImageUrl} name={team.targetCreatureName} size={64} />
+        <CreatureIcon imageUrl={team.targetCreatureImageUrl} name={team.targetCreatureName} size={72} />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-3xl text-ink">{team.name}</h1>
+            {/* Criatura-alvo em destaque; nome do time abaixo, secundário. */}
+            <h1 className="text-3xl text-ink">{team.targetCreatureName}</h1>
             {team.featured && <Badge tone="accent">{t('teamCard.featured')}</Badge>}
             {!isActive && <Badge tone="neutral">{t(`enums.teamStatus.${team.status}`)}</Badge>}
           </div>
-          <p className="font-bold text-ink/70">
-            {t('teamDetail.target')}: {team.targetCreatureName} · {t('teamDetail.world')}: {team.world}
+          <p className="font-bold text-ink/60">
+            {team.name} · {t('teamDetail.world')}: {team.world}
           </p>
-          <p className="text-sm font-bold text-ink/50">
-            {isActive
-              ? formatExpiry(team.expiresAt)
-              : t('teamDetail.teamStatusInfo', { status: t(`enums.teamStatus.${team.status}`) })}
-          </p>
+          <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm font-bold">
+            <span className="text-ink/50">
+              {isActive
+                ? formatExpiry(team.expiresAt)
+                : t('teamDetail.teamStatusInfo', { status: t(`enums.teamStatus.${team.status}`) })}
+            </span>
+            {team.minimumLevel != null && (
+              <span className="text-ink/70">
+                {t('teamDetail.minimumLevel')}: {team.minimumLevel}
+              </span>
+            )}
+            {team.pricePerSlot != null && (
+              <span className="text-accent">
+                {t('teamDetail.pricePerSlot')}: {team.pricePerSlot.toLocaleString()}{' '}
+                {t('teamDetail.priceUnit')}
+              </span>
+            )}
+          </div>
         </div>
         <div className="flex flex-col items-end gap-1">
           <Badge tone={team.hasOpenSlots && isActive ? 'primary' : 'neutral'}>
@@ -97,12 +114,18 @@ export function TeamDetailPage() {
 
       <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
         <div className="space-y-6">
-          <MembersCard members={detail.data.members} />
+          <MembersCard
+            members={detail.data.members}
+            listId={listId}
+            ownerId={detail.data.ownerId}
+            canManage={isOwner && isActive}
+          />
           {isActive && !isMember && (
             <JoinCard listId={listId} teamWorld={team.world} full={!team.hasOpenSlots} />
           )}
           {isMember && isActive && <LeaveCard listId={listId} />}
           {isOwner && isActive && <RequestsCard listId={listId} />}
+          {isOwner && isActive && <DeleteTeamCard listId={listId} />}
           {isMember && isActive && <SuggestionsCard listId={listId} />}
         </div>
         <div className="space-y-6">
@@ -141,9 +164,32 @@ function RenewCard({ listId }: { listId: number }) {
   )
 }
 
-function MembersCard({ members }: { members: { id: number; characterName: string; vocation: string | null; status: string; active: boolean }[] }) {
+function MembersCard({
+  members,
+  listId,
+  ownerId,
+  canManage,
+}: {
+  members: MembershipResponse[]
+  listId: number
+  ownerId: number
+  canManage: boolean
+}) {
   const { t } = useTranslation()
+  const kick = useKickMember(listId)
+  const [error, setError] = useState('')
   const active = members.filter((m) => m.active && m.status === 'APPROVED')
+
+  const doKick = async (membershipId: number) => {
+    if (!window.confirm(t('teamDetail.kickConfirm'))) return
+    setError('')
+    try {
+      await kick.mutateAsync(membershipId)
+    } catch (err) {
+      setError(getApiErrorMessage(err))
+    }
+  }
+
   return (
     <Card className="p-4">
       <h3 className="mb-3 text-lg text-ink">{t('teamDetail.members')}</h3>
@@ -152,9 +198,48 @@ function MembersCard({ members }: { members: { id: number; characterName: string
           <li key={m.id} className="flex items-center gap-2">
             <span className="font-bold text-ink">{m.characterName}</span>
             {m.vocation && <span className="text-sm text-ink/60">{m.vocation}</span>}
+            {/* Expulsar: só o dono, só em time ativo, e nunca a si mesmo. */}
+            {canManage && m.userId !== ownerId && (
+              <Button
+                variant="neutral"
+                className="ml-auto !px-2 !py-1 !text-xs"
+                disabled={kick.isPending}
+                onClick={() => doKick(m.id)}
+              >
+                {t('teamDetail.kick')}
+              </Button>
+            )}
           </li>
         ))}
       </ul>
+      {error && <p className="mt-2 font-bold text-accent">{error}</p>}
+    </Card>
+  )
+}
+
+function DeleteTeamCard({ listId }: { listId: number }) {
+  const { t } = useTranslation()
+  const navigate = useNavigate()
+  const deleteTeam = useDeleteTeam()
+  const [error, setError] = useState('')
+
+  const doDelete = async () => {
+    if (!window.confirm(t('teamDetail.deleteConfirm'))) return
+    setError('')
+    try {
+      await deleteTeam.mutateAsync(listId)
+      navigate('/account/teams')
+    } catch (err) {
+      setError(getApiErrorMessage(err))
+    }
+  }
+
+  return (
+    <Card className="p-4">
+      <Button variant="neutral" disabled={deleteTeam.isPending} onClick={doDelete}>
+        {t('teamDetail.deleteTeam')}
+      </Button>
+      {error && <p className="mt-2 font-bold text-accent">{error}</p>}
     </Card>
   )
 }

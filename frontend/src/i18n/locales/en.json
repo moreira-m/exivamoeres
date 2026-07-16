@@ -18,7 +18,8 @@
     "language": "Language",
     "theme": "Theme",
     "themeLight": "Light",
-    "themeDark": "Dark"
+    "themeDark": "Dark",
+    "notifications": "Notifications"
   },
   "home": {
     "title": "Find your Soul Core team",
@@ -28,7 +29,8 @@
     "slots": "Slots",
     "openOnly": "Only with open slots",
     "searchPlaceholder": "Type to search…",
-    "empty": "No teams found with these filters. How about creating one?"
+    "empty": "No teams found with these filters. How about creating one?",
+    "minLevelFilter": "Your level"
   },
   "login": {
     "login": "Sign in",
@@ -46,13 +48,13 @@
   "characters": {
     "title": "My characters",
     "verifyTitle": "Verify a character",
-    "verifyHelp": "Enter the exact character name on Tibia.com. We generate a code you paste into the character's Comment field; we check automatically every 15 minutes (or use \"Verify now\").",
+    "verifyHelp": "Enter the exact character name on Tibia.com. We generate a code you paste into the character's Comment field; we verify it automatically every ~15 minutes.",
     "characterName": "Character name",
     "characterNamePlaceholder": "e.g. Bubble",
     "startVerification": "Start verification",
     "world": "World",
     "pasteCode": "Paste into the Comment:",
-    "verifyNow": "Verify now",
+    "autoVerifyHint": "Verification is automatic and may take up to ~15 minutes after you paste the code into the character's Comment.",
     "empty": "You haven't verified any character yet."
   },
   "myTeams": {
@@ -78,7 +80,9 @@
     "joinPolicyManual": "Manual approval",
     "joinPolicyAuto": "Auto accept",
     "chooseCharacter": "Choose a verified character",
-    "submit": "Create team"
+    "submit": "Create team",
+    "minimumLevel": "Minimum level (optional)",
+    "pricePerSlot": "Price per slot in gold (optional)"
   },
   "billing": {
     "title": "Subscription",
@@ -113,7 +117,15 @@
     "suggestions": "Suggested next bosses",
     "renewInfo": "This team is archived. Renew it to reopen the hunt (uses one slot of your plan).",
     "renewButton": "Renew team",
-    "teamStatusInfo": "Team {{status}}"
+    "teamStatusInfo": "Team {{status}}",
+    "minimumLevel": "Minimum level",
+    "pricePerSlot": "Price per slot",
+    "priceUnit": "gold",
+    "kick": "Kick",
+    "kickConfirm": "Kick this member from the team?",
+    "deleteTeam": "Close team",
+    "deleteConfirm": "Close this team? It disappears from search and becomes read-only (history is preserved).",
+    "closedInfo": "This team was closed by the owner."
   },
   "soulcore": {
     "title": "Soul cores",
@@ -133,13 +145,30 @@
   "teamCard": {
     "featured": "★ featured",
     "auto": "auto",
-    "manual": "manual"
+    "manual": "manual",
+    "minLevel": "Level {{level}}+",
+    "price": "{{price}} gold/slot"
   },
   "enums": {
-    "claimStatus": { "PENDING": "PENDING", "APPROVED": "APPROVED", "REJECTED": "REJECTED" },
-    "teamStatus": { "ACTIVE": "Active", "COMPLETED": "Completed", "ARCHIVED": "Archived" },
-    "soulcoreStatus": { "OBTAINED": "OBTAINED", "UNLOCKED": "UNLOCKED" },
-    "plan": { "FREE": "Free", "PREMIUM": "Premium" }
+    "claimStatus": {
+      "PENDING": "PENDING",
+      "APPROVED": "APPROVED",
+      "REJECTED": "REJECTED"
+    },
+    "teamStatus": {
+      "ACTIVE": "Active",
+      "COMPLETED": "Completed",
+      "ARCHIVED": "Archived",
+      "CLOSED": "Closed"
+    },
+    "soulcoreStatus": {
+      "OBTAINED": "OBTAINED",
+      "UNLOCKED": "UNLOCKED"
+    },
+    "plan": {
+      "FREE": "Free",
+      "PREMIUM": "Premium"
+    }
   },
   "expiry": {
     "expired": "expired",
@@ -147,5 +176,17 @@
     "tomorrow": "expires tomorrow",
     "hours": "expires in {{count}}h",
     "soon": "expires in under 1h"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "empty": "No notifications.",
+    "markAllRead": "Mark all as read",
+    "types": {
+      "JOIN_REQUEST_RECEIVED": "New join request in {{team}}",
+      "JOIN_REQUEST_APPROVED": "Your request to {{team}} was accepted",
+      "JOIN_REQUEST_REJECTED": "Your request to {{team}} was declined",
+      "KICKED_FROM_TEAM": "You were removed from {{team}}",
+      "TEAM_DELETED": "The team {{team}} was closed"
+    }
   }
 }

@@ -38,11 +38,4 @@ public class ClaimController {
                              @PathVariable Long id) {
         return claimService.getClaim(id, user.id());
     }
-
-    /** Verificação sob demanda, sem esperar o ciclo de 15 minutos do job. */
-    @PostMapping("/{id}/verify-now")
-    public ClaimResponse verifyNow(@AuthenticationPrincipal AuthenticatedUser user,
-                                   @PathVariable Long id) {
-        return claimService.verifyNow(id, user.id());
-    }
 }

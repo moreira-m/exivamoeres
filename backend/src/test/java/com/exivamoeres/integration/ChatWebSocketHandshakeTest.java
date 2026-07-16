@@ -72,13 +72,13 @@ class ChatWebSocketHandshakeTest extends IntegrationTestBase {
     void membroComTokenRecebeBroadcast() throws Exception {
         when(tibiaDataClient.fetchCharacter(anyString())).thenAnswer(inv ->
                 Mono.just(new TibiaCharacterSnapshot(true, inv.getArgument(0), "Antica", "",
-                        "Premium Account", "Elder Druid")));
+                        "Premium Account", "Elder Druid", 500)));
 
         User owner = newUser("ws-owner@teste.com");
         Character ownerChar = newCharacter("WS Owner", owner);
         ListDetailResponse team = listService.createList(owner.getId(), new CreateListRequest(
                 "Time WS", "Antica",
-                creatureId(), JoinPolicy.AUTO_ACCEPT, ownerChar.getId()));
+                creatureId(), JoinPolicy.AUTO_ACCEPT, ownerChar.getId(), null, null));
 
         String token = jwtService.generateAccessToken(owner);
         WebSocketStompClient client = newStompClient();

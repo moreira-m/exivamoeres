@@ -146,8 +146,10 @@ join requests, chat por personagem, world/ícones). Nenhuma migration aplicada
    dono anterior**.
 5. 24h sem verificação: claim vira REJECTED (expiração conta a partir de
    `created_at`, nunca de falhas de rede).
-6. `POST /api/claims/{id}/verify-now` força a checagem imediata (mesma regra
-   do job).
+
+A verificação é **exclusivamente automática** (job de polling): não há
+endpoint de verificação sob demanda — a UI avisa que a checagem pode levar
+até ~15 min após colar o código no Comment.
 
 Resiliência: retry com backoff exponencial + circuit breaker (Resilience4j)
 nas chamadas à TibiaData; falha de rede **não** atualiza `last_checked_at`
@@ -184,6 +186,24 @@ Duas áreas distintas:
   memberships do dono anterior são desativadas.
 - Ao um membro **desbloquear** um core, geram-se **sugestões** de próximos
   bosses para o time (criaturas que nenhum membro ativo tem, por dificuldade).
+- **Level mínimo** (opcional): ao entrar, o backend consulta o level do
+  personagem na TibiaData e recusa quem estiver abaixo do exigido. A busca
+  pública filtra por `characterLevel` (times que aceitam aquele level).
+- **Preço por vaga** (opcional): valor **informativo** em gold do jogo — não é
+  transação processada pelo sistema (não confundir com o Stripe do plano).
+- **Expulsar** (`kickMember`) e **encerrar** (`deleteTeam`) são ações **só do
+  dono** (403 caso contrário). Encerrar é exclusão lógica (status `CLOSED`):
+  some da busca, vira só leitura, mas membros continuam vendo o histórico.
+- **Notificações**: pedido recebido (dono), pedido aceito/recusado
+  (solicitante), expulso, time encerrado. O frontend faz **polling leve**
+  (~30s) do contador de não-lidas para o badge do sino — não usa WebSocket
+  (o volume não justifica tempo real; decisão consciente).
+
+> **Pendente (item 3 do CLAUDE.md — não implementado nesta sessão):** vocação
+> obrigatória por vaga (Modo B). É a mudança mais complexa (nova entidade
+> `TeamSlot` com vocações permitidas, `ListMembership` referenciando a vaga, e
+> refatoração do fluxo de join para escolher uma vaga compatível). Foi deixada
+> por último conforme a prioridade do prompt; ver o relatório da sessão.
 
 ## Endpoints atuais
 
@@ -195,18 +215,21 @@ Duas áreas distintas:
 | POST | `/api/auth/refresh` | Rotaciona refresh token |
 | POST | `/api/auth/logout` | Revoga refresh token |
 | GET | `/oauth2/authorization/{google\|discord}` | Início do login social |
-| POST | `/api/claims` · GET `/api/claims` · GET `/api/claims/{id}` | Claims do usuário |
-| POST | `/api/claims/{id}/verify-now` | Verificação sob demanda |
-| GET | `/api/lists/search` | **Público** — busca de times (world, creatureId, hasOpenSlots) |
+| POST | `/api/claims` · GET `/api/claims` · GET `/api/claims/{id}` | Claims do usuário (verificação só automática) |
+| GET | `/api/lists/search` | **Público** — busca (world, creatureId, hasOpenSlots, characterLevel) |
 | GET | `/api/lists/{id}` | **Público** — detalhe do time |
 | POST | `/api/lists` · GET `/api/lists/mine` | Criar / meus times |
 | POST | `/api/lists/{shareCode}/join` | Pedir entrada com um personagem |
-| POST | `/api/lists/{id}/leave` | Sair do time |
+| POST | `/api/lists/{id}/leave` · `/api/lists/{id}/renew` | Sair / renovar (arquivado) |
+| DELETE | `/api/lists/{id}` | Encerrar o time (só dono → 403) |
+| DELETE | `/api/lists/{id}/members/{mid}` | Expulsar membro (só dono → 403) |
 | GET | `/api/lists/{id}/requests` | Pedidos pendentes (só dono) |
 | POST | `/api/lists/{id}/requests/{mid}/approve\|reject` | Aceitar/recusar pedido (só dono) |
 | GET/POST | `/api/lists/{id}/soulcores[...]/obtain\|unlock` | Board e ações de soul core |
 | GET | `/api/lists/{id}/suggestions` · POST `/api/suggestions/{id}/dismiss` | Sugestões |
 | GET/POST | `/api/lists/{id}/chat` | Histórico e envio de mensagem |
+| GET | `/api/notifications` · `/unread-count` | Notificações + contador de não-lidas |
+| POST | `/api/notifications/{id}/read` · `/read-all` | Marcar lida(s) |
 | WS | `/ws` → `/topic/lists/{id}/chat` | Chat em tempo real (STOMP, JWT no CONNECT) |
 | GET | `/api/worlds` · `/api/creatures` | **Público** — catálogos para filtros |
 | GET | `/api/characters/mine` · `/api/characters/{id}/soulcores` | Personagens e cores |

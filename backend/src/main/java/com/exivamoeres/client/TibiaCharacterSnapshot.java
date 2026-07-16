@@ -10,10 +10,11 @@ public record TibiaCharacterSnapshot(
         String world,
         String comment,
         String accountStatus,
-        String vocation
+        String vocation,
+        Integer level
 ) {
     public static TibiaCharacterSnapshot notFound() {
-        return new TibiaCharacterSnapshot(false, null, null, null, null, null);
+        return new TibiaCharacterSnapshot(false, null, null, null, null, null, null);
     }
 
     /** "Free Account" nunca pode participar de times (regra de negócio). */

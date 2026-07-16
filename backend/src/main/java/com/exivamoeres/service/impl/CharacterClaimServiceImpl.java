@@ -15,7 +15,6 @@ import com.exivamoeres.repository.CharacterClaimRepository;
 import com.exivamoeres.repository.UserRepository;
 import com.exivamoeres.service.CharacterClaimService;
 import com.exivamoeres.service.CharacterSyncService;
-import com.exivamoeres.service.ClaimVerificationService;
 import com.exivamoeres.service.VerificationCodeGenerator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -35,7 +34,6 @@ public class CharacterClaimServiceImpl implements CharacterClaimService {
     private final UserRepository userRepository;
     private final TibiaDataClient tibiaDataClient;
     private final VerificationCodeGenerator codeGenerator;
-    private final ClaimVerificationService verificationService;
     private final ClaimProperties claimProperties;
 
     public CharacterClaimServiceImpl(CharacterClaimRepository claimRepository,
@@ -43,14 +41,12 @@ public class CharacterClaimServiceImpl implements CharacterClaimService {
                                      UserRepository userRepository,
                                      TibiaDataClient tibiaDataClient,
                                      VerificationCodeGenerator codeGenerator,
-                                     ClaimVerificationService verificationService,
                                      ClaimProperties claimProperties) {
         this.claimRepository = claimRepository;
         this.characterSyncService = characterSyncService;
         this.userRepository = userRepository;
         this.tibiaDataClient = tibiaDataClient;
         this.codeGenerator = codeGenerator;
-        this.verificationService = verificationService;
         this.claimProperties = claimProperties;
     }
 
@@ -95,22 +91,6 @@ public class CharacterClaimServiceImpl implements CharacterClaimService {
         return claimRepository.findAllByClaimantIdOrderByCreatedAtDesc(userId).stream()
                 .map(claim -> ClaimResponse.from(claim, claimProperties.expiration()))
                 .toList();
-    }
-
-    @Override
-    public ClaimResponse verifyNow(Long claimId, Long userId) {
-        CharacterClaim claim = loadOwnClaim(claimId, userId);
-        if (claim.getStatus() != ClaimStatus.PENDING) {
-            throw new BusinessRuleException("Este claim já foi resolvido: " + claim.getStatus());
-        }
-
-        var outcome = verificationService.verifyClaim(claimId);
-        if (outcome == ClaimVerificationService.VerificationOutcome.UNREACHABLE) {
-            throw new ExternalServiceException(
-                    "TibiaData indisponível no momento — tente novamente em instantes");
-        }
-        // Recarrega: a verificação persistiu o novo estado em outra transação.
-        return ClaimResponse.from(loadOwnClaim(claimId, userId), claimProperties.expiration());
     }
 
     private CharacterClaim loadOwnClaim(Long claimId, Long userId) {

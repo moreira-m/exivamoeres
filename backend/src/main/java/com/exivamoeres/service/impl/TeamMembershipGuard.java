@@ -79,6 +79,7 @@ public class TeamMembershipGuard {
         return switch (list.getStatus()) {
             case COMPLETED -> "concluído";
             case ARCHIVED -> "arquivado";
+            case CLOSED -> "encerrado";
             case ACTIVE -> "ativo";
         };
     }

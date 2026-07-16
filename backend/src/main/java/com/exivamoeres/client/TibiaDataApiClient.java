@@ -67,7 +67,7 @@ public class TibiaDataApiClient implements TibiaDataClient {
         }
         var data = response.character().character();
         return new TibiaCharacterSnapshot(
-                true, data.name(), data.world(), data.comment(), data.accountStatus(), data.vocation());
+                true, data.name(), data.world(), data.comment(), data.accountStatus(), data.vocation(), data.level());
     }
 
     @Override

@@ -49,8 +49,12 @@ public interface HuntingListRepository extends JpaRepository<HuntingList, Long> 
             where l.status = com.exivamoeres.domain.TeamStatus.ACTIVE
               and (:world is null or l.world = :world)
               and (:creatureId is null or l.targetCreature.id = :creatureId)
+              and (:characterLevel is null or l.minimumLevel is null or l.minimumLevel <= :characterLevel)
             order by case when o.plan = com.exivamoeres.domain.Plan.PREMIUM then 0 else 1 end,
                      l.createdAt desc
             """)
-    Page<HuntingList> search(@Param("world") String world, @Param("creatureId") Long creatureId, Pageable pageable);
+    Page<HuntingList> search(@Param("world") String world,
+                             @Param("creatureId") Long creatureId,
+                             @Param("characterLevel") Integer characterLevel,
+                             Pageable pageable);
 }

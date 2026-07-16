@@ -7,7 +7,13 @@ export type SoulcoreStatus = 'OBTAINED' | 'UNLOCKED'
 export type JoinPolicy = 'MANUAL_APPROVAL' | 'AUTO_ACCEPT'
 export type MembershipStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
 export type Plan = 'FREE' | 'PREMIUM'
-export type TeamStatus = 'ACTIVE' | 'COMPLETED' | 'ARCHIVED'
+export type TeamStatus = 'ACTIVE' | 'COMPLETED' | 'ARCHIVED' | 'CLOSED'
+export type NotificationType =
+  | 'JOIN_REQUEST_RECEIVED'
+  | 'JOIN_REQUEST_APPROVED'
+  | 'JOIN_REQUEST_REJECTED'
+  | 'KICKED_FROM_TEAM'
+  | 'TEAM_DELETED'
 
 export interface UserResponse {
   id: number
@@ -52,6 +58,7 @@ export interface CreatureResponse {
 
 export interface MembershipResponse {
   id: number
+  userId: number
   characterId: number
   characterName: string
   vocation: string | null
@@ -71,10 +78,21 @@ export interface ListSummaryResponse {
   joinPolicy: JoinPolicy
   status: TeamStatus
   expiresAt: string
+  minimumLevel: number | null
+  pricePerSlot: number | null
   featured: boolean
   memberCount: number
   maxMembers: number
   hasOpenSlots: boolean
+  createdAt: string
+}
+
+export interface NotificationResponse {
+  id: number
+  type: NotificationType
+  listId: number | null
+  listName: string | null
+  read: boolean
   createdAt: string
 }
 

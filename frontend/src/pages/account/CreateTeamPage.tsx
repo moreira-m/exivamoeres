@@ -27,6 +27,8 @@ export function CreateTeamPage() {
   const [characterId, setCharacterId] = useState('')
   const [creatureId, setCreatureId] = useState('')
   const [joinPolicy, setJoinPolicy] = useState<JoinPolicy>('MANUAL_APPROVAL')
+  const [minimumLevel, setMinimumLevel] = useState('')
+  const [pricePerSlot, setPricePerSlot] = useState('')
   const [error, setError] = useState('')
 
   // O world do time é ditado pelo personagem escolhido (regra: todos do mesmo world).
@@ -49,6 +51,8 @@ export function CreateTeamPage() {
         targetCreatureId: Number(creatureId),
         joinPolicy,
         characterId: Number(characterId),
+        minimumLevel: minimumLevel ? Number(minimumLevel) : null,
+        pricePerSlot: pricePerSlot ? Number(pricePerSlot) : null,
       })
       navigate(`/teams/${detail.summary.id}`)
     } catch (err) {
@@ -144,6 +148,20 @@ export function CreateTeamPage() {
               <option value="MANUAL_APPROVAL">{t('createTeam.joinPolicyManual')}</option>
               <option value="AUTO_ACCEPT">{t('createTeam.joinPolicyAuto')}</option>
             </Select>
+            <Input
+              label={t('createTeam.minimumLevel')}
+              type="number"
+              min={1}
+              value={minimumLevel}
+              onChange={(e) => setMinimumLevel(e.target.value)}
+            />
+            <Input
+              label={t('createTeam.pricePerSlot')}
+              type="number"
+              min={0}
+              value={pricePerSlot}
+              onChange={(e) => setPricePerSlot(e.target.value)}
+            />
 
             {error && <p className="font-bold text-accent">{error}</p>}
 

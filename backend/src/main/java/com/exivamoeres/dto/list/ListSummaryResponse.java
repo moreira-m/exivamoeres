@@ -17,6 +17,8 @@ public record ListSummaryResponse(
         JoinPolicy joinPolicy,
         TeamStatus status,
         Instant expiresAt,
+        Integer minimumLevel,
+        Long pricePerSlot,
         /** Anúncio em destaque: verdadeiro quando o dono é premium. */
         boolean featured,
         int memberCount,
@@ -36,6 +38,8 @@ public record ListSummaryResponse(
                 list.getJoinPolicy(),
                 list.getStatus(),
                 list.getExpiresAt(),
+                list.getMinimumLevel(),
+                list.getPricePerSlot(),
                 list.getOwner().isPremium(),
                 (int) memberCount,
                 maxMembers,

@@ -8,7 +8,4 @@ export const claimService = {
   list: () => apiClient.get<ClaimResponse[]>('/api/claims').then((r) => r.data),
 
   get: (id: number) => apiClient.get<ClaimResponse>(`/api/claims/${id}`).then((r) => r.data),
-
-  verifyNow: (id: number) =>
-    apiClient.post<ClaimResponse>(`/api/claims/${id}/verify-now`).then((r) => r.data),
 }

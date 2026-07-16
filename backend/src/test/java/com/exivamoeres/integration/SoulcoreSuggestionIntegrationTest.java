@@ -31,7 +31,7 @@ class SoulcoreSuggestionIntegrationTest extends TeamIntegrationTestBase {
         stubPremium("Owner SC", "Antica");
         ListDetailResponse team = listService.createList(owner.getId(), new CreateListRequest(
                 "Caça ao Demon", "Antica", creature("Demon").getId(),
-                JoinPolicy.AUTO_ACCEPT, ownerChar.getId()));
+                JoinPolicy.AUTO_ACCEPT, ownerChar.getId(), null, null));
         Long listId = team.summary().id();
         Long dragonId = creature("Dragon").getId();
 
@@ -63,7 +63,7 @@ class SoulcoreSuggestionIntegrationTest extends TeamIntegrationTestBase {
         stubPremium("Owner NM", "Antica");
         ListDetailResponse team = listService.createList(owner.getId(), new CreateListRequest(
                 "Time NM", "Antica", creature("Demon").getId(),
-                JoinPolicy.AUTO_ACCEPT, ownerChar.getId()));
+                JoinPolicy.AUTO_ACCEPT, ownerChar.getId(), null, null));
 
         User stranger = createUser("stranger@teste.com");
         Character strangerChar = createCharacter("Stranger", "Antica", stranger);

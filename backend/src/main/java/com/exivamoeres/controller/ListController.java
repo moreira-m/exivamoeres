@@ -28,14 +28,16 @@ public class ListController {
 
     // ----- Público (sem login) -----
 
-    /** Busca da home: filtros opcionais por world, criatura-alvo e vaga disponível. */
+    /** Busca da home: filtros opcionais por world, criatura-alvo, vaga e level do personagem. */
     @GetMapping("/search")
     public Page<ListSummaryResponse> search(@RequestParam(required = false) String world,
                                             @RequestParam(required = false) Long creatureId,
                                             @RequestParam(required = false) Boolean hasOpenSlots,
+                                            @RequestParam(required = false) Integer characterLevel,
                                             @RequestParam(defaultValue = "0") int page,
                                             @RequestParam(defaultValue = "20") int size) {
-        return listService.search(world, creatureId, hasOpenSlots, PageRequest.of(page, Math.min(size, 50)));
+        return listService.search(world, creatureId, hasOpenSlots, characterLevel,
+                PageRequest.of(page, Math.min(size, 50)));
     }
 
     @GetMapping("/{id}")
@@ -94,5 +96,20 @@ public class ListController {
     public void reject(@AuthenticationPrincipal AuthenticatedUser user,
                        @PathVariable Long id, @PathVariable Long membershipId) {
         listService.rejectJoinRequest(user.id(), id, membershipId);
+    }
+
+    /** Expulsa um membro do time (só o dono; 403 caso contrário). */
+    @DeleteMapping("/{id}/members/{membershipId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void kick(@AuthenticationPrincipal AuthenticatedUser user,
+                     @PathVariable Long id, @PathVariable Long membershipId) {
+        listService.kickMember(user.id(), id, membershipId);
+    }
+
+    /** Encerra o time (só o dono; 403 caso contrário). */
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@AuthenticationPrincipal AuthenticatedUser user, @PathVariable Long id) {
+        listService.deleteTeam(user.id(), id);
     }
 }

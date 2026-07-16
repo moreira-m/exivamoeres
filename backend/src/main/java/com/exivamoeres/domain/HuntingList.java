@@ -49,6 +49,17 @@ public class HuntingList {
     @Column(nullable = false, length = 20)
     private TeamStatus status = TeamStatus.ACTIVE;
 
+    /** Level mínimo exigido para entrar (opcional; nulo = sem restrição). */
+    @Column(name = "minimum_level")
+    private Integer minimumLevel;
+
+    /**
+     * Preço INFORMATIVO por vaga em gold do jogo, definido pelo criador.
+     * Não é uma transação processada pelo sistema. Opcional (nulo = não informado).
+     */
+    @Column(name = "price_per_slot")
+    private Long pricePerSlot;
+
     /** Momento em que o time expira (some da busca e vira só leitura). */
     @Column(name = "expires_at", nullable = false)
     private Instant expiresAt;

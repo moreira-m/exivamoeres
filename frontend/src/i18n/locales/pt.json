@@ -18,7 +18,8 @@
     "language": "Idioma",
     "theme": "Tema",
     "themeLight": "Claro",
-    "themeDark": "Escuro"
+    "themeDark": "Escuro",
+    "notifications": "Notificações"
   },
   "home": {
     "title": "Encontre seu time de Soul Core",
@@ -28,7 +29,8 @@
     "slots": "Vagas",
     "openOnly": "Só com vaga aberta",
     "searchPlaceholder": "Digite para buscar…",
-    "empty": "Nenhum time encontrado com esses filtros. Que tal criar um?"
+    "empty": "Nenhum time encontrado com esses filtros. Que tal criar um?",
+    "minLevelFilter": "Seu level"
   },
   "login": {
     "login": "Entrar",
@@ -46,13 +48,13 @@
   "characters": {
     "title": "Meus personagens",
     "verifyTitle": "Verificar um personagem",
-    "verifyHelp": "Informe o nome exato do personagem no Tibia.com. Geramos um código que você cola no campo Comment do personagem; verificamos automaticamente a cada 15 minutos (ou use \"Verificar agora\").",
+    "verifyHelp": "Informe o nome exato do personagem no Tibia.com. Geramos um código que você cola no campo Comment do personagem; verificamos automaticamente a cada ~15 minutos.",
     "characterName": "Nome do personagem",
     "characterNamePlaceholder": "Ex.: Bubble",
     "startVerification": "Iniciar verificação",
     "world": "Mundo",
     "pasteCode": "Cole no Comment:",
-    "verifyNow": "Verificar agora",
+    "autoVerifyHint": "A verificação é automática e pode levar até ~15 minutos após você colar o código no Comment do personagem.",
     "empty": "Você ainda não verificou nenhum personagem."
   },
   "myTeams": {
@@ -78,7 +80,9 @@
     "joinPolicyManual": "Aprovação manual",
     "joinPolicyAuto": "Entrada automática",
     "chooseCharacter": "Escolha um personagem verificado",
-    "submit": "Criar time"
+    "submit": "Criar time",
+    "minimumLevel": "Level mínimo (opcional)",
+    "pricePerSlot": "Preço por vaga em gold (opcional)"
   },
   "billing": {
     "title": "Assinatura",
@@ -113,7 +117,15 @@
     "suggestions": "Sugestões de próximos bosses",
     "renewInfo": "Este time está arquivado. Renove para reabrir a caçada (consome uma vaga do seu plano).",
     "renewButton": "Renovar time",
-    "teamStatusInfo": "Time {{status}}"
+    "teamStatusInfo": "Time {{status}}",
+    "minimumLevel": "Level mínimo",
+    "pricePerSlot": "Preço por vaga",
+    "priceUnit": "gold",
+    "kick": "Expulsar",
+    "kickConfirm": "Expulsar este membro do time?",
+    "deleteTeam": "Encerrar time",
+    "deleteConfirm": "Encerrar este time? Ele some da busca e vira somente leitura (o histórico é preservado).",
+    "closedInfo": "Este time foi encerrado pelo dono."
   },
   "soulcore": {
     "title": "Soul cores",
@@ -133,13 +145,30 @@
   "teamCard": {
     "featured": "★ destaque",
     "auto": "auto",
-    "manual": "manual"
+    "manual": "manual",
+    "minLevel": "Level {{level}}+",
+    "price": "{{price}} gold/vaga"
   },
   "enums": {
-    "claimStatus": { "PENDING": "PENDENTE", "APPROVED": "APROVADO", "REJECTED": "RECUSADO" },
-    "teamStatus": { "ACTIVE": "Ativo", "COMPLETED": "Concluído", "ARCHIVED": "Arquivado" },
-    "soulcoreStatus": { "OBTAINED": "OBTIDO", "UNLOCKED": "DESBLOQUEADO" },
-    "plan": { "FREE": "Free", "PREMIUM": "Premium" }
+    "claimStatus": {
+      "PENDING": "PENDENTE",
+      "APPROVED": "APROVADO",
+      "REJECTED": "RECUSADO"
+    },
+    "teamStatus": {
+      "ACTIVE": "Ativo",
+      "COMPLETED": "Concluído",
+      "ARCHIVED": "Arquivado",
+      "CLOSED": "Encerrado"
+    },
+    "soulcoreStatus": {
+      "OBTAINED": "OBTIDO",
+      "UNLOCKED": "DESBLOQUEADO"
+    },
+    "plan": {
+      "FREE": "Free",
+      "PREMIUM": "Premium"
+    }
   },
   "expiry": {
     "expired": "expirado",
@@ -147,5 +176,17 @@
     "tomorrow": "expira amanhã",
     "hours": "expira em {{count}}h",
     "soon": "expira em menos de 1h"
+  },
+  "notifications": {
+    "title": "Notificações",
+    "empty": "Nenhuma notificação.",
+    "markAllRead": "Marcar todas como lidas",
+    "types": {
+      "JOIN_REQUEST_RECEIVED": "Novo pedido de entrada em {{team}}",
+      "JOIN_REQUEST_APPROVED": "Seu pedido para {{team}} foi aceito",
+      "JOIN_REQUEST_REJECTED": "Seu pedido para {{team}} foi recusado",
+      "KICKED_FROM_TEAM": "Você foi removido do time {{team}}",
+      "TEAM_DELETED": "O time {{team}} foi encerrado"
+    }
   }
 }

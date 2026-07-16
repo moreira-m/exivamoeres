@@ -49,6 +49,22 @@ export function useRenewTeam() {
   })
 }
 
+export function useKickMember(listId: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (membershipId: number) => listsApi.kickMember(listId, membershipId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['lists', listId] }),
+  })
+}
+
+export function useDeleteTeam() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => listsApi.deleteTeam(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['lists'] }),
+  })
+}
+
 export function usePendingRequests(listId: number, enabled: boolean) {
   return useQuery({
     queryKey: ['lists', listId, 'requests'],

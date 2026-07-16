@@ -6,7 +6,7 @@ import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { Badge } from '../../components/ui/Badge'
 import { Spinner } from '../../components/ui/Spinner'
-import { useClaims, useCreateClaim, useVerifyClaimNow } from '../../hooks/useClaims'
+import { useClaims, useCreateClaim } from '../../hooks/useClaims'
 import { getApiErrorMessage } from '../../lib/apiError'
 import type { ClaimStatus } from '../../types/api'
 
@@ -18,7 +18,7 @@ const statusTone: Record<ClaimStatus, 'primary' | 'accent' | 'muted'> = {
 
 /**
  * Aba "Configuração de personagem": inicia o claim (verificação via hash no
- * campo Comment do Tibia.com) e permite forçar a checagem imediata.
+ * campo Comment do Tibia.com). A checagem é automática (job de polling).
  */
 export function CharactersPage() {
   const { t } = useTranslation()
@@ -26,7 +26,6 @@ export function CharactersPage() {
   const [error, setError] = useState('')
   const claims = useClaims()
   const createClaim = useCreateClaim()
-  const verifyNow = useVerifyClaimNow()
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -82,23 +81,19 @@ export function CharactersPage() {
                   {t('characters.world')}: {claim.world}
                 </p>
                 {claim.status === 'PENDING' && (
-                  <p className="mt-1 text-sm text-ink">
-                    {t('characters.pasteCode')}{' '}
-                    <code className="border-2 border-ink bg-canvas px-2 py-0.5 font-mono font-bold text-accent">
-                      {claim.verificationCode}
-                    </code>
-                  </p>
+                  <>
+                    <p className="mt-1 text-sm text-ink">
+                      {t('characters.pasteCode')}{' '}
+                      <code className="border-2 border-ink bg-canvas px-2 py-0.5 font-mono font-bold text-accent">
+                        {claim.verificationCode}
+                      </code>
+                    </p>
+                    <p className="mt-1 text-xs font-bold text-ink/60">
+                      {t('characters.autoVerifyHint')}
+                    </p>
+                  </>
                 )}
               </div>
-              {claim.status === 'PENDING' && (
-                <Button
-                  variant="accent"
-                  onClick={() => verifyNow.mutate(claim.id)}
-                  disabled={verifyNow.isPending}
-                >
-                  {t('characters.verifyNow')}
-                </Button>
-              )}
             </Card>
           ))}
         </div>

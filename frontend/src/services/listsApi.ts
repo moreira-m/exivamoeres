@@ -15,12 +15,15 @@ export interface CreateListRequest {
   targetCreatureId: number
   joinPolicy: JoinPolicy
   characterId: number
+  minimumLevel?: number | null
+  pricePerSlot?: number | null
 }
 
 export interface SearchListsParams {
   world?: string
   creatureId?: number
   hasOpenSlots?: boolean
+  characterLevel?: number
   page?: number
   size?: number
 }
@@ -49,6 +52,11 @@ export const listsApi = {
 
   renew: (id: number) =>
     apiClient.post<ListDetailResponse>(`/api/lists/${id}/renew`).then((r) => r.data),
+
+  kickMember: (id: number, membershipId: number) =>
+    apiClient.delete<void>(`/api/lists/${id}/members/${membershipId}`).then(() => undefined),
+
+  deleteTeam: (id: number) => apiClient.delete<void>(`/api/lists/${id}`).then(() => undefined),
 
   pendingRequests: (id: number) =>
     apiClient.get<MembershipResponse[]>(`/api/lists/${id}/requests`).then((r) => r.data),

@@ -14,11 +14,3 @@ export function useCreateClaim() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: CLAIMS_KEY }),
   })
 }
-
-export function useVerifyClaimNow() {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: claimService.verifyNow,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: CLAIMS_KEY }),
-  })
-}

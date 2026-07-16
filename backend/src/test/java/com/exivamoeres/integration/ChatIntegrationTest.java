@@ -28,7 +28,7 @@ class ChatIntegrationTest extends TeamIntegrationTestBase {
         stubPremium("Chat Owner", "Antica");
         ListDetailResponse team = listService.createList(owner.getId(), new CreateListRequest(
                 "Time do Chat", "Antica", creature("Demon").getId(),
-                JoinPolicy.AUTO_ACCEPT, ownerChar.getId()));
+                JoinPolicy.AUTO_ACCEPT, ownerChar.getId(), null, null));
 
         ChatMessageResponse sent = chatService.sendMessage(
                 owner.getId(), team.summary().id(), ownerChar.getId(), "bora caçar?");
@@ -47,7 +47,7 @@ class ChatIntegrationTest extends TeamIntegrationTestBase {
         stubPremium("Chat Owner Two", "Antica");
         ListDetailResponse team = listService.createList(owner.getId(), new CreateListRequest(
                 "Time Fechado", "Antica", creature("Demon").getId(),
-                JoinPolicy.AUTO_ACCEPT, ownerChar.getId()));
+                JoinPolicy.AUTO_ACCEPT, ownerChar.getId(), null, null));
 
         User stranger = createUser("chat-stranger@teste.com");
         Character strangerChar = createCharacter("Chat Stranger", "Antica", stranger);

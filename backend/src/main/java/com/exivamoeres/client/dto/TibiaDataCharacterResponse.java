@@ -20,7 +20,8 @@ public record TibiaDataCharacterResponse(CharacterWrapper character) {
             String world,
             String comment,
             @JsonProperty("account_status") String accountStatus,
-            String vocation
+            String vocation,
+            Integer level
     ) {
     }
 

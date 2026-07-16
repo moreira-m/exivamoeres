@@ -63,22 +63,29 @@ abstract class TeamIntegrationTestBase extends IntegrationTestBase {
         return creatureRepository.findByNameIgnoreCase(name).orElseThrow();
     }
 
+    private static final int DEFAULT_LEVEL = 500;
+    private static final String DEFAULT_VOCATION = "Elder Druid";
+
     /** Faz o TibiaData mockado devolver este personagem como Premium no world dado. */
     protected void stubPremium(String name, String world) {
+        stubPremium(name, world, DEFAULT_LEVEL, DEFAULT_VOCATION);
+    }
+
+    protected void stubPremium(String name, String world, int level, String vocation) {
         when(tibiaDataClient.fetchCharacter(name)).thenReturn(Mono.just(
-                new TibiaCharacterSnapshot(true, name, world, "", "Premium Account", "Elder Druid")));
+                new TibiaCharacterSnapshot(true, name, world, "", "Premium Account", vocation, level)));
     }
 
     protected void stubFreeAccount(String name, String world) {
         when(tibiaDataClient.fetchCharacter(name)).thenReturn(Mono.just(
-                new TibiaCharacterSnapshot(true, name, world, "", "Free Account", "Knight")));
+                new TibiaCharacterSnapshot(true, name, world, "", "Free Account", "Knight", DEFAULT_LEVEL)));
     }
 
     protected void stubAnyPremium() {
         when(tibiaDataClient.fetchCharacter(anyString())).thenAnswer(invocation -> {
             String name = invocation.getArgument(0);
             return Mono.just(new TibiaCharacterSnapshot(
-                    true, name, "Antica", "", "Premium Account", "Elder Druid"));
+                    true, name, "Antica", "", "Premium Account", DEFAULT_VOCATION, DEFAULT_LEVEL));
         });
     }
 }

@@ -20,7 +20,7 @@ public class TeamEligibilityServiceImpl implements TeamEligibilityService {
     }
 
     @Override
-    public void assertEligible(Character character, String teamWorld) {
+    public TibiaCharacterSnapshot assertEligible(Character character, String teamWorld, Integer minimumLevel) {
         TibiaCharacterSnapshot snapshot = cachedCharacterLookup.fetch(character.getName());
         if (!snapshot.found()) {
             throw new BusinessRuleException(
@@ -38,5 +38,15 @@ public class TeamEligibilityServiceImpl implements TeamEligibilityService {
             throw new BusinessRuleException(
                     "Personagem '" + character.getName() + "' é Free Account e não pode participar de times");
         }
+        if (minimumLevel != null) {
+            Integer level = snapshot.level();
+            if (level == null || level < minimumLevel) {
+                throw new BusinessRuleException(
+                        "Este time exige level mínimo " + minimumLevel
+                                + ", mas '" + character.getName() + "' tem level "
+                                + (level == null ? "desconhecido" : level));
+            }
+        }
+        return snapshot;
     }
 }

@@ -7,6 +7,7 @@ import java.time.Instant;
 
 public record MembershipResponse(
         Long id,
+        Long userId,
         Long characterId,
         String characterName,
         String vocation,
@@ -17,6 +18,7 @@ public record MembershipResponse(
     public static MembershipResponse from(ListMembership membership) {
         return new MembershipResponse(
                 membership.getId(),
+                membership.getUser().getId(),
                 membership.getCharacter().getId(),
                 membership.getCharacter().getName(),
                 membership.getCharacter().getVocation(),

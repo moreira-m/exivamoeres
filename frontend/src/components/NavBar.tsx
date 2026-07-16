@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth'
 import { Button } from './ui/Button'
 import { LanguageToggle } from './ui/LanguageToggle'
 import { ThemeToggle } from './ui/ThemeToggle'
+import { NotificationBell } from './NotificationBell'
 
 export function NavBar() {
   const { t } = useTranslation()
@@ -45,6 +46,9 @@ export function NavBar() {
       <NavItem to="/account/characters" onClick={closeAll}>
         {t('nav.characters')}
       </NavItem>
+      <NavItem to="/account/notifications" onClick={closeAll}>
+        {t('nav.notifications')}
+      </NavItem>
       <NavItem to="/account/billing" onClick={closeAll}>
         {t('nav.billing')}
         {user?.plan === 'PREMIUM' && <span className="text-accent"> ★</span>}
@@ -66,6 +70,7 @@ export function NavBar() {
         <div className="ml-auto hidden items-center gap-2 md:flex">
           {isAuthenticated ? (
             <>
+              <NotificationBell onClick={closeAll} />
               <Link to="/account/teams/new" onClick={closeAll}>
                 <Button variant="accent">{t('nav.createTeam')}</Button>
               </Link>
@@ -141,6 +146,11 @@ export function NavBar() {
                 <Link to="/account/characters" onClick={closeAll}>
                   <Button variant="neutral" className="w-full">
                     {t('nav.characters')}
+                  </Button>
+                </Link>
+                <Link to="/account/notifications" onClick={closeAll}>
+                  <Button variant="neutral" className="w-full">
+                    {t('nav.notifications')}
                   </Button>
                 </Link>
                 <Link to="/account/billing" onClick={closeAll}>

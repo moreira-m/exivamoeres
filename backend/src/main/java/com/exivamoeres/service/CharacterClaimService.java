@@ -17,10 +17,4 @@ public interface CharacterClaimService {
     ClaimResponse getClaim(Long claimId, Long userId);
 
     List<ClaimResponse> listClaims(Long userId);
-
-    /**
-     * Verificação sob demanda (POST /api/claims/{id}/verify-now) — mesma
-     * regra do job de polling, sem esperar o próximo ciclo de 15 minutos.
-     */
-    ClaimResponse verifyNow(Long claimId, Long userId);
 }

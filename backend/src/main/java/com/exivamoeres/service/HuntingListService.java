@@ -40,14 +40,32 @@ public interface HuntingListService {
      */
     ListDetailResponse renewTeam(Long ownerId, Long listId);
 
+    /**
+     * Expulsa um membro (só o dono; 403 caso contrário). Desativa a membership
+     * e libera a vaga, preservando o histórico e as mensagens de chat.
+     */
+    void kickMember(Long ownerId, Long listId, Long membershipId);
+
+    /**
+     * Encerra o time (só o dono; 403 caso contrário) via exclusão lógica
+     * (status CLOSED): some da busca e vira só leitura, mas membros continuam
+     * vendo o histórico.
+     */
+    void deleteTeam(Long ownerId, Long listId);
+
     /** Times em que o usuário é dono ou membro ativo aprovado. */
     List<ListSummaryResponse> listMyLists(Long userId);
 
     /** Detalhe público (sem autenticação) — usado pela busca e pela tela do time. */
     ListDetailResponse getList(Long listId);
 
-    /** Busca pública (home): filtros opcionais por world, criatura-alvo e vaga disponível. */
-    Page<ListSummaryResponse> search(String world, Long creatureId, Boolean hasOpenSlots, Pageable pageable);
+    /**
+     * Busca pública (home): filtros opcionais por world, criatura-alvo, vaga
+     * disponível e level do personagem (retorna times cujo level mínimo o
+     * aceite, ou sem restrição).
+     */
+    Page<ListSummaryResponse> search(String world, Long creatureId, Boolean hasOpenSlots,
+                                     Integer characterLevel, Pageable pageable);
 
     /** Pedidos pendentes do time — só o dono enxerga. */
     List<MembershipResponse> listPendingRequests(Long ownerId, Long listId);

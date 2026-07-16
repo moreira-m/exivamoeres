@@ -23,6 +23,12 @@ public interface CharacterClaimRepository extends JpaRepository<CharacterClaim, 
 
     List<CharacterClaim> findAllByClaimantIdOrderByCreatedAtDesc(Long claimantId);
 
+    /**
+     * Também carrega o personagem: CharacterClaimServiceImpl monta a resposta
+     * (ClaimResponse.from) fora de transação em alguns caminhos (ex.:
+     * verifyNow), então o proxy lazy quebraria com LazyInitializationException.
+     */
+    @EntityGraph(attributePaths = "character")
     Optional<CharacterClaim> findByIdAndClaimantId(Long id, Long claimantId);
 
     /** Evita dois claims PENDING simultâneos do mesmo usuário para o mesmo personagem. */

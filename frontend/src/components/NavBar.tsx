@@ -60,10 +60,9 @@ export function NavBar() {
     <header className="border-b-[3px] border-ink bg-surface">
       <nav className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3">
         <Link to="/" className="text-2xl font-black uppercase tracking-tight text-ink" onClick={closeAll}>
-          Exiva<span className="text-accent">moeres</span>
+          Tibia<span className="text-accent">Pit</span>
         </Link>
         <span className="hidden text-sm font-bold uppercase text-ink/60 lg:inline">
-          {t('nav.tagline')}
         </span>
 
         {/* Desktop */}

@@ -7,7 +7,6 @@
     "noResults": "No results"
   },
   "nav": {
-    "tagline": "soul core teams",
     "myTeams": "My teams",
     "characters": "Characters",
     "createTeam": "Create team",
@@ -71,11 +70,10 @@
     "needCharacter": "You need a verified character to create a team. Go to My characters.",
     "freeSlots": "Free plan: {{count}}/{{limit}} active teams",
     "atLimit": "You've reached the limit of {{limit}} active teams on the free plan. Complete, let one expire or renew a team, or go premium to create more.",
-    "teamName": "Team name",
     "yourCharacter": "Your character",
     "worldInfo": "The team will be on world {{world}}.",
     "targetCreature": "Target creature (boss)",
-    "joinPolicy": "Join policy",
+    "joinPolicy": "Request",
     "joinPolicyManual": "Manual approval",
     "joinPolicyAuto": "Auto accept",
     "chooseCharacter": "Choose a verified character",
@@ -113,7 +111,6 @@
     "noPendingRequests": "No pending requests.",
     "approve": "Accept",
     "reject": "Decline",
-    "suggestions": "Suggested next bosses",
     "renewInfo": "This team is archived. Renew it to reopen the hunt (uses one slot of your plan).",
     "renewButton": "Renew team",
     "teamStatusInfo": "Team {{status}}",
@@ -142,7 +139,7 @@
     "send": "Send"
   },
   "teamCard": {
-    "featured": "★ featured",
+    "featured": "★",
     "auto": "auto",
     "manual": "manual",
     "minLevel": "Level {{level}}+",
@@ -185,7 +182,8 @@
       "JOIN_REQUEST_APPROVED": "Your request to {{team}} was accepted",
       "JOIN_REQUEST_REJECTED": "Your request to {{team}} was declined",
       "KICKED_FROM_TEAM": "You were removed from {{team}}",
-      "TEAM_DELETED": "The team {{team}} was closed"
+      "TEAM_DELETED": "The team {{team}} was closed",
+      "MEMBER_LEFT": "A member left the team {{team}}"
     }
   }
 }

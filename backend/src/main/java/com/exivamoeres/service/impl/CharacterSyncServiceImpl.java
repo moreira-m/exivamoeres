@@ -25,11 +25,12 @@ public class CharacterSyncServiceImpl implements CharacterSyncService {
                     created.setName(snapshot.name());
                     return created;
                 });
-        // Nome, mundo e vocação sempre sincronizados com o Tibia.com (world
-        // transfer, mudança de vocação e formatação canônica do nome).
+        // Nome, mundo, vocação e level sempre sincronizados com o Tibia.com
+        // (world transfer, mudança de vocação, level up, formatação do nome).
         character.setName(snapshot.name());
         character.setWorld(snapshot.world());
         character.setVocation(snapshot.vocation());
+        character.setLevel(snapshot.level());
         return characterRepository.save(character);
     }
 }

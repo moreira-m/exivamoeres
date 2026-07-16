@@ -15,8 +15,6 @@ import {
   useLeaveList,
   usePendingRequests,
   useRequestDecision,
-  useSuggestions,
-  useDismissSuggestion,
   useRenewTeam,
   useKickMember,
   useDeleteTeam,
@@ -24,7 +22,7 @@ import {
 import { useMyCharacters } from '../hooks/useCharacters'
 import { useAuthStore } from '../store/authStore'
 import { getApiErrorMessage } from '../lib/apiError'
-import { formatExpiry } from '../lib/format'
+import { formatExpiry, tibiaCharacterUrl } from '../lib/format'
 import { useTranslation } from 'react-i18next'
 import type { MembershipResponse } from '../types/api'
 
@@ -77,7 +75,7 @@ export function TeamDetailPage() {
             {!isActive && <Badge tone="neutral">{t(`enums.teamStatus.${team.status}`)}</Badge>}
           </div>
           <p className="font-bold text-ink/60">
-            {team.name} · {t('teamDetail.world')}: {team.world}
+            {t('teamDetail.world')}: {team.world}
           </p>
           <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm font-bold">
             <span className="text-ink/50">
@@ -126,7 +124,6 @@ export function TeamDetailPage() {
           {isMember && isActive && <LeaveCard listId={listId} />}
           {isOwner && isActive && <RequestsCard listId={listId} />}
           {isOwner && isActive && <DeleteTeamCard listId={listId} />}
-          {isMember && isActive && <SuggestionsCard listId={listId} />}
         </div>
         <div className="space-y-6">
           {/* Board sempre visível (leitura); ações só passam actingCharacterId em time ativo. */}
@@ -196,7 +193,16 @@ function MembersCard({
       <ul className="space-y-2">
         {active.map((m) => (
           <li key={m.id} className="flex items-center gap-2">
-            <span className="font-bold text-ink">{m.characterName}</span>
+            {/* Nome linka para a página do personagem no Tibia.com. */}
+            <a
+              href={tibiaCharacterUrl(m.characterName)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-bold text-primary underline decoration-2 underline-offset-2 hover:text-accent"
+            >
+              {m.characterName}
+              {m.level != null && <span className="text-ink/60"> ({m.level})</span>}
+            </a>
             {m.vocation && <span className="text-sm text-ink/60">{m.vocation}</span>}
             {/* Expulsar: só o dono, só em time ativo, e nunca a si mesmo. */}
             {canManage && m.userId !== ownerId && (
@@ -375,32 +381,3 @@ function RequestsCard({ listId }: { listId: number }) {
   )
 }
 
-function SuggestionsCard({ listId }: { listId: number }) {
-  const { t } = useTranslation()
-  const suggestions = useSuggestions(listId, true)
-  const dismiss = useDismissSuggestion(listId)
-
-  if (!suggestions.data || suggestions.data.length === 0) return null
-
-  return (
-    <Card className="p-4">
-      <h3 className="mb-3 text-lg text-ink">{t('teamDetail.suggestions')}</h3>
-      <ul className="space-y-2">
-        {suggestions.data.map((s) => (
-          <li key={s.id} className="flex items-center gap-2">
-            <span className="flex-1 text-sm text-ink">
-              <span className="font-bold">{s.creatureName}</span> — {s.reason}
-            </span>
-            <Button
-              variant="neutral"
-              className="!px-2 !py-1 !text-xs"
-              onClick={() => dismiss.mutate(s.id)}
-            >
-              ×
-            </Button>
-          </li>
-        ))}
-      </ul>
-    </Card>
-  )
-}

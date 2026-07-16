@@ -22,6 +22,9 @@ public interface NotificationService {
 
     void notifyTeamDeleted(Long memberId, HuntingList list);
 
+    /** Avisa o dono do time que um membro saiu. */
+    void notifyMemberLeft(Long ownerId, HuntingList list);
+
     Page<NotificationResponse> list(Long userId, Pageable pageable);
 
     long countUnread(Long userId);

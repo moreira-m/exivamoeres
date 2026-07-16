@@ -10,7 +10,6 @@ import type {
 } from '../types/api'
 
 export interface CreateListRequest {
-  name: string
   world: string
   targetCreatureId: number
   joinPolicy: JoinPolicy

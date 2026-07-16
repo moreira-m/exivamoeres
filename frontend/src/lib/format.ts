@@ -1,5 +1,10 @@
 import i18n from '../i18n'
 
+/** URL da página do personagem no Tibia.com (espaços viram '+', ex.: ?name=mateusz+corporation). */
+export function tibiaCharacterUrl(name: string): string {
+  return `https://www.tibia.com/community/?${new URLSearchParams({ name }).toString()}`
+}
+
 /**
  * Texto curto do prazo de um time, traduzido. Usa o i18n singleton — os
  * componentes que chamam isto re-renderizam ao trocar de idioma (usam

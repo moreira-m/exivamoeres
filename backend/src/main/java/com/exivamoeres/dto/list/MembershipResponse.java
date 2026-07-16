@@ -11,6 +11,7 @@ public record MembershipResponse(
         Long characterId,
         String characterName,
         String vocation,
+        Integer level,
         MembershipStatus status,
         boolean active,
         Instant joinedAt
@@ -22,6 +23,7 @@ public record MembershipResponse(
                 membership.getCharacter().getId(),
                 membership.getCharacter().getName(),
                 membership.getCharacter().getVocation(),
+                membership.getCharacter().getLevel(),
                 membership.getStatus(),
                 membership.isActive(),
                 membership.getJoinedAt());

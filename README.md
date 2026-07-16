@@ -49,7 +49,7 @@ docker compose up -d postgres
 
 # 3. Backend (porta 8080)
 cd backend
-export $(grep -v '^#' ../.env | xargs)   # ou configure as envs na IDE
+set -a && . ../.env && set +a          # carrega o .env na sessão (ou configure as envs na IDE)
 mvn spring-boot:run
 
 # 4. Frontend (porta 5173)
@@ -60,6 +60,18 @@ npm run dev
 ```
 
 Alternativa: `docker compose up -d` sobe banco + backend juntos.
+
+### Se o backend não subir
+
+- **`Connection refused` / `password authentication failed`**: o Postgres não está de pé. Rode `docker compose up -d postgres` e confirme com `docker ps` (status `healthy`).
+- **`JWT_SECRET` / `POSTGRES_PASSWORD` nulos ou "must not be null"**: as envs não foram carregadas *na mesma sessão* do `mvn spring-boot:run`. Rode `set -a && . ../.env && set +a` e o `mvn` no **mesmo** terminal. Confira com `echo ${#JWT_SECRET}` (tem que ser > 0).
+- **`Port 8080 already in use`**: já tem algo na porta. `lsof -ti tcp:8080 | xargs kill -9`.
+- **Flyway `Migration checksum mismatch`**: o volume do Postgres tem uma migration antiga aplicada. Recrie o banco: `docker compose down -v && docker compose up -d postgres`.
+
+### Se o frontend não subir
+
+- **Tela branca / erros de rede**: confira `frontend/.env` (precisa do `cp .env.example .env`) e se o backend responde em `http://localhost:8080/actuator/health`.
+- **Erros de módulo**: `rm -rf node_modules && npm install`.
 
 ### Testes
 

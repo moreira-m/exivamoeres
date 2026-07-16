@@ -90,7 +90,11 @@ public class HuntingListServiceImpl implements HuntingListService {
         eligibilityService.assertEligible(character, request.world(), request.minimumLevel());
 
         HuntingList list = new HuntingList();
-        list.setName(request.name());
+        // O time é identificado pela criatura-alvo; o título é opcional e cai
+        // no nome da criatura quando não informado.
+        list.setName(request.name() != null && !request.name().isBlank()
+                ? request.name().trim()
+                : target.getName());
         list.setWorld(request.world());
         list.setOwner(owner);
         list.setTargetCreature(target);
@@ -201,6 +205,8 @@ public class HuntingListServiceImpl implements HuntingListService {
         }
         // Sair nunca deleta histórico — só desativa (regra herdada da sessão 1).
         memberships.forEach(m -> m.setActive(false));
+        // Avisa o dono que um membro saiu (item 7).
+        notificationService.notifyMemberLeft(list.getOwner().getId(), list);
         log.info("list.leave listId={} userId={} count={}", listId, userId, memberships.size());
     }
 

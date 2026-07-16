@@ -7,7 +7,6 @@
     "noResults": "Nenhum resultado"
   },
   "nav": {
-    "tagline": "times de soul core",
     "myTeams": "Meus times",
     "characters": "Personagens",
     "createTeam": "Criar time",
@@ -71,11 +70,10 @@
     "needCharacter": "Você precisa de um personagem verificado para criar um time. Vá em Meus personagens.",
     "freeSlots": "Plano free: {{count}}/{{limit}} times ativos",
     "atLimit": "Você atingiu o limite de {{limit}} times ativos do plano free. Conclua, deixe expirar ou renove um time, ou assine o premium para criar mais.",
-    "teamName": "Nome do time",
     "yourCharacter": "Seu personagem",
     "worldInfo": "O time será do mundo {{world}}.",
     "targetCreature": "Criatura-alvo (boss)",
-    "joinPolicy": "Política de entrada",
+    "joinPolicy": "solicitação",
     "joinPolicyManual": "Aprovação manual",
     "joinPolicyAuto": "Entrada automática",
     "chooseCharacter": "Escolha um personagem verificado",
@@ -142,7 +140,7 @@
     "send": "Enviar"
   },
   "teamCard": {
-    "featured": "★ destaque",
+    "featured": "★",
     "auto": "auto",
     "manual": "manual",
     "minLevel": "Level {{level}}+",
@@ -185,7 +183,8 @@
       "JOIN_REQUEST_APPROVED": "Seu pedido para {{team}} foi aceito",
       "JOIN_REQUEST_REJECTED": "Seu pedido para {{team}} foi recusado",
       "KICKED_FROM_TEAM": "Você foi removido do time {{team}}",
-      "TEAM_DELETED": "O time {{team}} foi encerrado"
+      "TEAM_DELETED": "O time {{team}} foi encerrado",
+      "MEMBER_LEFT": "Um membro saiu do time {{team}}"
     }
   }
 }

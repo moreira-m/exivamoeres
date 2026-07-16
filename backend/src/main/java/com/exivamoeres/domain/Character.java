@@ -34,6 +34,10 @@ public class Character {
     @Column(length = 30)
     private String vocation;
 
+    /** Level sincronizado da TibiaData; nulo até a primeira sincronização. */
+    @Column
+    private Integer level;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private User owner;

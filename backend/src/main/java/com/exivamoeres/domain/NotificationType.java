@@ -11,5 +11,7 @@ public enum NotificationType {
     /** Você foi expulso de um time. */
     KICKED_FROM_TEAM,
     /** Um time do qual você participava foi encerrado. */
-    TEAM_DELETED
+    TEAM_DELETED,
+    /** Um membro saiu do seu time (notifica o dono). */
+    MEMBER_LEFT
 }

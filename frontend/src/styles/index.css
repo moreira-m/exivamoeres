@@ -18,7 +18,7 @@
   --color-surface: #1e293b; /* slate-800 */
   --color-base: #0b1220;
   --color-content: #e2e8f0; /* slate-200 */
-  --color-shadow: #000000;
+  --color-shadow: #ffffff; /* sombra dura branca no escuro (contraste sobre o fundo slate) */
   --grid-line: rgba(255, 255, 255, 0.05);
 }
 

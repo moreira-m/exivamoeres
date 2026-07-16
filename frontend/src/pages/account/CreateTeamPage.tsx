@@ -23,7 +23,6 @@ export function CreateTeamPage() {
   const myLists = useMyLists()
   const { user } = useAuth()
 
-  const [name, setName] = useState('')
   const [characterId, setCharacterId] = useState('')
   const [creatureId, setCreatureId] = useState('')
   const [joinPolicy, setJoinPolicy] = useState<JoinPolicy>('MANUAL_APPROVAL')
@@ -46,7 +45,6 @@ export function CreateTeamPage() {
     }
     try {
       const detail = await createList.mutateAsync({
-        name: name.trim(),
         world: selectedCharacter.world,
         targetCreatureId: Number(creatureId),
         joinPolicy,
@@ -102,12 +100,6 @@ export function CreateTeamPage() {
           </p>
         ) : (
           <form onSubmit={submit} className="space-y-4 [&_span]:text-ink">
-            <Input
-              label={t('createTeam.teamName')}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-            />
             <Select
               label={t('createTeam.yourCharacter')}
               value={characterId}

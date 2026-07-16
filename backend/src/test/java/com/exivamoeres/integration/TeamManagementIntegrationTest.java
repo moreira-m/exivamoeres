@@ -135,6 +135,18 @@ class TeamManagementIntegrationTest extends TeamIntegrationTestBase {
         assertThat(notificationRepository.countByRecipientIdAndReadFalse(ctx.joinerId)).isGreaterThan(before);
     }
 
+    @Test
+    void membroQueSaiNotificaODono() {
+        Ctx ctx = teamWithOneJoiner();
+        long before = notificationRepository.countByRecipientIdAndReadFalse(ctx.ownerId);
+
+        listService.leaveList(ctx.joinerId, ctx.listId);
+
+        assertThat(notificationRepository.countByRecipientIdAndReadFalse(ctx.ownerId)).isGreaterThan(before);
+        assertThat(notificationService.list(ctx.ownerId, PageRequest.of(0, 10)).getContent())
+                .anyMatch(n -> n.type() == NotificationType.MEMBER_LEFT);
+    }
+
     // ----- Item 7: notificações (leitura e marcação) -----
 
     @Test

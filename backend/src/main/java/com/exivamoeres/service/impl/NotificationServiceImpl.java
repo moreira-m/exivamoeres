@@ -54,6 +54,12 @@ public class NotificationServiceImpl implements NotificationService {
         create(memberId, NotificationType.TEAM_DELETED, list);
     }
 
+    @Override
+    @Transactional
+    public void notifyMemberLeft(Long ownerId, HuntingList list) {
+        create(ownerId, NotificationType.MEMBER_LEFT, list);
+    }
+
     private void create(Long recipientId, NotificationType type, HuntingList list) {
         Notification notification = new Notification();
         // getReferenceById evita carregar o usuário só para setar a FK.

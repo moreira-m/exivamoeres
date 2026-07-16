@@ -14,6 +14,7 @@ export type NotificationType =
   | 'JOIN_REQUEST_REJECTED'
   | 'KICKED_FROM_TEAM'
   | 'TEAM_DELETED'
+  | 'MEMBER_LEFT'
 
 export interface UserResponse {
   id: number
@@ -62,6 +63,7 @@ export interface MembershipResponse {
   characterId: number
   characterName: string
   vocation: string | null
+  level: number | null
   status: MembershipStatus
   active: boolean
   joinedAt: string

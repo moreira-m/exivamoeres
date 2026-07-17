@@ -93,6 +93,9 @@ app:
     premium-duration-days: ${TEAM_PREMIUM_DURATION_DAYS:30}
     # Frequência do job que arquiva times expirados.
     expiration-check-interval: ${TEAM_EXPIRATION_CHECK_INTERVAL:1h}
+    # Personagens isentos da exigência de Premium Account (admin/testes).
+    # Lista separada por vírgula. Vazio = regra vale para todos.
+    premium-bypass-characters: ${TEAM_PREMIUM_BYPASS_CHARACTERS:}
   chat:
     # Rate limit de mensagens por usuário (mensagens por minuto).
     messages-per-minute: ${CHAT_MESSAGES_PER_MINUTE:20}

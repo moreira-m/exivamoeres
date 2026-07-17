@@ -1,6 +1,7 @@
 package com.exivamoeres.service.impl;
 
 import com.exivamoeres.client.TibiaCharacterSnapshot;
+import com.exivamoeres.config.TeamProperties;
 import com.exivamoeres.domain.Character;
 import com.exivamoeres.domain.exception.BusinessRuleException;
 import com.exivamoeres.service.CharacterSyncService;
@@ -12,11 +13,14 @@ public class TeamEligibilityServiceImpl implements TeamEligibilityService {
 
     private final CachedCharacterLookup cachedCharacterLookup;
     private final CharacterSyncService characterSyncService;
+    private final TeamProperties teamProperties;
 
     public TeamEligibilityServiceImpl(CachedCharacterLookup cachedCharacterLookup,
-                                      CharacterSyncService characterSyncService) {
+                                      CharacterSyncService characterSyncService,
+                                      TeamProperties teamProperties) {
         this.cachedCharacterLookup = cachedCharacterLookup;
         this.characterSyncService = characterSyncService;
+        this.teamProperties = teamProperties;
     }
 
     @Override
@@ -34,7 +38,9 @@ public class TeamEligibilityServiceImpl implements TeamEligibilityService {
                     "Personagem '" + character.getName() + "' é do world " + snapshot.world()
                             + ", mas o time é do world " + teamWorld);
         }
-        if (!snapshot.isPremium()) {
+        // Allowlist administrativo (env TEAM_PREMIUM_BYPASS_CHARACTERS): personagens
+        // listados furam a exigência de Premium Account, para testes/uso interno.
+        if (!snapshot.isPremium() && !teamProperties.isPremiumBypassed(character.getName())) {
             throw new BusinessRuleException(
                     "Personagem '" + character.getName() + "' é Free Account e não pode participar de times");
         }

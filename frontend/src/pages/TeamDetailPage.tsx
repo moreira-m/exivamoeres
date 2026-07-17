@@ -8,7 +8,6 @@ import { Select } from '../components/ui/Input'
 import { Spinner } from '../components/ui/Spinner'
 import { CreatureIcon } from '../components/CreatureIcon'
 import { ChatPanel } from '../components/ChatPanel'
-import { SoulcoreBoard } from '../components/SoulcoreBoard'
 import {
   useListDetail,
   useJoinList,
@@ -126,8 +125,6 @@ export function TeamDetailPage() {
           {isOwner && isActive && <DeleteTeamCard listId={listId} />}
         </div>
         <div className="space-y-6">
-          {/* Board sempre visível (leitura); ações só passam actingCharacterId em time ativo. */}
-          <SoulcoreBoard listId={listId} actingCharacterId={canWrite} />
           {canWrite && <ChatPanel listId={listId} actingCharacterId={canWrite} />}
         </div>
       </div>

@@ -3,7 +3,6 @@ import type {
   JoinPolicy,
   ListDetailResponse,
   ListSummaryResponse,
-  ListSoulcoreResponse,
   MembershipResponse,
   Page,
   SuggestionResponse,
@@ -68,19 +67,6 @@ export const listsApi = {
     apiClient
       .post<void>(`/api/lists/${id}/requests/${membershipId}/reject`)
       .then(() => undefined),
-
-  board: (id: number) =>
-    apiClient.get<ListSoulcoreResponse[]>(`/api/lists/${id}/soulcores`).then((r) => r.data),
-
-  obtainSoulcore: (id: number, creatureId: number, characterId: number) =>
-    apiClient
-      .post<ListSoulcoreResponse>(`/api/lists/${id}/soulcores/${creatureId}/obtain`, { characterId })
-      .then((r) => r.data),
-
-  unlockSoulcore: (id: number, creatureId: number, characterId: number) =>
-    apiClient
-      .post<ListSoulcoreResponse>(`/api/lists/${id}/soulcores/${creatureId}/unlock`, { characterId })
-      .then((r) => r.data),
 
   suggestions: (id: number) =>
     apiClient.get<SuggestionResponse[]>(`/api/lists/${id}/suggestions`).then((r) => r.data),

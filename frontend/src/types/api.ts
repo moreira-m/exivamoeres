@@ -3,7 +3,6 @@
 
 export type AuthProvider = 'LOCAL' | 'GOOGLE' | 'DISCORD' | 'ANONYMOUS'
 export type ClaimStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
-export type SoulcoreStatus = 'OBTAINED' | 'UNLOCKED'
 export type JoinPolicy = 'MANUAL_APPROVAL' | 'AUTO_ACCEPT'
 export type MembershipStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
 export type Plan = 'FREE' | 'PREMIUM'
@@ -104,17 +103,6 @@ export interface ListDetailResponse {
   summary: ListSummaryResponse
   ownerId: number
   members: MembershipResponse[]
-}
-
-export interface ListSoulcoreResponse {
-  id: number
-  creatureId: number
-  creatureName: string
-  status: SoulcoreStatus
-  obtainedByCharacterId: number | null
-  obtainedByCharacterName: string | null
-  createdAt: string
-  updatedAt: string
 }
 
 export interface CharacterSoulcoreResponse {

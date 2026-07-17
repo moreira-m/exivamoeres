@@ -239,7 +239,6 @@ Duas áreas distintas:
 | DELETE | `/api/lists/{id}/members/{mid}` | Expulsar membro (só dono → 403) |
 | GET | `/api/lists/{id}/requests` | Pedidos pendentes (só dono) |
 | POST | `/api/lists/{id}/requests/{mid}/approve\|reject` | Aceitar/recusar pedido (só dono) |
-| GET/POST | `/api/lists/{id}/soulcores[...]/obtain\|unlock` | Board e ações de soul core |
 | GET | `/api/lists/{id}/suggestions` · POST `/api/suggestions/{id}/dismiss` | Sugestões |
 | GET/POST | `/api/lists/{id}/chat` | Histórico e envio de mensagem |
 | GET | `/api/notifications` · `/unread-count` | Notificações + contador de não-lidas |

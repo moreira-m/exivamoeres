@@ -90,32 +90,6 @@ export function useRequestDecision(listId: number) {
   return { approve, reject }
 }
 
-export function useSoulcoreBoard(listId: number) {
-  return useQuery({
-    queryKey: ['lists', listId, 'board'],
-    queryFn: () => listsApi.board(listId),
-  })
-}
-
-export function useSoulcoreActions(listId: number) {
-  const qc = useQueryClient()
-  const invalidate = () => {
-    void qc.invalidateQueries({ queryKey: ['lists', listId, 'board'] })
-    void qc.invalidateQueries({ queryKey: ['lists', listId, 'suggestions'] })
-  }
-  const obtain = useMutation({
-    mutationFn: (v: { creatureId: number; characterId: number }) =>
-      listsApi.obtainSoulcore(listId, v.creatureId, v.characterId),
-    onSuccess: invalidate,
-  })
-  const unlock = useMutation({
-    mutationFn: (v: { creatureId: number; characterId: number }) =>
-      listsApi.unlockSoulcore(listId, v.creatureId, v.characterId),
-    onSuccess: invalidate,
-  })
-  return { obtain, unlock }
-}
-
 export function useSuggestions(listId: number, enabled: boolean) {
   return useQuery({
     queryKey: ['lists', listId, 'suggestions'],

@@ -123,15 +123,6 @@
     "deleteConfirm": "Close this team? It disappears from search and becomes read-only (history is preserved).",
     "closedInfo": "This team was closed by the owner."
   },
-  "soulcore": {
-    "title": "Soul cores",
-    "loading": "Loading board…",
-    "empty": "No core registered yet.",
-    "by": "by {{name}}",
-    "unlock": "Unlock",
-    "registerObtained": "Register obtained core…",
-    "markObtained": "Mark obtained"
-  },
   "chat": {
     "title": "Team chat",
     "empty": "No messages yet.",
@@ -156,10 +147,6 @@
       "COMPLETED": "Completed",
       "ARCHIVED": "Archived",
       "CLOSED": "Closed"
-    },
-    "soulcoreStatus": {
-      "OBTAINED": "OBTAINED",
-      "UNLOCKED": "UNLOCKED"
     },
     "plan": {
       "FREE": "Free",

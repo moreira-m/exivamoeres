@@ -124,15 +124,6 @@
     "deleteConfirm": "Encerrar este time? Ele some da busca e vira somente leitura (o histórico é preservado).",
     "closedInfo": "Este time foi encerrado pelo dono."
   },
-  "soulcore": {
-    "title": "Soul cores",
-    "loading": "Carregando board…",
-    "empty": "Nenhum core registrado ainda.",
-    "by": "por {{name}}",
-    "unlock": "Desbloquear",
-    "registerObtained": "Registrar core obtido…",
-    "markObtained": "Marcar obtido"
-  },
   "chat": {
     "title": "Chat do time",
     "empty": "Nenhuma mensagem ainda.",
@@ -157,10 +148,6 @@
       "COMPLETED": "Concluído",
       "ARCHIVED": "Arquivado",
       "CLOSED": "Encerrado"
-    },
-    "soulcoreStatus": {
-      "OBTAINED": "OBTIDO",
-      "UNLOCKED": "DESBLOQUEADO"
     },
     "plan": {
       "FREE": "Free",

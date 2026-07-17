@@ -35,6 +35,7 @@ export interface ClaimResponse {
   id: number
   characterName: string
   world: string
+  level: number | null
   verificationCode: string
   status: ClaimStatus
   lastCheckedAt: string | null
@@ -47,6 +48,7 @@ export interface CharacterSummaryResponse {
   name: string
   world: string
   vocation: string | null
+  level: number | null
 }
 
 export interface CreatureResponse {

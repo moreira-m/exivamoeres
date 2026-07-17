@@ -93,7 +93,7 @@ com.exivamoeres
 ├── controller/   REST controllers finos + handler global de erros
 ├── dto/          records de request/response (entidades nunca saem na API)
 ├── security/     JWT, filtros, OAuth2 (subpacote oauth/), rate limiting
-├── scheduler/    job de polling de verificação de claims
+├── scheduler/    jobs: verificação de claims, expiração de times, refresh de level
 ├── client/       cliente TibiaData (WebClient + Resilience4j)
 └── config/       properties tipadas, WebClient, CORS (no SecurityConfig)
 ```

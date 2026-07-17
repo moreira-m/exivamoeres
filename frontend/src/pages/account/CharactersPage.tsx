@@ -72,7 +72,10 @@ export function CharactersPage() {
             <Card key={claim.id} className="flex flex-wrap items-center gap-4 p-4">
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <h3 className="text-lg text-ink">{claim.characterName}</h3>
+                  <h3 className="text-lg text-ink">
+                    {claim.characterName}
+                    {claim.level != null && <span className="text-ink/60"> ({claim.level})</span>}
+                  </h3>
                   <Badge tone={statusTone[claim.status]}>
                     {t(`enums.claimStatus.${claim.status}`)}
                   </Badge>

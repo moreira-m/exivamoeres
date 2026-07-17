@@ -6,10 +6,12 @@ public record CharacterSummaryResponse(
         Long id,
         String name,
         String world,
-        String vocation
+        String vocation,
+        Integer level
 ) {
     public static CharacterSummaryResponse from(Character character) {
         return new CharacterSummaryResponse(
-                character.getId(), character.getName(), character.getWorld(), character.getVocation());
+                character.getId(), character.getName(), character.getWorld(),
+                character.getVocation(), character.getLevel());
     }
 }

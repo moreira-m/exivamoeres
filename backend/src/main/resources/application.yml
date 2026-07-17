@@ -76,6 +76,14 @@ app:
     # TTL da checagem de elegibilidade (world + Free/Premium) por personagem.
     character-eligibility-ttl: ${CHARACTER_ELIGIBILITY_CACHE_TTL:1h}
     worlds-ttl: ${WORLDS_CACHE_TTL:24h}
+  character:
+    # Refresh periódico do level (exibição). Custo mínimo: só personagens em
+    # time ativo e cujo retrato local já passou de 'level-staleness' são
+    # rebuscados na TibiaData, em lotes espaçados.
+    level-refresh-interval: ${CHARACTER_LEVEL_REFRESH_INTERVAL:1h}
+    level-staleness: ${CHARACTER_LEVEL_STALENESS:12h}
+    level-refresh-batch-size: ${CHARACTER_LEVEL_REFRESH_BATCH_SIZE:15}
+    level-refresh-spacing: ${CHARACTER_LEVEL_REFRESH_SPACING:2s}
   team:
     max-members: 5
     # Quantos times ATIVOS uma conta free pode manter ao mesmo tempo.

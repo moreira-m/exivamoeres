@@ -109,7 +109,7 @@ export function CreateTeamPage() {
               <option value="">{t('common.select')}</option>
               {characters.data?.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.name} · {c.world}
+                  {c.name}{c.level != null ? ` (${c.level})` : ''} · {c.world}
                 </option>
               ))}
             </Select>

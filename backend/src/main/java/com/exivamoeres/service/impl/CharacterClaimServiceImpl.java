@@ -35,24 +35,31 @@ public class CharacterClaimServiceImpl implements CharacterClaimService {
     private final TibiaDataClient tibiaDataClient;
     private final VerificationCodeGenerator codeGenerator;
     private final ClaimProperties claimProperties;
+    private final UserRateLimiter userRateLimiter;
 
     public CharacterClaimServiceImpl(CharacterClaimRepository claimRepository,
                                      CharacterSyncService characterSyncService,
                                      UserRepository userRepository,
                                      TibiaDataClient tibiaDataClient,
                                      VerificationCodeGenerator codeGenerator,
-                                     ClaimProperties claimProperties) {
+                                     ClaimProperties claimProperties,
+                                     UserRateLimiter userRateLimiter) {
         this.claimRepository = claimRepository;
         this.characterSyncService = characterSyncService;
         this.userRepository = userRepository;
         this.tibiaDataClient = tibiaDataClient;
         this.codeGenerator = codeGenerator;
         this.claimProperties = claimProperties;
+        this.userRateLimiter = userRateLimiter;
     }
 
     @Override
     @Transactional
     public ClaimResponse startClaim(Long userId, String characterName) {
+        // Cada claim é uma chamada síncrona à TibiaData; sem limite por usuário,
+        // um script transforma este endpoint em amplificador de tráfego contra
+        // eles — e abre o circuit breaker compartilhado para todo mundo.
+        userRateLimiter.checkTibiaDataLookup(userId);
         User claimant = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
 

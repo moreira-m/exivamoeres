@@ -50,6 +50,7 @@ public class HuntingListServiceImpl implements HuntingListService {
     private final PlanPolicy planPolicy;
     private final ShareCodeGenerator shareCodeGenerator;
     private final NotificationService notificationService;
+    private final UserRateLimiter userRateLimiter;
     private final int maxMembers;
 
     public HuntingListServiceImpl(HuntingListRepository listRepository,
@@ -61,6 +62,7 @@ public class HuntingListServiceImpl implements HuntingListService {
                                   PlanPolicy planPolicy,
                                   ShareCodeGenerator shareCodeGenerator,
                                   NotificationService notificationService,
+                                  UserRateLimiter userRateLimiter,
                                   TeamProperties teamProperties) {
         this.listRepository = listRepository;
         this.membershipRepository = membershipRepository;
@@ -71,12 +73,15 @@ public class HuntingListServiceImpl implements HuntingListService {
         this.planPolicy = planPolicy;
         this.shareCodeGenerator = shareCodeGenerator;
         this.notificationService = notificationService;
+        this.userRateLimiter = userRateLimiter;
         this.maxMembers = teamProperties.maxMembers();
     }
 
     @Override
     @Transactional
     public ListDetailResponse createList(Long ownerId, CreateListRequest request) {
+        // Antes de qualquer consulta: criar em rajada é o abuso, não o pedido em si.
+        userRateLimiter.checkTeamCreation(ownerId);
         User owner = userRepository.findById(ownerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
         Creature target = creatureRepository.findById(request.targetCreatureId())
@@ -123,6 +128,9 @@ public class HuntingListServiceImpl implements HuntingListService {
     @Override
     @Transactional
     public ListDetailResponse joinByShareCode(Long userId, String shareCode, JoinListRequest request) {
+        // A elegibilidade abaixo consulta a TibiaData (com cache por personagem):
+        // sem limite por usuário, entrar em time vira um proxy para a API deles.
+        userRateLimiter.checkTibiaDataLookup(userId);
         Long listId = listRepository.findByShareCode(shareCode)
                 .orElseThrow(() -> new ResourceNotFoundException("Time não encontrado"))
                 .getId();

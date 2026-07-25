@@ -99,6 +99,17 @@ app:
   chat:
     # Rate limit de mensagens por usuário (mensagens por minuto).
     messages-per-minute: ${CHAT_MESSAGES_PER_MINUTE:20}
+  rate-limit:
+    # Por IP (RateLimitFilter): login/registro e criação de conta anônima.
+    # Conta anônima é ação rara para um humano e cara para o produto (cada uma
+    # cria times na busca pública), por isso o limite é bem mais apertado.
+    auth-per-minute: ${RATE_LIMIT_AUTH_PER_MINUTE:10}
+    anonymous-per-hour: ${RATE_LIMIT_ANONYMOUS_PER_HOUR:3}
+    # Por usuário (UserRateLimiter): o limite de times ATIVOS do plano não
+    # impede criar-encerrar-criar em loop, e todo claim/entrada em time consulta
+    # a TibiaData.
+    team-creation-per-hour: ${RATE_LIMIT_TEAM_CREATION_PER_HOUR:10}
+    tibiadata-per-hour: ${RATE_LIMIT_TIBIADATA_PER_HOUR:20}
 
 resilience4j:
   retry:

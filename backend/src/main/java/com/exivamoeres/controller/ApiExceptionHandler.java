@@ -4,6 +4,7 @@ import com.exivamoeres.domain.exception.BusinessRuleException;
 import com.exivamoeres.domain.exception.ExternalServiceException;
 import com.exivamoeres.domain.exception.ForbiddenOperationException;
 import com.exivamoeres.domain.exception.ResourceNotFoundException;
+import com.exivamoeres.domain.exception.TooManyRequestsException;
 import com.exivamoeres.dto.error.ApiErrorResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -37,6 +38,12 @@ public class ApiExceptionHandler {
     @ResponseStatus(HttpStatus.FORBIDDEN)
     public ApiErrorResponse handleForbidden(ForbiddenOperationException e) {
         return ApiErrorResponse.of(403, e.getMessage());
+    }
+
+    @ExceptionHandler(TooManyRequestsException.class)
+    @ResponseStatus(HttpStatus.TOO_MANY_REQUESTS)
+    public ApiErrorResponse handleTooManyRequests(TooManyRequestsException e) {
+        return ApiErrorResponse.of(429, e.getMessage());
     }
 
     @ExceptionHandler(ExternalServiceException.class)

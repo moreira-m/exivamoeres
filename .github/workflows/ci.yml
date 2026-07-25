@@ -1,0 +1,80 @@
+name: CI
+
+# Roda em todo push para main e em toda pull request. A combinação cobre os dois
+# fluxos do projeto: commit direto na main (o mais comum hoje) e revisão via PR.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Um push novo cancela a execução anterior do mesmo branch: sem isso, uma
+# sequência de commits enfileira builds que já nasceram obsoletos.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# O workflow só lê o repositório — nenhum passo publica nada.
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend (mvn test)
+    # ubuntu-latest já vem com Docker: os testes de integração sobem um Postgres
+    # real via Testcontainers. Sem Docker, a suíte falha inteira.
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: temurin
+          cache: maven
+
+      # Nenhuma variável de ambiente é necessária: os testes injetam o banco do
+      # Testcontainers e o app.jwt.secret via @DynamicPropertySource
+      # (backend/src/test/java/com/exivamoeres/integration/IntegrationTestBase.java).
+      - name: Rodar a suíte de testes
+        run: mvn -B --no-transfer-progress test
+
+      # Quando o CI falha, o log do passo mostra o resumo; o relatório completo
+      # (stack trace de cada teste) fica aqui para download.
+      - name: Guardar os relatórios do Surefire
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: backend/target/surefire-reports/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  frontend:
+    name: Frontend (npm run build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      # npm ci (e não npm install): instala exatamente o package-lock.json e
+      # falha se ele estiver dessincronizado do package.json.
+      - name: Instalar as dependências
+        run: npm ci
+
+      # O script "build" é "tsc -b && vite build": cobre tipagem e bundle de
+      # produção — os níveis 1 e 3 de verificação do TESTS.md.
+      - name: Compilar o build de produção
+        run: npm run build

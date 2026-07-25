@@ -1,0 +1,39 @@
+# Atualizações automáticas de dependências. O CI (.github/workflows/ci.yml) roda
+# em cada PR aberto pelo Dependabot — é ele que diz se a atualização é segura.
+#
+# As atualizações de patch/minor vêm agrupadas em um único PR por ecossistema
+# para não afogar o repositório; major vem separado, porque quase sempre exige
+# leitura do changelog.
+version: 2
+updates:
+  - package-ecosystem: maven
+    directory: /backend
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      backend-minor-e-patch:
+        update-types: [minor, patch]
+    commit-message:
+      prefix: "chore"
+
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      frontend-minor-e-patch:
+        update-types: [minor, patch]
+    commit-message:
+      prefix: "chore"
+
+  # As próprias actions usadas pelo CI (actions/checkout, setup-java, ...).
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: "chore"

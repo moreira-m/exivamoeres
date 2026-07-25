@@ -37,22 +37,47 @@ public interface HuntingListRepository extends JpaRepository<HuntingList, Long> 
 
     /**
      * Busca pública (home): só times ATIVOS. Times de donos premium aparecem
-     * primeiro (anúncios em destaque). O filtro de vaga disponível
-     * (hasOpenSlots) é aplicado depois, em memória pelo service — contar
-     * membros ativos por time exigiria subquery só pra um filtro opcional e o
-     * teto de 5 membros torna o custo desprezível.
+     * primeiro (anúncios em destaque).
+     *
+     * O filtro de vaga disponível (onlyOpenSlots) conta os membros aprovados
+     * por subquery — precisa ser aqui, e não em memória sobre a página já
+     * carregada, senão o total da página mente e a home pula times ao paginar.
+     *
+     * O desempate por id no order by não é enfeite: sem ordenação total, dois
+     * times criados no mesmo instante podem trocar de lugar entre uma página e
+     * a seguinte, fazendo o "carregar mais" repetir um e esconder o outro.
      */
-    @Query("""
+    @Query(value = """
             select l from HuntingList l
             join fetch l.owner o
             join fetch l.targetCreature
             where l.status = com.exivamoeres.domain.TeamStatus.ACTIVE
               and (:world is null or l.world = :world)
               and (:creatureId is null or l.targetCreature.id = :creatureId)
+              and (:onlyOpenSlots = false or (
+                    select count(m) from ListMembership m
+                    where m.list = l
+                      and m.active = true
+                      and m.status = com.exivamoeres.domain.MembershipStatus.APPROVED
+                  ) < :maxMembers)
             order by case when o.plan = com.exivamoeres.domain.Plan.PREMIUM then 0 else 1 end,
-                     l.createdAt desc
+                     l.createdAt desc, l.id desc
+            """,
+            countQuery = """
+            select count(l) from HuntingList l
+            where l.status = com.exivamoeres.domain.TeamStatus.ACTIVE
+              and (:world is null or l.world = :world)
+              and (:creatureId is null or l.targetCreature.id = :creatureId)
+              and (:onlyOpenSlots = false or (
+                    select count(m) from ListMembership m
+                    where m.list = l
+                      and m.active = true
+                      and m.status = com.exivamoeres.domain.MembershipStatus.APPROVED
+                  ) < :maxMembers)
             """)
     Page<HuntingList> search(@Param("world") String world,
                              @Param("creatureId") Long creatureId,
+                             @Param("onlyOpenSlots") boolean onlyOpenSlots,
+                             @Param("maxMembers") int maxMembers,
                              Pageable pageable);
 }

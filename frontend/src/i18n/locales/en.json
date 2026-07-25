@@ -28,6 +28,9 @@
     "slots": "Slots",
     "openOnly": "Only with open slots",
     "searchPlaceholder": "Type to search…",
+    "results_one": "{{count}} team found",
+    "results_other": "{{count}} teams found",
+    "loadMore": "Load more",
     "empty": "No teams found with these filters. How about creating one?"
   },
   "login": {

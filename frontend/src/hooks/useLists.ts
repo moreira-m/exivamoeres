@@ -1,10 +1,22 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
 import { listsApi, type CreateListRequest, type SearchListsParams } from '../services/listsApi'
 
+/**
+ * Busca da home, paginada por "carregar mais". Sem isso a tela mostrava só a
+ * primeira página e os times seguintes ficavam invisíveis para sempre.
+ */
 export function useSearchLists(params: SearchListsParams) {
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: ['lists', 'search', params],
-    queryFn: () => listsApi.search(params),
+    queryFn: ({ pageParam }) => listsApi.search({ ...params, page: pageParam }),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) =>
+      lastPage.number + 1 < lastPage.totalPages ? lastPage.number + 1 : undefined,
   })
 }
 

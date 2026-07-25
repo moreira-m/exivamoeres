@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Layout } from '../components/Layout'
 import { TeamCard } from '../components/TeamCard'
+import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
 import { Combobox } from '../components/ui/Combobox'
 import { Spinner } from '../components/ui/Spinner'
@@ -34,6 +35,12 @@ export function HomePage() {
     () => (creatures.data ?? []).map((c) => ({ value: String(c.id), label: c.name })),
     [creatures.data],
   )
+
+  const teams = useMemo(
+    () => (search.data?.pages ?? []).flatMap((page) => page.content),
+    [search.data],
+  )
+  const total = search.data?.pages[0]?.totalElements ?? 0
 
   return (
     <Layout>
@@ -71,12 +78,26 @@ export function HomePage() {
 
       {search.isLoading ? (
         <Spinner />
-      ) : search.data && search.data.content.length > 0 ? (
-        <div className="grid gap-4 md:grid-cols-2">
-          {search.data.content.map((team) => (
-            <TeamCard key={team.id} team={team} />
-          ))}
-        </div>
+      ) : teams.length > 0 ? (
+        <>
+          <p className="mb-3 font-bold text-white/90">{t('home.results', { count: total })}</p>
+          <div className="grid gap-4 md:grid-cols-2">
+            {teams.map((team) => (
+              <TeamCard key={team.id} team={team} />
+            ))}
+          </div>
+          {search.hasNextPage && (
+            <div className="mt-6 flex justify-center">
+              <Button
+                variant="neutral"
+                onClick={() => void search.fetchNextPage()}
+                disabled={search.isFetchingNextPage}
+              >
+                {search.isFetchingNextPage ? t('common.loading') : t('home.loadMore')}
+              </Button>
+            </div>
+          )}
+        </>
       ) : (
         <Card className="p-6 text-center font-bold">{t('home.empty')}</Card>
       )}

@@ -301,16 +301,12 @@ public class HuntingListServiceImpl implements HuntingListService {
     @Transactional(readOnly = true)
     public Page<ListSummaryResponse> search(String world, Long creatureId, Boolean hasOpenSlots,
                                             Pageable pageable) {
-        Page<ListSummaryResponse> page = listRepository
-                .search(blankToNull(world), creatureId, pageable)
+        // Todos os filtros vão para a query: o total da página precisa ser o
+        // total de verdade, senão a paginação da home não sabe quando parar.
+        return listRepository
+                .search(blankToNull(world), creatureId, Boolean.TRUE.equals(hasOpenSlots),
+                        maxMembers, pageable)
                 .map(this::toSummary);
-        if (Boolean.TRUE.equals(hasOpenSlots)) {
-            List<ListSummaryResponse> filtered = page.getContent().stream()
-                    .filter(ListSummaryResponse::hasOpenSlots)
-                    .toList();
-            return new org.springframework.data.domain.PageImpl<>(filtered, pageable, filtered.size());
-        }
-        return page;
     }
 
     @Override

@@ -9,10 +9,14 @@ import com.exivamoeres.service.RefreshTokenService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
+import java.util.HexFormat;
 
 @Service
 public class RefreshTokenServiceImpl implements RefreshTokenService {
@@ -30,18 +34,20 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
     @Override
     @Transactional
     public String issue(User user) {
+        // O valor cru só existe aqui e na resposta HTTP: o banco recebe o hash.
+        String rawToken = randomToken();
         RefreshToken token = new RefreshToken();
         token.setUser(user);
-        token.setToken(randomToken());
+        token.setTokenHash(sha256(rawToken));
         token.setExpiresAt(Instant.now().plus(ttl));
         repository.save(token);
-        return token.getToken();
+        return rawToken;
     }
 
     @Override
     @Transactional
     public RotationResult rotate(String rawToken) {
-        RefreshToken current = repository.findByToken(rawToken)
+        RefreshToken current = repository.findByTokenHash(sha256(rawToken))
                 .filter(RefreshToken::isUsable)
                 .orElseThrow(() -> new BusinessRuleException("Refresh token inválido ou expirado"));
         current.setRevoked(true);
@@ -51,7 +57,7 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
     @Override
     @Transactional
     public void revoke(String rawToken) {
-        repository.findByToken(rawToken).ifPresent(token -> token.setRevoked(true));
+        repository.findByTokenHash(sha256(rawToken)).ifPresent(token -> token.setRevoked(true));
     }
 
     private String randomToken() {
@@ -59,5 +65,20 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
         byte[] bytes = new byte[48];
         RANDOM.nextBytes(bytes);
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
+
+    /**
+     * SHA-256 basta aqui: o token já é aleatório de 48 bytes, então não há
+     * dicionário nem força bruta a atrasar — BCrypt só custaria latência em
+     * todo refresh. Sem salt de propósito: a busca é feita pelo próprio hash.
+     */
+    private String sha256(String rawToken) {
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256")
+                    .digest(rawToken.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(digest);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 é obrigatório em qualquer JVM", e);
+        }
     }
 }

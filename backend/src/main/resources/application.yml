@@ -96,6 +96,11 @@ app:
     # Personagens isentos da exigência de Premium Account (admin/testes).
     # Lista separada por vírgula. Vazio = regra vale para todos.
     premium-bypass-characters: ${TEAM_PREMIUM_BYPASS_CHARACTERS:}
+  actuator:
+    # Token do coletor de métricas (header X-Actuator-Token). Vazio = ninguém
+    # acessa /actuator além do health — nem usuário logado. Gere com:
+    # openssl rand -base64 32
+    token: ${ACTUATOR_TOKEN:}
   chat:
     # Rate limit de mensagens por usuário (mensagens por minuto).
     messages-per-minute: ${CHAT_MESSAGES_PER_MINUTE:20}
@@ -131,10 +136,18 @@ management:
   endpoints:
     web:
       exposure:
-        include: health, info, metrics, prometheus
+        # Só health por padrão: métricas entregam volume de usuários, rotas mais
+        # chamadas, taxa de erro e o mapa interno da aplicação — reconhecimento
+        # de graça. Ligar 'metrics,prometheus' aqui só faz sentido junto com o
+        # ACTUATOR_TOKEN abaixo; sem ele o SecurityConfig recusa tudo fora do
+        # health, mesmo para usuário logado.
+        include: ${ACTUATOR_ENDPOINTS:health}
   endpoint:
     health:
-      show-details: when-authorized
+      # 'when-authorized' era enganoso: o health é público (healthcheck do
+      # Railway), então "autorizado" incluía qualquer conta — e o detalhe conta
+      # status do banco e do disco. Público não detalha.
+      show-details: never
 
 logging:
   level:

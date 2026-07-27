@@ -145,6 +145,7 @@ class TeamFlowIntegrationTest extends TeamIntegrationTestBase {
 
     private ListDetailResponse createTeam(User owner, Character ownerChar, JoinPolicy policy) {
         return listService.createList(owner.getId(), new CreateListRequest(
-                "Time do Demon", "Antica", creature("Demon").getId(), policy, ownerChar.getId(), null, null));
+                "Time do Demon", "Antica", creature("Demon").getId(), policy, ownerChar.getId(), null, null,
+                null, null, null));
     }
 }

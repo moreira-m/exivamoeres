@@ -30,6 +30,21 @@ public record CreateListRequest(
 
         /** Preço informativo por vaga em gold (opcional; nulo = não informado). */
         @PositiveOrZero
-        Long pricePerSlot
+        Long pricePerSlot,
+
+        /** Estratégia, requisitos, regras do time. Texto livre opcional. */
+        @Size(max = 500)
+        String description,
+
+        /** Horário da caçada em texto livre ("Seg–Sex 20h BRT"). Opcional. */
+        @Size(max = 120)
+        String huntSchedule,
+
+        /**
+         * Contato do dono (Discord, tag no jogo). Opcional.
+         * ⚠️ Dado pessoal: só volta para o dono e para membros aprovados.
+         */
+        @Size(max = 120)
+        String contact
 ) {
 }

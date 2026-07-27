@@ -19,6 +19,16 @@ public record ListSummaryResponse(
         Instant expiresAt,
         Integer minimumLevel,
         Long pricePerSlot,
+        /** Texto livre do dono (opcional). Público: ajuda a escolher o time. */
+        String description,
+        /**
+         * Horário da caçada em texto livre (opcional). Público de propósito — é
+         * a informação que faz alguém decidir se o time serve para ele.
+         *
+         * ⚠️ O `contact` NÃO mora aqui: este DTO sai na busca pública, e contato
+         * é dado pessoal (ver ListDetailResponse).
+         */
+        String huntSchedule,
         /** Anúncio em destaque: verdadeiro quando o dono é premium. */
         boolean featured,
         int memberCount,
@@ -40,6 +50,8 @@ public record ListSummaryResponse(
                 list.getExpiresAt(),
                 list.getMinimumLevel(),
                 list.getPricePerSlot(),
+                list.getDescription(),
+                list.getHuntSchedule(),
                 list.getOwner().isPremium(),
                 (int) memberCount,
                 maxMembers,

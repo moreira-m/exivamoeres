@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Layout } from '../../components/Layout'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
-import { Input, Select } from '../../components/ui/Input'
+import { Input, Select, Textarea } from '../../components/ui/Input'
 import { useCreateList, useMyLists } from '../../hooks/useLists'
 import { useCreatures } from '../../hooks/useCatalog'
 import { useMyCharacters } from '../../hooks/useCharacters'
@@ -28,6 +28,9 @@ export function CreateTeamPage() {
   const [joinPolicy, setJoinPolicy] = useState<JoinPolicy>('MANUAL_APPROVAL')
   const [minimumLevel, setMinimumLevel] = useState('')
   const [pricePerSlot, setPricePerSlot] = useState('')
+  const [description, setDescription] = useState('')
+  const [huntSchedule, setHuntSchedule] = useState('')
+  const [contact, setContact] = useState('')
   const [error, setError] = useState('')
 
   // O world do time é ditado pelo personagem escolhido (regra: todos do mesmo world).
@@ -51,6 +54,11 @@ export function CreateTeamPage() {
         characterId: Number(characterId),
         minimumLevel: minimumLevel ? Number(minimumLevel) : null,
         pricePerSlot: pricePerSlot ? Number(pricePerSlot) : null,
+        // Vazio vira null: o backend também normaliza, mas não faz sentido
+        // mandar string em branco pela rede.
+        description: description.trim() || null,
+        huntSchedule: huntSchedule.trim() || null,
+        contact: contact.trim() || null,
       })
       navigate(`/teams/${detail.summary.id}`)
     } catch (err) {
@@ -154,6 +162,43 @@ export function CreateTeamPage() {
               value={pricePerSlot}
               onChange={(e) => setPricePerSlot(e.target.value)}
             />
+
+            <div>
+              <Input
+                label={t('createTeam.huntSchedule')}
+                maxLength={120}
+                placeholder={t('createTeam.huntSchedulePlaceholder')}
+                value={huntSchedule}
+                onChange={(e) => setHuntSchedule(e.target.value)}
+              />
+              <p className="mt-1 text-sm font-bold text-ink/60">{t('createTeam.huntScheduleHint')}</p>
+            </div>
+
+            <div>
+              <Textarea
+                label={t('createTeam.description')}
+                maxLength={500}
+                rows={4}
+                placeholder={t('createTeam.descriptionPlaceholder')}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+              />
+              <p className="mt-1 text-sm font-bold text-ink/60">
+                {t('createTeam.charsLeft', { count: 500 - description.length })}
+              </p>
+            </div>
+
+            <div>
+              <Input
+                label={t('createTeam.contact')}
+                maxLength={120}
+                placeholder={t('createTeam.contactPlaceholder')}
+                value={contact}
+                onChange={(e) => setContact(e.target.value)}
+              />
+              {/* Contato é dado pessoal: quem preenche tem que saber quem vê. */}
+              <p className="mt-1 text-sm font-bold text-primary">{t('createTeam.contactHint')}</p>
+            </div>
 
             {error && <p className="font-bold text-accent">{error}</p>}
 

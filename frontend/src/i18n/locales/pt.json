@@ -82,7 +82,16 @@
     "chooseCharacter": "Escolha um personagem verificado",
     "submit": "Criar time",
     "minimumLevel": "Level mínimo (opcional)",
-    "pricePerSlot": "Preço por vaga em gold (opcional)"
+    "pricePerSlot": "Preço por vaga em gold (opcional)",
+    "huntSchedule": "Horário da caçada",
+    "huntSchedulePlaceholder": "Ex.: Seg–Sex 20h BRT",
+    "huntScheduleHint": "Aparece na busca — é o que faz alguém decidir se o time serve para ele.",
+    "description": "Descrição",
+    "descriptionPlaceholder": "Estratégia, requisitos, como o loot é dividido…",
+    "charsLeft": "{{count}} caracteres restantes",
+    "contact": "Contato",
+    "contactPlaceholder": "Ex.: discord: seunome#1234",
+    "contactHint": "Visível apenas para você e para os membros aprovados — nunca na busca pública."
   },
   "billing": {
     "title": "Assinatura",
@@ -125,7 +134,11 @@
     "kickConfirm": "Expulsar este membro do time?",
     "deleteTeam": "Encerrar time",
     "deleteConfirm": "Encerrar este time? Ele some da busca e vira somente leitura (o histórico é preservado).",
-    "closedInfo": "Este time foi encerrado pelo dono."
+    "closedInfo": "Este time foi encerrado pelo dono.",
+    "description": "Sobre o time",
+    "huntSchedule": "Horário",
+    "contact": "Contato do dono",
+    "contactVisibility": "Só membros aprovados veem este contato."
   },
   "chat": {
     "title": "Chat do time",

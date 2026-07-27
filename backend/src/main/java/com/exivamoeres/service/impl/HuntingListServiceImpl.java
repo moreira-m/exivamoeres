@@ -106,6 +106,11 @@ public class HuntingListServiceImpl implements HuntingListService {
         list.setJoinPolicy(request.joinPolicy());
         list.setMinimumLevel(request.minimumLevel());
         list.setPricePerSlot(request.pricePerSlot());
+        // Campos livres: espaço em branco é o mesmo que não informar — senão a
+        // tela ganha um bloco de descrição vazio.
+        list.setDescription(trimToNull(request.description()));
+        list.setHuntSchedule(trimToNull(request.huntSchedule()));
+        list.setContact(trimToNull(request.contact()));
         list.setShareCode(generateUniqueShareCode());
         list.setStatus(TeamStatus.ACTIVE);
         list.setExpiresAt(Instant.now().plus(planPolicy.teamDuration(owner.getPlan())));
@@ -122,7 +127,7 @@ public class HuntingListServiceImpl implements HuntingListService {
 
         log.info("list.created listId={} ownerId={} world={} targetCreatureId={}",
                 list.getId(), ownerId, list.getWorld(), target.getId());
-        return buildDetail(list);
+        return buildDetail(list, ownerId);
     }
 
     @Override
@@ -168,7 +173,10 @@ public class HuntingListServiceImpl implements HuntingListService {
 
         log.info("list.join listId={} userId={} characterId={} status={}",
                 list.getId(), userId, character.getId(), membership.getStatus());
-        return buildDetail(list);
+        // Entrou por AUTO_ACCEPT: já é membro aprovado e o contato do dono vem
+        // na resposta. Se ficou PENDING, não vem — é o que separa "pedi" de
+        // "estou no time".
+        return buildDetail(list, userId);
     }
 
     @Override
@@ -230,7 +238,7 @@ public class HuntingListServiceImpl implements HuntingListService {
         list.setStatus(TeamStatus.ACTIVE);
         list.setExpiresAt(Instant.now().plus(planPolicy.teamDuration(list.getOwner().getPlan())));
         log.info("team.renewed listId={} ownerId={} newExpiresAt={}", listId, ownerId, list.getExpiresAt());
-        return buildDetail(list);
+        return buildDetail(list, ownerId);
     }
 
     @Override
@@ -291,10 +299,10 @@ public class HuntingListServiceImpl implements HuntingListService {
 
     @Override
     @Transactional(readOnly = true)
-    public ListDetailResponse getList(Long listId) {
+    public ListDetailResponse getList(Long listId, Long viewerId) {
         HuntingList list = listRepository.findById(listId)
                 .orElseThrow(() -> new ResourceNotFoundException("Time não encontrado"));
-        return buildDetail(list);
+        return buildDetail(list, viewerId);
     }
 
     @Override
@@ -400,14 +408,33 @@ public class HuntingListServiceImpl implements HuntingListService {
         throw new BusinessRuleException("Não foi possível gerar um código de convite; tente novamente");
     }
 
-    private ListDetailResponse buildDetail(HuntingList list) {
+    private ListDetailResponse buildDetail(HuntingList list, Long viewerId) {
         List<MembershipResponse> members = membershipRepository
                 .findAllByListIdAndActiveTrue(list.getId()).stream()
                 .map(MembershipResponse::from)
                 .toList();
         long approved = membershipRepository
                 .countByListIdAndActiveTrueAndStatus(list.getId(), MembershipStatus.APPROVED);
-        return ListDetailResponse.from(list, approved, maxMembers, members);
+        return ListDetailResponse.from(list, approved, maxMembers, members,
+                canSeeContact(list, viewerId));
+    }
+
+    /**
+     * Contato do dono é dado pessoal: só o dono e quem já foi aprovado no time
+     * enxergam. Pedido pendente **não** basta — se bastasse, qualquer pessoa
+     * pegaria o contato de qualquer dono só clicando em "entrar".
+     */
+    private boolean canSeeContact(HuntingList list, Long viewerId) {
+        if (viewerId == null || list.getContact() == null) {
+            return false;
+        }
+        return list.getOwner().getId().equals(viewerId)
+                || membershipRepository.existsByListIdAndUserIdAndActiveTrueAndStatus(
+                        list.getId(), viewerId, MembershipStatus.APPROVED);
+    }
+
+    private String trimToNull(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
     }
 
     private ListSummaryResponse toSummary(HuntingList list) {

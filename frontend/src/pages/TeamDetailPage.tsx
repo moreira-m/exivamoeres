@@ -93,6 +93,11 @@ export function TeamDetailPage() {
                 {t('teamDetail.priceUnit')}
               </span>
             )}
+            {team.huntSchedule && (
+              <span className="text-ink/70">
+                🕑 {t('teamDetail.huntSchedule')}: {team.huntSchedule}
+              </span>
+            )}
           </div>
         </div>
         <div className="flex flex-col items-end gap-1">
@@ -108,6 +113,24 @@ export function TeamDetailPage() {
       </Card>
 
       {isOwner && team.status === 'ARCHIVED' && <RenewCard listId={listId} />}
+
+      {team.description && (
+        <Card className="mb-6 p-5">
+          <h3 className="mb-2 text-lg text-ink">{t('teamDetail.description')}</h3>
+          {/* whitespace-pre-line: o dono escreveu em linhas; respeite as linhas. */}
+          <p className="whitespace-pre-line break-words font-bold text-ink/80">{team.description}</p>
+        </Card>
+      )}
+
+      {/* O contato só chega aqui para dono e membros aprovados — quem decide é o
+          backend (o campo vem null para os outros), não esta condição. */}
+      {detail.data.contact && (
+        <Card className="mb-6 p-5">
+          <h3 className="mb-2 text-lg text-ink">{t('teamDetail.contact')}</h3>
+          <p className="break-words font-mono font-bold text-ink">{detail.data.contact}</p>
+          <p className="mt-1 text-sm font-bold text-ink/60">{t('teamDetail.contactVisibility')}</p>
+        </Card>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
         <div className="space-y-6">

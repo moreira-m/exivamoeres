@@ -82,7 +82,16 @@
     "chooseCharacter": "Choose a verified character",
     "submit": "Create team",
     "minimumLevel": "Minimum level (optional)",
-    "pricePerSlot": "Price per slot in gold (optional)"
+    "pricePerSlot": "Price per slot in gold (optional)",
+    "huntSchedule": "Hunt schedule",
+    "huntSchedulePlaceholder": "e.g. Mon–Fri 8pm BRT",
+    "huntScheduleHint": "Shown in search — it is what makes someone decide the team fits them.",
+    "description": "Description",
+    "descriptionPlaceholder": "Strategy, requirements, how loot is split…",
+    "charsLeft": "{{count}} characters left",
+    "contact": "Contact",
+    "contactPlaceholder": "e.g. discord: yourname#1234",
+    "contactHint": "Visible only to you and approved members — never in public search."
   },
   "billing": {
     "title": "Subscription",
@@ -124,7 +133,11 @@
     "kickConfirm": "Kick this member from the team?",
     "deleteTeam": "Close team",
     "deleteConfirm": "Close this team? It disappears from search and becomes read-only (history is preserved).",
-    "closedInfo": "This team was closed by the owner."
+    "closedInfo": "This team was closed by the owner.",
+    "description": "About this team",
+    "huntSchedule": "Schedule",
+    "contact": "Owner's contact",
+    "contactVisibility": "Only approved members can see this contact."
   },
   "chat": {
     "title": "Team chat",

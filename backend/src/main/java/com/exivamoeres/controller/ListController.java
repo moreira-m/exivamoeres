@@ -38,9 +38,15 @@ public class ListController {
         return listService.search(world, creatureId, hasOpenSlots, PageRequest.of(page, Math.min(size, 50)));
     }
 
+    /**
+     * Endpoint público, mas o usuário é lido quando existe: o `contact` do dono
+     * só vai na resposta para o dono e para membros aprovados. Anônimo ⇒ o
+     * principal é nulo, e o service trata como "não pode ver".
+     */
     @GetMapping("/{id}")
-    public ListDetailResponse get(@PathVariable Long id) {
-        return listService.getList(id);
+    public ListDetailResponse get(@AuthenticationPrincipal AuthenticatedUser user,
+                                  @PathVariable Long id) {
+        return listService.getList(id, user != null ? user.id() : null);
     }
 
     // ----- Autenticado -----

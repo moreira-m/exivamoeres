@@ -53,6 +53,27 @@ public class HuntingList {
     @Column(name = "minimum_level")
     private Integer minimumLevel;
 
+    /** Texto livre do dono: estratégia, requisitos, regras. Opcional. */
+    @Column(length = 500)
+    private String description;
+
+    /**
+     * Horário da caçada em texto livre ("Seg–Sex 20h BRT"). Não é estruturado
+     * de propósito — ver V13. Opcional.
+     */
+    @Column(name = "hunt_schedule", length = 120)
+    private String huntSchedule;
+
+    /**
+     * Contato do dono (Discord, tag no jogo). Opcional.
+     *
+     * ⚠️ Dado pessoal: só pode ser exposto ao dono e a membros APROVADOS. É por
+     * isso que ele vive no {@code ListDetailResponse} e não no
+     * {@code ListSummaryResponse}, que sai na busca pública.
+     */
+    @Column(length = 120)
+    private String contact;
+
     /**
      * Preço INFORMATIVO por vaga em gold do jogo, definido pelo criador.
      * Não é uma transação processada pelo sistema. Opcional (nulo = não informado).

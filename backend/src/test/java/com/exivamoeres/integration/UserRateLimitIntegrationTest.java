@@ -77,6 +77,6 @@ class UserRateLimitIntegrationTest extends TeamIntegrationTestBase {
         stubPremium(characterName, "Antica");
         listService.createList(owner.getId(), new CreateListRequest(
                 teamName, "Antica", creature("Demon").getId(), JoinPolicy.AUTO_ACCEPT,
-                character.getId(), null, null));
+                character.getId(), null, null, null, null, null));
     }
 }

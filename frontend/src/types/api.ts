@@ -83,6 +83,9 @@ export interface ListSummaryResponse {
   expiresAt: string
   minimumLevel: number | null
   pricePerSlot: number | null
+  // Públicos de propósito: é a informação que faz alguém escolher o time.
+  description: string | null
+  huntSchedule: string | null
   featured: boolean
   memberCount: number
   maxMembers: number
@@ -102,6 +105,9 @@ export interface NotificationResponse {
 export interface ListDetailResponse {
   summary: ListSummaryResponse
   ownerId: number
+  // Dado pessoal do dono: o backend só manda para o dono e membros aprovados —
+  // vem null para todos os outros. A tela nunca "esconde" um valor que recebeu.
+  contact: string | null
   members: MembershipResponse[]
 }
 

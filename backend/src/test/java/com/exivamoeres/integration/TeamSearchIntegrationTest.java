@@ -139,7 +139,7 @@ class TeamSearchIntegrationTest extends TeamIntegrationTestBase {
         stubPremium(characterName, world);
         return listService.createList(owner.getId(), new CreateListRequest(
                 null, world, creature(creatureName).getId(),
-                JoinPolicy.AUTO_ACCEPT, character.getId(), null, null));
+                JoinPolicy.AUTO_ACCEPT, character.getId(), null, null, null, null, null));
     }
 
     /** Preenche o time até o máximo de 5 membros aprovados (dono + 4). */

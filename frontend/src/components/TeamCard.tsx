@@ -29,6 +29,11 @@ export function TeamCard({ team }: { team: ListSummaryResponse }) {
             </div>
           </div>
           <p className="truncate text-sm font-bold text-ink/60">{team.world}</p>
+          {/* Horário aparece já na busca: é o que decide se o time serve para
+              quem procura, e antes disso só era negociável depois de entrar. */}
+          {team.huntSchedule && (
+            <p className="truncate text-xs font-bold text-ink/70">🕑 {team.huntSchedule}</p>
+          )}
           <div className="flex flex-wrap items-center gap-x-3 text-xs font-bold text-ink/50">
             <span>{isActive ? formatExpiry(team.expiresAt) : t(`enums.teamStatus.${team.status}`)}</span>
             {team.pricePerSlot != null && (

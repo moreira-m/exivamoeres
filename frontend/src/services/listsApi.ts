@@ -15,6 +15,9 @@ export interface CreateListRequest {
   characterId: number
   minimumLevel?: number | null
   pricePerSlot?: number | null
+  description?: string | null
+  huntSchedule?: string | null
+  contact?: string | null
 }
 
 export interface SearchListsParams {

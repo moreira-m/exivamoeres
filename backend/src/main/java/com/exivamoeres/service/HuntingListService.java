@@ -56,8 +56,15 @@ public interface HuntingListService {
     /** Times em que o usuário é dono ou membro ativo aprovado. */
     List<ListSummaryResponse> listMyLists(Long userId);
 
-    /** Detalhe público (sem autenticação) — usado pela busca e pela tela do time. */
-    ListDetailResponse getList(Long listId);
+    /**
+     * Detalhe público (sem autenticação) — usado pela busca e pela tela do time.
+     *
+     * @param viewerId quem está olhando, ou **nulo** quando anônimo. Só serve
+     *                 para decidir se o `contact` do dono sai na resposta (dado
+     *                 pessoal: apenas dono e membros aprovados). Não muda mais
+     *                 nada do que é devolvido.
+     */
+    ListDetailResponse getList(Long listId, Long viewerId);
 
     /**
      * Busca pública (home): filtros opcionais por world, criatura-alvo e vaga

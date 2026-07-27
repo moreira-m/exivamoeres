@@ -63,9 +63,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Igual ao NODE_VERSION do frontend/netlify.toml: o CI tem que compilar na
+      # mesma versão que o deploy. O Vite 7 exige ^20.19.0 || >=22.12.0 — o '20'
+      # anterior resolvia para o último 20.x e funcionava, mas o Node 20 saiu do
+      # suporte e um runner com 20.x antigo quebraria o build sem aviso.
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 

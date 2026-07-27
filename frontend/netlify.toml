@@ -6,6 +6,13 @@
   command = "npm run build"
   publish = "dist"
 
+# ⚠️ Node fixado de propósito. O Vite 7 exige "^20.19.0 || >=22.12.0", e sem
+# esta linha o Netlify usa o default dele — que depende de quando o site foi
+# criado e pode ser um 20.x anterior ao 20.19, quebrando o build só no deploy
+# (o CI passaria). Manter igual ao node-version do .github/workflows/ci.yml.
+[build.environment]
+  NODE_VERSION = "22"
+
 # SPA: qualquer rota cai no index.html (o React Router resolve no cliente).
 [[redirects]]
   from = "/*"

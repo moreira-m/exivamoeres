@@ -4,7 +4,9 @@
     "all": "All",
     "allF": "All",
     "select": "Select…",
-    "noResults": "No results"
+    "noResults": "No results",
+    "save": "Save",
+    "cancel": "Cancel"
   },
   "nav": {
     "myTeams": "My teams",
@@ -137,7 +139,13 @@
     "description": "About this team",
     "huntSchedule": "Schedule",
     "contact": "Owner's contact",
-    "contactVisibility": "Only approved members can see this contact."
+    "contactVisibility": "Only approved members can see this contact.",
+    "edit": "Edit team",
+    "editInfo": "Need to fix the schedule, description or contact?",
+    "editName": "Team title (optional)",
+    "editLevelHint": "Changing the minimum level applies to whoever joins from now on — nobody already approved is removed.",
+    "editClearHint": "Any field left blank is removed from the listing.",
+    "editSaved": "Team updated."
   },
   "chat": {
     "title": "Team chat",

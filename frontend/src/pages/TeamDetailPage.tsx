@@ -4,12 +4,13 @@ import { Layout } from '../components/Layout'
 import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { Badge } from '../components/ui/Badge'
-import { Select } from '../components/ui/Input'
+import { Input, Select, Textarea } from '../components/ui/Input'
 import { Spinner } from '../components/ui/Spinner'
 import { CreatureIcon } from '../components/CreatureIcon'
 import { ChatPanel } from '../components/ChatPanel'
 import {
   useListDetail,
+  useUpdateList,
   useJoinList,
   useLeaveList,
   usePendingRequests,
@@ -23,7 +24,7 @@ import { useAuthStore } from '../store/authStore'
 import { getApiErrorMessage } from '../lib/apiError'
 import { formatExpiry, tibiaCharacterUrl } from '../lib/format'
 import { useTranslation } from 'react-i18next'
-import type { MembershipResponse } from '../types/api'
+import type { ListDetailResponse, MembershipResponse } from '../types/api'
 
 export function TeamDetailPage() {
   const { t } = useTranslation()
@@ -114,6 +115,9 @@ export function TeamDetailPage() {
 
       {isOwner && team.status === 'ARCHIVED' && <RenewCard listId={listId} />}
 
+      {/* Editar é ação de dono e só em time ativo — o backend recusa o resto. */}
+      {isOwner && isActive && <EditTeamCard listId={listId} detail={detail.data} />}
+
       {team.description && (
         <Card className="mb-6 p-5">
           <h3 className="mb-2 text-lg text-ink">{t('teamDetail.description')}</h3>
@@ -152,6 +156,134 @@ export function TeamDetailPage() {
         </div>
       </div>
     </Layout>
+  )
+}
+
+/**
+ * Edição dos campos que o dono digita à mão. Existe porque, sem ela, um Discord
+ * com uma letra errada só se corrigia encerrando o time — perdendo chat,
+ * histórico e membros aprovados.
+ *
+ * Manda o formulário inteiro: campo vazio **limpa** o valor (é o contrato do
+ * PATCH). World, criatura e política de entrada não estão aqui de propósito.
+ */
+function EditTeamCard({ listId, detail }: { listId: number; detail: ListDetailResponse }) {
+  const { t } = useTranslation()
+  const update = useUpdateList(listId)
+  const team = detail.summary
+  const [open, setOpen] = useState(false)
+  const [name, setName] = useState(team.name)
+  const [minimumLevel, setMinimumLevel] = useState(team.minimumLevel?.toString() ?? '')
+  const [pricePerSlot, setPricePerSlot] = useState(team.pricePerSlot?.toString() ?? '')
+  const [huntSchedule, setHuntSchedule] = useState(team.huntSchedule ?? '')
+  const [description, setDescription] = useState(team.description ?? '')
+  const [contact, setContact] = useState(detail.contact ?? '')
+  const [error, setError] = useState('')
+  const [ok, setOk] = useState('')
+
+  if (!open) {
+    return (
+      <Card className="mb-6 flex flex-wrap items-center justify-between gap-3 p-4">
+        <span className="font-bold text-ink">{t('teamDetail.editInfo')}</span>
+        <Button variant="neutral" onClick={() => setOpen(true)}>
+          {t('teamDetail.edit')}
+        </Button>
+      </Card>
+    )
+  }
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+    setOk('')
+    try {
+      await update.mutateAsync({
+        name: name.trim() || null,
+        minimumLevel: minimumLevel ? Number(minimumLevel) : null,
+        pricePerSlot: pricePerSlot ? Number(pricePerSlot) : null,
+        huntSchedule: huntSchedule.trim() || null,
+        description: description.trim() || null,
+        contact: contact.trim() || null,
+      })
+      setOk(t('teamDetail.editSaved'))
+      setOpen(false)
+    } catch (err) {
+      setError(getApiErrorMessage(err))
+    }
+  }
+
+  return (
+    <Card className="mb-6 p-5">
+      <h3 className="mb-3 text-lg text-ink">{t('teamDetail.edit')}</h3>
+      <form onSubmit={submit} className="space-y-4 [&_span]:text-ink">
+        <Input
+          label={t('teamDetail.editName')}
+          maxLength={100}
+          placeholder={team.targetCreatureName}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Input
+            label={t('createTeam.minimumLevel')}
+            type="number"
+            min={1}
+            value={minimumLevel}
+            onChange={(e) => setMinimumLevel(e.target.value)}
+          />
+          <Input
+            label={t('createTeam.pricePerSlot')}
+            type="number"
+            min={0}
+            value={pricePerSlot}
+            onChange={(e) => setPricePerSlot(e.target.value)}
+          />
+        </div>
+        <p className="text-sm font-bold text-ink/60">{t('teamDetail.editLevelHint')}</p>
+        <Input
+          label={t('createTeam.huntSchedule')}
+          maxLength={120}
+          placeholder={t('createTeam.huntSchedulePlaceholder')}
+          value={huntSchedule}
+          onChange={(e) => setHuntSchedule(e.target.value)}
+        />
+        <div>
+          <Textarea
+            label={t('createTeam.description')}
+            maxLength={500}
+            rows={4}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+          />
+          <p className="mt-1 text-sm font-bold text-ink/60">
+            {t('createTeam.charsLeft', { count: 500 - description.length })}
+          </p>
+        </div>
+        <div>
+          <Input
+            label={t('createTeam.contact')}
+            maxLength={120}
+            placeholder={t('createTeam.contactPlaceholder')}
+            value={contact}
+            onChange={(e) => setContact(e.target.value)}
+          />
+          <p className="mt-1 text-sm font-bold text-primary">{t('createTeam.contactHint')}</p>
+        </div>
+
+        <p className="text-sm font-bold text-ink/60">{t('teamDetail.editClearHint')}</p>
+        {error && <p className="font-bold text-accent">{error}</p>}
+        {ok && <p className="font-bold text-primary">{ok}</p>}
+
+        <div className="flex flex-wrap gap-2">
+          <Button type="submit" disabled={update.isPending}>
+            {t('common.save')}
+          </Button>
+          <Button type="button" variant="neutral" onClick={() => setOpen(false)}>
+            {t('common.cancel')}
+          </Button>
+        </div>
+      </form>
+    </Card>
   )
 }
 

@@ -4,7 +4,9 @@
     "all": "Todos",
     "allF": "Todas",
     "select": "Selecione…",
-    "noResults": "Nenhum resultado"
+    "noResults": "Nenhum resultado",
+    "save": "Salvar",
+    "cancel": "Cancelar"
   },
   "nav": {
     "myTeams": "Meus times",
@@ -138,7 +140,13 @@
     "description": "Sobre o time",
     "huntSchedule": "Horário",
     "contact": "Contato do dono",
-    "contactVisibility": "Só membros aprovados veem este contato."
+    "contactVisibility": "Só membros aprovados veem este contato.",
+    "edit": "Editar time",
+    "editInfo": "Precisa corrigir o horário, a descrição ou o contato?",
+    "editName": "Título do time (opcional)",
+    "editLevelHint": "Mudar o level mínimo vale para quem entrar daqui em diante — ninguém que já foi aprovado é removido.",
+    "editClearHint": "Campo deixado em branco é apagado do anúncio.",
+    "editSaved": "Time atualizado."
   },
   "chat": {
     "title": "Chat do time",

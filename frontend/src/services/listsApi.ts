@@ -20,6 +20,20 @@ export interface CreateListRequest {
   contact?: string | null
 }
 
+/**
+ * Campos editáveis de um time. Manda-se o conjunto COMPLETO: campo nulo/vazio
+ * limpa o valor no backend (não é "não mexer"). World, criatura e política de
+ * entrada não são editáveis de propósito.
+ */
+export interface UpdateListRequest {
+  name?: string | null
+  minimumLevel?: number | null
+  pricePerSlot?: number | null
+  description?: string | null
+  huntSchedule?: string | null
+  contact?: string | null
+}
+
 export interface SearchListsParams {
   world?: string
   creatureId?: number
@@ -42,6 +56,9 @@ export const listsApi = {
     apiClient.post<ListDetailResponse>('/api/lists', body).then((r) => r.data),
 
   mine: () => apiClient.get<ListSummaryResponse[]>('/api/lists/mine').then((r) => r.data),
+
+  update: (id: number, body: UpdateListRequest) =>
+    apiClient.patch<ListDetailResponse>(`/api/lists/${id}`, body).then((r) => r.data),
 
   join: (shareCode: string, characterId: number) =>
     apiClient

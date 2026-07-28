@@ -17,6 +17,7 @@ import com.exivamoeres.dto.list.JoinListRequest;
 import com.exivamoeres.dto.list.ListDetailResponse;
 import com.exivamoeres.dto.list.ListSummaryResponse;
 import com.exivamoeres.dto.list.MembershipResponse;
+import com.exivamoeres.dto.list.UpdateListRequest;
 import com.exivamoeres.repository.CharacterRepository;
 import com.exivamoeres.repository.CreatureRepository;
 import com.exivamoeres.repository.HuntingListRepository;
@@ -127,6 +128,34 @@ public class HuntingListServiceImpl implements HuntingListService {
 
         log.info("list.created listId={} ownerId={} world={} targetCreatureId={}",
                 list.getId(), ownerId, list.getWorld(), target.getId());
+        return buildDetail(list, ownerId);
+    }
+
+    @Override
+    @Transactional
+    public ListDetailResponse updateList(Long ownerId, Long listId, UpdateListRequest request) {
+        HuntingList list = loadOwnedList(listId, ownerId); // 403 se não for o dono
+        if (!list.allowsWrites()) {
+            // Mesma regra do chat e do soulcore: time não-ativo é só leitura. Um
+            // time arquivado que continuasse editável seria um anúncio invisível
+            // sendo maquiado.
+            throw new BusinessRuleException(
+                    "Este time não aceita mais alterações; ele está " + list.getStatus());
+        }
+        assertOwnerStillMeetsMinimumLevel(list, ownerId, request.minimumLevel());
+
+        // Título vazio volta a assumir o nome da criatura — mesma regra da criação.
+        list.setName(trimToNull(request.name()) != null
+                ? request.name().trim()
+                : list.getTargetCreature().getName());
+        list.setMinimumLevel(request.minimumLevel());
+        list.setPricePerSlot(request.pricePerSlot());
+        list.setDescription(trimToNull(request.description()));
+        list.setHuntSchedule(trimToNull(request.huntSchedule()));
+        list.setContact(trimToNull(request.contact()));
+
+        log.info("list.updated listId={} ownerId={} minimumLevel={}",
+                listId, ownerId, list.getMinimumLevel());
         return buildDetail(list, ownerId);
     }
 
@@ -435,6 +464,51 @@ public class HuntingListServiceImpl implements HuntingListService {
 
     private String trimToNull(String value) {
         return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    /**
+     * Ao subir o level mínimo, o dono precisa continuar cumprindo o requisito que
+     * ele mesmo define — é a mesma invariante da criação, e sem ela dá para
+     * montar "time exige level 500, dono é level 100".
+     *
+     * Duas escolhas explícitas aqui:
+     * <ul>
+     *   <li><b>Quem já foi aprovado fica.</b> A elegibilidade sempre foi validada
+     *       no momento da entrada e nunca reavaliada depois (personagem que perde
+     *       level também não é expulso). Reavaliar na edição transformaria uma
+     *       correção de anúncio em expulsão em massa — e o projeto não remove
+     *       membro nas costas de ninguém.</li>
+     *   <li><b>Level local, não TibiaData.</b> Usa o `level` já sincronizado do
+     *       personagem: editar o anúncio não pode depender de API externa nem
+     *       gastar a cota de consultas do usuário. Level desconhecido (nulo, nunca
+     *       sincronizado) não bloqueia — não dá para provar violação, e travar a
+     *       edição por isso seria um beco sem explicação.</li>
+     * </ul>
+     */
+    private void assertOwnerStillMeetsMinimumLevel(HuntingList list, Long ownerId, Integer minimumLevel) {
+        if (minimumLevel == null) {
+            return;
+        }
+        List<ListMembership> ownerMemberships = membershipRepository
+                .findAllByListIdAndStatusAndActiveTrue(list.getId(), MembershipStatus.APPROVED).stream()
+                .filter(m -> m.getUser().getId().equals(ownerId))
+                .toList();
+        if (ownerMemberships.isEmpty()) {
+            return;
+        }
+        boolean algumAtende = ownerMemberships.stream()
+                .map(m -> m.getCharacter().getLevel())
+                .anyMatch(level -> level == null || level >= minimumLevel);
+        if (!algumAtende) {
+            int maiorLevel = ownerMemberships.stream()
+                    .map(m -> m.getCharacter().getLevel())
+                    .mapToInt(Integer::intValue)
+                    .max()
+                    .orElseThrow();
+            throw new BusinessRuleException(
+                    "Você não pode exigir level " + minimumLevel
+                            + ": seu personagem no time tem level " + maiorLevel);
+        }
     }
 
     private ListSummaryResponse toSummary(HuntingList list) {

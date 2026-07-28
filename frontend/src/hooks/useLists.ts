@@ -4,7 +4,12 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query'
-import { listsApi, type CreateListRequest, type SearchListsParams } from '../services/listsApi'
+import {
+  listsApi,
+  type CreateListRequest,
+  type SearchListsParams,
+  type UpdateListRequest,
+} from '../services/listsApi'
 
 /**
  * Busca da home, paginada por "carregar mais". Sem isso a tela mostrava só a
@@ -32,6 +37,15 @@ export function useCreateList() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (body: CreateListRequest) => listsApi.create(body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['lists'] }),
+  })
+}
+
+/** Edição do time pelo dono (PATCH). Invalida o detalhe e as listagens. */
+export function useUpdateList(listId: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: UpdateListRequest) => listsApi.update(listId, body),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['lists'] }),
   })
 }

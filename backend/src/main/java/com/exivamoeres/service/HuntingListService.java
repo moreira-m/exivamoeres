@@ -5,6 +5,7 @@ import com.exivamoeres.dto.list.JoinListRequest;
 import com.exivamoeres.dto.list.ListDetailResponse;
 import com.exivamoeres.dto.list.ListSummaryResponse;
 import com.exivamoeres.dto.list.MembershipResponse;
+import com.exivamoeres.dto.list.UpdateListRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -24,6 +25,16 @@ public interface HuntingListService {
 
     /** Entra por share_code. Vira PENDING ou APPROVED conforme a join_policy do time. */
     ListDetailResponse joinByShareCode(Long userId, String shareCode, JoinListRequest request);
+
+    /**
+     * Edita os campos editáveis do time — **só o dono** (403 caso contrário) e
+     * **só em time ATIVO** (arquivado/encerrado é somente leitura, igual chat).
+     *
+     * O payload é o conjunto completo dos campos editáveis: nulo/branco
+     * **limpa**. World, criatura-alvo e política de entrada não são editáveis
+     * (ver {@link com.exivamoeres.dto.list.UpdateListRequest}).
+     */
+    ListDetailResponse updateList(Long ownerId, Long listId, UpdateListRequest request);
 
     /** Só o dono do time pode aprovar. */
     void approveJoinRequest(Long ownerId, Long listId, Long membershipId);

@@ -5,6 +5,7 @@ import com.exivamoeres.dto.list.JoinListRequest;
 import com.exivamoeres.dto.list.ListDetailResponse;
 import com.exivamoeres.dto.list.ListSummaryResponse;
 import com.exivamoeres.dto.list.MembershipResponse;
+import com.exivamoeres.dto.list.UpdateListRequest;
 import com.exivamoeres.security.AuthenticatedUser;
 import com.exivamoeres.service.HuntingListService;
 import jakarta.validation.Valid;
@@ -61,6 +62,18 @@ public class ListController {
     @GetMapping("/mine")
     public List<ListSummaryResponse> myLists(@AuthenticationPrincipal AuthenticatedUser user) {
         return listService.listMyLists(user.id());
+    }
+
+    /**
+     * Edita o time (só o dono; 403 caso contrário). O corpo traz **todos** os
+     * campos editáveis — nulo/branco limpa o valor. World, criatura e política de
+     * entrada não são editáveis e são ignorados se enviados.
+     */
+    @PatchMapping("/{id}")
+    public ListDetailResponse update(@AuthenticationPrincipal AuthenticatedUser user,
+                                    @PathVariable Long id,
+                                    @Valid @RequestBody UpdateListRequest request) {
+        return listService.updateList(user.id(), id, request);
     }
 
     @PostMapping("/{shareCode}/join")

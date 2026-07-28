@@ -7,6 +7,7 @@ import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
 import { Badge } from '../../components/ui/Badge'
 import { Spinner } from '../../components/ui/Spinner'
+import { QueryError } from '../../components/ui/QueryError'
 import { useMyLists, useRenewTeam } from '../../hooks/useLists'
 import { useAuth } from '../../hooks/useAuth'
 import { getApiErrorMessage } from '../../lib/apiError'
@@ -64,6 +65,14 @@ export function MyTeamsPage() {
 
       {myLists.isLoading ? (
         <Spinner />
+      ) : myLists.isError ? (
+        /* "Você não tem times" seria mentira cruel para quem tem: o dono acharia
+           que perdeu os times dele. */
+        <QueryError
+          error={myLists.error}
+          onRetry={() => void myLists.refetch()}
+          retrying={myLists.isFetching}
+        />
       ) : shown.length > 0 ? (
         <div className="grid gap-4 md:grid-cols-2">
           {shown.map((team) =>

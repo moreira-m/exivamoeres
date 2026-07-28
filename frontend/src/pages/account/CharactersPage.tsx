@@ -6,6 +6,7 @@ import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { Badge } from '../../components/ui/Badge'
 import { Spinner } from '../../components/ui/Spinner'
+import { QueryError } from '../../components/ui/QueryError'
 import { useClaims, useCreateClaim } from '../../hooks/useClaims'
 import { getApiErrorMessage } from '../../lib/apiError'
 import type { ClaimStatus } from '../../types/api'
@@ -66,6 +67,14 @@ export function CharactersPage() {
 
       {claims.isLoading ? (
         <Spinner />
+      ) : claims.isError ? (
+        /* Sem isto, uma falha aqui sugere que a verificação do personagem se
+           perdeu — e a pessoa começa um claim novo por cima do que já existe. */
+        <QueryError
+          error={claims.error}
+          onRetry={() => void claims.refetch()}
+          retrying={claims.isFetching}
+        />
       ) : claims.data && claims.data.length > 0 ? (
         <div className="space-y-4">
           {claims.data.map((claim) => (

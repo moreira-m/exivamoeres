@@ -5,6 +5,7 @@ import { Layout } from '../../components/Layout'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
 import { Input, Select, Textarea } from '../../components/ui/Input'
+import { QueryError } from '../../components/ui/QueryError'
 import { useCreateList, useMyLists } from '../../hooks/useLists'
 import { useCreatures } from '../../hooks/useCatalog'
 import { useMyCharacters } from '../../hooks/useCharacters'
@@ -99,7 +100,15 @@ export function CreateTeamPage() {
       )}
 
       <Card className="max-w-xl p-6">
-        {noCharacters ? (
+        {characters.isError ? (
+          /* Antes, a falha era silenciosa: o formulário aparecia com o seletor de
+             personagem vazio e sem explicar por quê. */
+          <QueryError
+            error={characters.error}
+            onRetry={() => void characters.refetch()}
+            retrying={characters.isFetching}
+          />
+        ) : noCharacters ? (
           <p className="font-bold text-ink">
             {t('createTeam.needCharacter')}{' '}
             <a href="/account/characters" className="text-accent underline">

@@ -152,7 +152,8 @@
     "title": "Chat do time",
     "empty": "Nenhuma mensagem ainda.",
     "placeholder": "Mensagem…",
-    "send": "Enviar"
+    "send": "Enviar",
+    "historyFailed": "Não foi possível carregar o histórico."
   },
   "teamCard": {
     "featured": "★",
@@ -199,5 +200,10 @@
       "TEAM_SCHEDULE_CHANGED": "O horário do time {{team}} mudou",
       "TEAM_MINIMUM_LEVEL_CHANGED": "O level mínimo do time {{team}} mudou"
     }
+  },
+  "errors": {
+    "loadFailed": "Não foi possível carregar.",
+    "network": "Não conseguimos falar com o servidor. Confira sua conexão e tente de novo.",
+    "retry": "Tentar de novo"
   }
 }

@@ -6,6 +6,7 @@ import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
 import { Combobox } from '../components/ui/Combobox'
 import { Spinner } from '../components/ui/Spinner'
+import { QueryError } from '../components/ui/QueryError'
 import { useSearchLists } from '../hooks/useLists'
 import { useWorlds, useCreatures } from '../hooks/useCatalog'
 
@@ -78,6 +79,14 @@ export function HomePage() {
 
       {search.isLoading ? (
         <Spinner />
+      ) : search.isError ? (
+        /* Antes desta guarda, uma busca que falhava caía no galho de "vazio" e a
+           home afirmava que não existe time — mentira que manda o usuário embora. */
+        <QueryError
+          error={search.error}
+          onRetry={() => void search.refetch()}
+          retrying={search.isFetching}
+        />
       ) : teams.length > 0 ? (
         <>
           <p className="mb-3 font-bold text-white/90">{t('home.results', { count: total })}</p>

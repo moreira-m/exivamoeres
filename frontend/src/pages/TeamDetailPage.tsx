@@ -6,6 +6,7 @@ import { Button } from '../components/ui/Button'
 import { Badge } from '../components/ui/Badge'
 import { Input, Select, Textarea } from '../components/ui/Input'
 import { Spinner } from '../components/ui/Spinner'
+import { QueryError } from '../components/ui/QueryError'
 import { CreatureIcon } from '../components/CreatureIcon'
 import { ChatPanel } from '../components/ChatPanel'
 import {
@@ -21,7 +22,7 @@ import {
 } from '../hooks/useLists'
 import { useMyCharacters } from '../hooks/useCharacters'
 import { useAuthStore } from '../store/authStore'
-import { getApiErrorMessage } from '../lib/apiError'
+import { getApiErrorMessage, isNotFound } from '../lib/apiError'
 import { formatExpiry, tibiaCharacterUrl } from '../lib/format'
 import { useTranslation } from 'react-i18next'
 import type { ListDetailResponse, MembershipResponse } from '../types/api'
@@ -38,6 +39,20 @@ export function TeamDetailPage() {
     return (
       <Layout>
         <Spinner />
+      </Layout>
+    )
+  }
+  // 404 é definitivo ("este time não existe"); qualquer outra falha é transitória
+  // e pede "tentar de novo". Antes, as duas viravam "time não encontrado" — o que
+  // faz o dono achar que o time dele desapareceu.
+  if (detail.isError && !isNotFound(detail.error)) {
+    return (
+      <Layout>
+        <QueryError
+          error={detail.error}
+          onRetry={() => void detail.refetch()}
+          retrying={detail.isFetching}
+        />
       </Layout>
     )
   }
@@ -445,6 +460,14 @@ function JoinCard({ listId, teamWorld, full }: { listId: number; teamWorld: stri
       <h3 className="mb-3 text-lg text-ink">{t('teamDetail.join')}</h3>
       {full ? (
         <p className="font-bold text-accent">{t('teamDetail.teamFull')}</p>
+      ) : myChars.isError ? (
+        /* "Você não tem personagem neste world" seria mentira: a lista nem
+           carregou. Quem acredita nela vai criar um claim que já existe. */
+        <QueryError
+          error={myChars.error}
+          onRetry={() => void myChars.refetch()}
+          retrying={myChars.isFetching}
+        />
       ) : eligible.length === 0 ? (
         <p className="text-sm font-bold text-ink/70">
           {t('teamDetail.noCharacterInWorld', { world: teamWorld })}
@@ -503,6 +526,21 @@ function RequestsCard({ listId }: { listId: number }) {
   const { t } = useTranslation()
   const requests = usePendingRequests(listId, true)
   const { approve, reject } = useRequestDecision(listId)
+
+  // Sem esta guarda, uma listagem que falha diz ao dono que não há pedidos —
+  // e ele perde candidatos sem nunca saber que existiram.
+  if (requests.isError) {
+    return (
+      <Card className="p-4">
+        <h3 className="mb-2 text-lg text-ink">{t('teamDetail.requests')}</h3>
+        <QueryError
+          error={requests.error}
+          onRetry={() => void requests.refetch()}
+          retrying={requests.isFetching}
+        />
+      </Card>
+    )
+  }
 
   if (!requests.data || requests.data.length === 0) {
     return (

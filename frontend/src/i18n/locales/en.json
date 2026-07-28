@@ -151,7 +151,8 @@
     "title": "Team chat",
     "empty": "No messages yet.",
     "placeholder": "Message…",
-    "send": "Send"
+    "send": "Send",
+    "historyFailed": "Couldn't load the message history."
   },
   "teamCard": {
     "featured": "★",
@@ -198,5 +199,10 @@
       "TEAM_SCHEDULE_CHANGED": "The schedule of {{team}} has changed",
       "TEAM_MINIMUM_LEVEL_CHANGED": "The minimum level of {{team}} has changed"
     }
+  },
+  "errors": {
+    "loadFailed": "Couldn't load this.",
+    "network": "We couldn't reach the server. Check your connection and try again.",
+    "retry": "Try again"
   }
 }

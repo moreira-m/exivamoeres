@@ -12,17 +12,28 @@ export function useChat(listId: number) {
   const accessToken = useAuthStore((s) => s.accessToken)
   const [messages, setMessages] = useState<ChatMessageResponse[]>([])
   const [connected, setConnected] = useState(false)
+  const [historyError, setHistoryError] = useState<unknown>(null)
+  const [reloads, setReloads] = useState(0)
 
   useEffect(() => {
     let active = true
+    setHistoryError(null)
     // Histórico vem em ordem decrescente; exibimos em ordem cronológica.
-    chatApi.history(listId).then((page) => {
-      if (active) setMessages([...page.content].reverse())
-    })
+    chatApi
+      .history(listId)
+      .then((page) => {
+        if (active) setMessages([...page.content].reverse())
+      })
+      // Sem o catch, a falha era DUAS vezes ruim: promise rejeitada sem
+      // tratamento no console, e o painel dizendo "nenhuma mensagem ainda" —
+      // como se o time nunca tivesse conversado.
+      .catch((err: unknown) => {
+        if (active) setHistoryError(err)
+      })
     return () => {
       active = false
     }
-  }, [listId])
+  }, [listId, reloads])
 
   useEffect(() => {
     if (!accessToken) return
@@ -41,5 +52,8 @@ export function useChat(listId: number) {
   const send = (characterId: number, content: string) =>
     chatApi.send(listId, characterId, content)
 
-  return { messages, send, connected }
+  /** Recarrega o histórico (o socket continua entregando o que chegar depois). */
+  const reloadHistory = () => setReloads((n) => n + 1)
+
+  return { messages, send, connected, historyError, reloadHistory }
 }

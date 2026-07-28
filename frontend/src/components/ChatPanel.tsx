@@ -13,7 +13,7 @@ interface Props {
 
 export function ChatPanel({ listId, actingCharacterId }: Props) {
   const { t } = useTranslation()
-  const { messages, send } = useChat(listId)
+  const { messages, send, historyError, reloadHistory } = useChat(listId)
   const [text, setText] = useState('')
   const [error, setError] = useState('')
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -39,8 +39,23 @@ export function ChatPanel({ listId, actingCharacterId }: Props) {
     <Card className="flex h-96 flex-col p-4">
       <h3 className="mb-2 text-lg text-ink">{t('chat.title')}</h3>
       <div className="flex-1 space-y-2 overflow-y-auto border-2 border-ink/20 bg-canvas p-2">
-        {messages.length === 0 && (
-          <p className="text-sm font-bold text-ink/50">{t('chat.empty')}</p>
+        {/* Histórico que falhou não é histórico vazio: sem esta distinção o painel
+            dizia "nenhuma mensagem" para um time que conversou a semana toda. */}
+        {historyError ? (
+          <div className="text-sm font-bold">
+            <p className="text-accent">{t('chat.historyFailed')}</p>
+            <button
+              type="button"
+              onClick={reloadHistory}
+              className="mt-1 uppercase text-primary underline decoration-2 hover:text-accent"
+            >
+              {t('errors.retry')}
+            </button>
+          </div>
+        ) : (
+          messages.length === 0 && (
+            <p className="text-sm font-bold text-ink/50">{t('chat.empty')}</p>
+          )
         )}
         {messages.map((m) => (
           <div key={m.id} className="text-sm text-ink">

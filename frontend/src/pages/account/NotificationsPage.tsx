@@ -4,6 +4,7 @@ import { Layout } from '../../components/Layout'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
 import { Spinner } from '../../components/ui/Spinner'
+import { QueryError } from '../../components/ui/QueryError'
 import { useNotifications, useMarkNotificationsRead } from '../../hooks/useNotifications'
 import type { NotificationResponse } from '../../types/api'
 
@@ -29,6 +30,12 @@ export function NotificationsPage() {
 
       {notifications.isLoading ? (
         <Spinner />
+      ) : notifications.isError ? (
+        <QueryError
+          error={notifications.error}
+          onRetry={() => void notifications.refetch()}
+          retrying={notifications.isFetching}
+        />
       ) : items.length > 0 ? (
         <div className="space-y-3">
           {items.map((n) => (

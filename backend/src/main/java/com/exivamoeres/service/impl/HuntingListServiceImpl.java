@@ -135,6 +135,9 @@ public class HuntingListServiceImpl implements HuntingListService {
     @Override
     @Transactional
     public ListDetailResponse updateList(Long ownerId, Long listId, UpdateListRequest request) {
+        // Antes de qualquer consulta, como em createList: editar em rajada
+        // notifica os membros a cada volta, então a rajada é o abuso.
+        userRateLimiter.checkTeamUpdate(ownerId);
         HuntingList list = loadOwnedList(listId, ownerId); // 403 se não for o dono
         if (!list.allowsWrites()) {
             // Mesma regra do chat e do soulcore: time não-ativo é só leitura. Um

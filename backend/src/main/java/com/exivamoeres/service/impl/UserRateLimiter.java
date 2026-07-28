@@ -19,7 +19,11 @@ import java.util.concurrent.ConcurrentHashMap;
  *   <li><b>criar time</b>: o teto de times ATIVOS do plano não impede criar,
  *       encerrar e criar de novo em loop, enchendo a busca pública;</li>
  *   <li><b>consultar a TibiaData</b> (claim e entrada em time): sem limite, o
- *       site vira amplificador de tráfego contra uma API pública e gratuita.</li>
+ *       site vira amplificador de tráfego contra uma API pública e gratuita;</li>
+ *   <li><b>editar o time</b>: mudar horário ou level mínimo <b>notifica todos os
+ *       membros aprovados</b>. É a única ação do produto em que um usuário gera
+ *       escrita persistente na caixa de outros — sem teto, alternar o horário em
+ *       loop enche o sino de quatro pessoas.</li>
  * </ul>
  *
  * Buckets em memória — mesma limitação single-instance do RateLimitFilter e do
@@ -31,6 +35,7 @@ public class UserRateLimiter {
 
     private static final String TEAM_CREATION = "team-creation";
     private static final String TIBIADATA = "tibiadata";
+    private static final String TEAM_UPDATE = "team-update";
 
     private final Map<String, Bucket> buckets = new ConcurrentHashMap<>();
     private final RateLimitProperties properties;
@@ -49,6 +54,19 @@ public class UserRateLimiter {
     public void checkTibiaDataLookup(Long userId) {
         consume(TIBIADATA, userId, properties.tibiadataPerHour(),
                 "Muitas consultas ao Tibia.com em pouco tempo. Aguarde alguns minutos.");
+    }
+
+    /**
+     * Lança 429 se o usuário já editou times demais na última hora.
+     *
+     * Limita a edição <b>inteira</b>, não só as que notificam: é mais simples de
+     * explicar para quem recebe o erro e protege a tabela de notificações do
+     * mesmo jeito — quem alterna o horário em loop passa pelo mesmo balde de
+     * quem só arruma a descrição.
+     */
+    public void checkTeamUpdate(Long userId) {
+        consume(TEAM_UPDATE, userId, properties.teamUpdatePerHour(),
+                "Você editou este time muitas vezes em pouco tempo. Aguarde um pouco para ajustar de novo.");
     }
 
     private void consume(String action, Long userId, int perHour, String message) {

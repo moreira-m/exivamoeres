@@ -18,6 +18,13 @@ public record RateLimitProperties(
         /** Times criados por hora, por usuário. */
         int teamCreationPerHour,
         /** Chamadas a endpoints que consultam a TibiaData, por hora, por usuário. */
-        int tibiadataPerHour
+        int tibiadataPerHour,
+        /**
+         * Edições de time por hora, por usuário. Existe menos pelo custo da
+         * escrita e mais porque cada edição de horário/level **notifica os
+         * membros** — é a única ação em que um usuário gera escrita persistente
+         * para outros.
+         */
+        int teamUpdatePerHour
 ) {
 }

@@ -5,6 +5,8 @@ import com.exivamoeres.domain.JoinPolicy;
 import com.exivamoeres.domain.User;
 import com.exivamoeres.domain.exception.TooManyRequestsException;
 import com.exivamoeres.dto.list.CreateListRequest;
+import com.exivamoeres.dto.list.ListDetailResponse;
+import com.exivamoeres.dto.list.UpdateListRequest;
 import com.exivamoeres.service.CharacterClaimService;
 import com.exivamoeres.service.HuntingListService;
 import org.junit.jupiter.api.Test;
@@ -29,6 +31,7 @@ class UserRateLimitIntegrationTest extends TeamIntegrationTestBase {
     static void limitesBaixos(DynamicPropertyRegistry registry) {
         registry.add("app.rate-limit.team-creation-per-hour", () -> 2);
         registry.add("app.rate-limit.tibiadata-per-hour", () -> 2);
+        registry.add("app.rate-limit.team-update-per-hour", () -> 2);
     }
 
     @Autowired HuntingListService listService;
@@ -72,10 +75,59 @@ class UserRateLimitIntegrationTest extends TeamIntegrationTestBase {
                 .hasMessageContaining("Tibia.com");
     }
 
-    private void criarTime(User owner, String characterName, String teamName) {
+    @Test
+    void editarOTimeAcimaDoLimitePorHoraRetorna429() {
+        User owner = createUser("rate-edicao@teste.com");
+        Long listId = criarTime(owner, "Rate Edit Char", "Rate Edit Team").summary().id();
+
+        editarHorario(owner, listId, "Seg 20h BRT");
+        editarHorario(owner, listId, "Ter 21h BRT");
+
+        // Cada troca de horário notifica os membros aprovados; o teto existe para
+        // que o dono não consiga encher o sino dos outros em loop.
+        assertThatThrownBy(() -> editarHorario(owner, listId, "Qua 22h BRT"))
+                .isInstanceOf(TooManyRequestsException.class)
+                .hasMessageContaining("muitas vezes");
+    }
+
+    @Test
+    void oLimiteDeEdicaoEhPorUsuario() {
+        User esgotado = createUser("rate-edicao-esgotado@teste.com");
+        Long esgotadoList = criarTime(esgotado, "Edit Esg Char", "Edit Esg Team").summary().id();
+        editarHorario(esgotado, esgotadoList, "Seg 20h BRT");
+        editarHorario(esgotado, esgotadoList, "Ter 21h BRT");
+        assertThatThrownBy(() -> editarHorario(esgotado, esgotadoList, "Qua 22h BRT"))
+                .isInstanceOf(TooManyRequestsException.class);
+
+        User outro = createUser("rate-edicao-outro@teste.com");
+        Long outroList = criarTime(outro, "Edit Outro Char", "Edit Outro Team").summary().id();
+        assertThatCode(() -> editarHorario(outro, outroList, "Sex 19h BRT"))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    void editarNaoConsomeOLimiteDeCriacaoDeTimes() {
+        User owner = createUser("rate-edicao-separado@teste.com");
+        Long listId = criarTime(owner, "Sep Char 1", "Sep Team 1").summary().id();
+
+        // Duas edições esgotam o balde de EDIÇÃO...
+        editarHorario(owner, listId, "Seg 20h BRT");
+        editarHorario(owner, listId, "Ter 21h BRT");
+
+        // ...e o de criação continua com a segunda vaga intacta: baldes são por ação.
+        assertThatCode(() -> criarTime(owner, "Sep Char 2", "Sep Team 2"))
+                .doesNotThrowAnyException();
+    }
+
+    private void editarHorario(User owner, Long listId, String horario) {
+        listService.updateList(owner.getId(), listId,
+                new UpdateListRequest(null, null, null, null, horario, null));
+    }
+
+    private ListDetailResponse criarTime(User owner, String characterName, String teamName) {
         Character character = createCharacter(characterName, "Antica", owner);
         stubPremium(characterName, "Antica");
-        listService.createList(owner.getId(), new CreateListRequest(
+        return listService.createList(owner.getId(), new CreateListRequest(
                 teamName, "Antica", creature("Demon").getId(), JoinPolicy.AUTO_ACCEPT,
                 character.getId(), null, null, null, null, null));
     }

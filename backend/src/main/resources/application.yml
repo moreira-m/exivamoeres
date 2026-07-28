@@ -115,6 +115,10 @@ app:
     # a TibiaData.
     team-creation-per-hour: ${RATE_LIMIT_TEAM_CREATION_PER_HOUR:10}
     tibiadata-per-hour: ${RATE_LIMIT_TIBIADATA_PER_HOUR:20}
+    # Edições de time por hora, por usuário. O motivo não é o custo da escrita:
+    # mudar horário/level mínimo NOTIFICA todos os membros aprovados, então sem
+    # teto o dono consegue encher o sino dos outros.
+    team-update-per-hour: ${RATE_LIMIT_TEAM_UPDATE_PER_HOUR:20}
 
 resilience4j:
   retry:

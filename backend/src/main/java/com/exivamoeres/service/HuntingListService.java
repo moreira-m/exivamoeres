@@ -5,6 +5,7 @@ import com.exivamoeres.dto.list.JoinListRequest;
 import com.exivamoeres.dto.list.ListDetailResponse;
 import com.exivamoeres.dto.list.ListSummaryResponse;
 import com.exivamoeres.dto.list.MembershipResponse;
+import com.exivamoeres.dto.list.MyJoinRequestResponse;
 import com.exivamoeres.dto.list.UpdateListRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -86,4 +87,20 @@ public interface HuntingListService {
 
     /** Pedidos pendentes do time — só o dono enxerga. */
     List<MembershipResponse> listPendingRequests(Long ownerId, Long listId);
+
+    /**
+     * Pedidos de entrada **do próprio usuário** — pendentes e recusados, mais
+     * recentes primeiro. É o lado que faltava: `listMyLists` só devolve time de
+     * dono ou de membro aprovado, então um pedido pendente não aparecia em lugar
+     * nenhum e a pessoa não sabia se tinha sido ignorada ou recusada.
+     */
+    List<MyJoinRequestResponse> listMyJoinRequests(Long userId);
+
+    /**
+     * O solicitante desiste do próprio pedido (status `CANCELLED`).
+     *
+     * Só pedido **pendente** e só o dono do pedido; o histórico é preservado como
+     * em todo o resto do projeto — nada é deletado.
+     */
+    void cancelMyJoinRequest(Long userId, Long membershipId);
 }

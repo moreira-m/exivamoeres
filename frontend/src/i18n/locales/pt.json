@@ -68,7 +68,9 @@
     "tabInactive": "Concluídos / arquivados ({{count}})",
     "emptyActive": "Nenhum time ativo. Crie um ou encontre um na página inicial.",
     "emptyInactive": "Nenhum time concluído ou arquivado.",
-    "renew": "Renovar"
+    "renew": "Renovar",
+    "tabRequests": "Meus pedidos ({{count}})",
+    "emptyRequests": "Você não tem pedidos de entrada. Encontre um time na busca e peça para entrar."
   },
   "createTeam": {
     "title": "Criar time",
@@ -177,6 +179,12 @@
     "plan": {
       "FREE": "Free",
       "PREMIUM": "Premium"
+    },
+    "membershipStatus": {
+      "PENDING": "Aguardando",
+      "APPROVED": "Aprovado",
+      "REJECTED": "Recusado",
+      "CANCELLED": "Cancelado"
     }
   },
   "expiry": {
@@ -205,5 +213,14 @@
     "loadFailed": "Não foi possível carregar.",
     "network": "Não conseguimos falar com o servidor. Confira sua conexão e tente de novo.",
     "retry": "Tentar de novo"
+  },
+  "myRequests": {
+    "withCharacter": "com {{character}}",
+    "requestedAt": "pedido em {{date}}",
+    "cancel": "Cancelar pedido",
+    "cancelConfirm": "Cancelar este pedido de entrada?",
+    "mayNotBeApproved": "Talvez não seja aprovado:",
+    "issueBelowMinimumLevel": "o time agora exige level {{minimum}} e seu personagem tem {{level}}.",
+    "issueWorldMismatch": "seu personagem não é mais do world {{world}}."
   }
 }

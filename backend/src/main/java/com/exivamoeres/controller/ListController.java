@@ -5,6 +5,7 @@ import com.exivamoeres.dto.list.JoinListRequest;
 import com.exivamoeres.dto.list.ListDetailResponse;
 import com.exivamoeres.dto.list.ListSummaryResponse;
 import com.exivamoeres.dto.list.MembershipResponse;
+import com.exivamoeres.dto.list.MyJoinRequestResponse;
 import com.exivamoeres.dto.list.UpdateListRequest;
 import com.exivamoeres.security.AuthenticatedUser;
 import com.exivamoeres.service.HuntingListService;
@@ -74,6 +75,25 @@ public class ListController {
                                     @PathVariable Long id,
                                     @Valid @RequestBody UpdateListRequest request) {
         return listService.updateList(user.id(), id, request);
+    }
+
+    /**
+     * Pedidos de entrada do próprio usuário (pendentes e recusados).
+     *
+     * ⚠️ O caminho tem **dois segmentos** (`mine/requests`), então não colide com
+     * o `GET /api/lists/{id}` público — que casa um segmento só.
+     */
+    @GetMapping("/mine/requests")
+    public List<MyJoinRequestResponse> myJoinRequests(@AuthenticationPrincipal AuthenticatedUser user) {
+        return listService.listMyJoinRequests(user.id());
+    }
+
+    /** O solicitante desiste do próprio pedido (404 se o pedido não é dele). */
+    @DeleteMapping("/mine/requests/{membershipId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void cancelMyJoinRequest(@AuthenticationPrincipal AuthenticatedUser user,
+                                    @PathVariable Long membershipId) {
+        listService.cancelMyJoinRequest(user.id(), membershipId);
     }
 
     @PostMapping("/{shareCode}/join")

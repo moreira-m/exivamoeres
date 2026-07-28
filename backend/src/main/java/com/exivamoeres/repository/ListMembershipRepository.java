@@ -4,6 +4,7 @@ import com.exivamoeres.domain.ListMembership;
 import com.exivamoeres.domain.MembershipStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -31,4 +32,12 @@ public interface ListMembershipRepository extends JpaRepository<ListMembership, 
     /** O usuário participa ativamente do time por algum personagem? (leitura/chat) */
     boolean existsByListIdAndUserIdAndActiveTrueAndStatus(
             Long listId, Long userId, MembershipStatus status);
+
+    /**
+     * Pedidos do usuário nos status pedidos, do mais recente para o mais antigo —
+     * a tela "meus pedidos". `APPROVED` não entra na lista de pedidos: quando é
+     * aprovado, o time aparece em "meus times".
+     */
+    List<ListMembership> findAllByUserIdAndStatusInOrderByJoinedAtDesc(
+            Long userId, Collection<MembershipStatus> statuses);
 }

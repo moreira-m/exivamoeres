@@ -4,7 +4,10 @@
 export type AuthProvider = 'LOCAL' | 'GOOGLE' | 'DISCORD' | 'ANONYMOUS'
 export type ClaimStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
 export type JoinPolicy = 'MANUAL_APPROVAL' | 'AUTO_ACCEPT'
-export type MembershipStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
+// CANCELLED = o solicitante desistiu (≠ REJECTED, que é o dono recusando).
+export type MembershipStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED'
+/** Motivo (código, não frase) de um pedido provavelmente não ser aprovado. */
+export type JoinRequestIssue = 'BELOW_MINIMUM_LEVEL' | 'WORLD_MISMATCH'
 export type Plan = 'FREE' | 'PREMIUM'
 export type TeamStatus = 'ACTIVE' | 'COMPLETED' | 'ARCHIVED' | 'CLOSED'
 export type NotificationType =
@@ -93,6 +96,26 @@ export interface ListSummaryResponse {
   maxMembers: number
   hasOpenSlots: boolean
   createdAt: string
+}
+
+/** Um pedido de entrada do ponto de vista de quem pediu (`/api/lists/mine/requests`). */
+export interface MyJoinRequestResponse {
+  id: number
+  listId: number
+  listName: string
+  world: string
+  targetCreatureName: string
+  targetCreatureImageUrl: string | null
+  teamStatus: TeamStatus
+  minimumLevel: number | null
+  characterId: number
+  characterName: string
+  characterLevel: number | null
+  status: MembershipStatus
+  // Nulo quando não há problema aparente — e ausência não garante aprovação
+  // (perda de Premium, por exemplo, não é detectável com dado local).
+  issue: JoinRequestIssue | null
+  requestedAt: string
 }
 
 export interface NotificationResponse {

@@ -14,9 +14,11 @@ import com.exivamoeres.domain.exception.ForbiddenOperationException;
 import com.exivamoeres.domain.exception.ResourceNotFoundException;
 import com.exivamoeres.dto.list.CreateListRequest;
 import com.exivamoeres.dto.list.JoinListRequest;
+import com.exivamoeres.dto.list.JoinRequestIssue;
 import com.exivamoeres.dto.list.ListDetailResponse;
 import com.exivamoeres.dto.list.ListSummaryResponse;
 import com.exivamoeres.dto.list.MembershipResponse;
+import com.exivamoeres.dto.list.MyJoinRequestResponse;
 import com.exivamoeres.dto.list.UpdateListRequest;
 import com.exivamoeres.repository.CharacterRepository;
 import com.exivamoeres.repository.CreatureRepository;
@@ -367,6 +369,66 @@ public class HuntingListServiceImpl implements HuntingListService {
                 .findAllByListIdAndStatusAndActiveTrue(listId, MembershipStatus.PENDING).stream()
                 .map(MembershipResponse::from)
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<MyJoinRequestResponse> listMyJoinRequests(Long userId) {
+        // APPROVED fica de fora: aprovado não é "pedido", é time — e aparece em
+        // "meus times". CANCELLED também não: quem cancelou sabe que cancelou.
+        return membershipRepository
+                .findAllByUserIdAndStatusInOrderByJoinedAtDesc(
+                        userId, List.of(MembershipStatus.PENDING, MembershipStatus.REJECTED))
+                .stream()
+                .map(m -> MyJoinRequestResponse.from(m, detectIssue(m)))
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public void cancelMyJoinRequest(Long userId, Long membershipId) {
+        ListMembership membership = membershipRepository.findById(membershipId)
+                .orElseThrow(() -> new ResourceNotFoundException("Pedido não encontrado"));
+        // 404 e não 403: a existência do pedido de outra pessoa é informação dela.
+        if (!membership.getUser().getId().equals(userId)) {
+            throw new ResourceNotFoundException("Pedido não encontrado");
+        }
+        if (membership.getStatus() != MembershipStatus.PENDING || !membership.isActive()) {
+            throw new BusinessRuleException("Este pedido não está mais pendente");
+        }
+        // Status próprio: quem desistiu foi o solicitante, não o dono (que seria
+        // REJECTED). Nada é deletado — o histórico é preservado.
+        membership.setStatus(MembershipStatus.CANCELLED);
+        membership.setActive(false);
+        log.info("list.request.cancelled listId={} membershipId={} userId={}",
+                membership.getList().getId(), membershipId, userId);
+    }
+
+    /**
+     * Motivo aparente de um pedido pendente não poder ser aprovado, usando **só
+     * dado local** (nada de TibiaData): o level e o world já sincronizados do
+     * personagem contra o requisito **atual** do time.
+     *
+     * Cobre os dois casos que a revalidação da aprovação (P15) mais recusa e que o
+     * solicitante não tinha como descobrir — o dono subiu o level mínimo depois do
+     * pedido, ou o personagem trocou de world. Perda de Premium **não** aparece
+     * aqui (não é dado local), então nulo não é promessa de aprovação.
+     */
+    private JoinRequestIssue detectIssue(ListMembership membership) {
+        if (membership.getStatus() != MembershipStatus.PENDING) {
+            return null;
+        }
+        HuntingList list = membership.getList();
+        Character character = membership.getCharacter();
+        if (!list.getWorld().equalsIgnoreCase(character.getWorld())) {
+            return JoinRequestIssue.WORLD_MISMATCH;
+        }
+        Integer minimum = list.getMinimumLevel();
+        Integer level = character.getLevel();
+        if (minimum != null && level != null && level < minimum) {
+            return JoinRequestIssue.BELOW_MINIMUM_LEVEL;
+        }
+        return null;
     }
 
     // ----- Helpers -----

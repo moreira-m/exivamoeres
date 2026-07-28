@@ -8,18 +8,27 @@ import { Button } from '../../components/ui/Button'
 import { Badge } from '../../components/ui/Badge'
 import { Spinner } from '../../components/ui/Spinner'
 import { QueryError } from '../../components/ui/QueryError'
-import { useMyLists, useRenewTeam } from '../../hooks/useLists'
+import { CreatureIcon } from '../../components/CreatureIcon'
+import {
+  useMyLists,
+  useRenewTeam,
+  useMyJoinRequests,
+  useCancelMyJoinRequest,
+} from '../../hooks/useLists'
 import { useAuth } from '../../hooks/useAuth'
 import { getApiErrorMessage } from '../../lib/apiError'
-import type { ListSummaryResponse } from '../../types/api'
+import type { ListSummaryResponse, MyJoinRequestResponse } from '../../types/api'
 
-type Tab = 'active' | 'inactive'
+type Tab = 'active' | 'inactive' | 'requests'
 
 const FREE_ACTIVE_LIMIT = 3
 
 export function MyTeamsPage() {
   const { t } = useTranslation()
   const myLists = useMyLists()
+  // "Meus pedidos": um pedido pendente não aparecia em lugar nenhum, e a pessoa
+  // não sabia se tinha sido ignorada ou recusada.
+  const myRequests = useMyJoinRequests()
   const { user } = useAuth()
   const [tab, setTab] = useState<Tab>('active')
 
@@ -61,9 +70,17 @@ export function MyTeamsPage() {
         <Button variant={tab === 'inactive' ? 'primary' : 'neutral'} onClick={() => setTab('inactive')}>
           {t('myTeams.tabInactive', { count: inactive.length })}
         </Button>
+        <Button
+          variant={tab === 'requests' ? 'primary' : 'neutral'}
+          onClick={() => setTab('requests')}
+        >
+          {t('myTeams.tabRequests', { count: (myRequests.data ?? []).length })}
+        </Button>
       </div>
 
-      {myLists.isLoading ? (
+      {tab === 'requests' ? (
+        <MyRequestsTab query={myRequests} />
+      ) : myLists.isLoading ? (
         <Spinner />
       ) : myLists.isError ? (
         /* "Você não tem times" seria mentira cruel para quem tem: o dono acharia
@@ -89,6 +106,106 @@ export function MyTeamsPage() {
         </Card>
       )}
     </Layout>
+  )
+}
+
+/** Aba "meus pedidos": estado de cada pedido de entrada e a saída para desistir. */
+function MyRequestsTab({ query }: { query: ReturnType<typeof useMyJoinRequests> }) {
+  const { t } = useTranslation()
+
+  if (query.isLoading) return <Spinner />
+  if (query.isError) {
+    return (
+      <QueryError
+        error={query.error}
+        onRetry={() => void query.refetch()}
+        retrying={query.isFetching}
+      />
+    )
+  }
+  const requests = query.data ?? []
+  if (requests.length === 0) {
+    return <Card className="p-6 text-center font-bold">{t('myTeams.emptyRequests')}</Card>
+  }
+  return (
+    <div className="grid gap-4 md:grid-cols-2">
+      {requests.map((request) => (
+        <JoinRequestCard key={request.id} request={request} />
+      ))}
+    </div>
+  )
+}
+
+function JoinRequestCard({ request }: { request: MyJoinRequestResponse }) {
+  const { t, i18n } = useTranslation()
+  const cancel = useCancelMyJoinRequest()
+  const [error, setError] = useState('')
+  const pending = request.status === 'PENDING'
+
+  const doCancel = async () => {
+    if (!window.confirm(t('myRequests.cancelConfirm'))) return
+    setError('')
+    try {
+      await cancel.mutateAsync(request.id)
+    } catch (err) {
+      setError(getApiErrorMessage(err))
+    }
+  }
+
+  return (
+    <Card className="p-4">
+      <div className="flex items-start gap-3">
+        <CreatureIcon
+          imageUrl={request.targetCreatureImageUrl}
+          name={request.targetCreatureName}
+          size={48}
+        />
+        <div className="min-w-0 flex-1">
+          <Link to={`/teams/${request.listId}`} className="block">
+            <h3 className="truncate text-lg text-ink">{request.targetCreatureName}</h3>
+          </Link>
+          <p className="text-sm font-bold text-ink/70">
+            {request.world} · {t('myRequests.withCharacter', { character: request.characterName })}
+          </p>
+          <p className="text-xs font-bold text-ink/50">
+            {t('myRequests.requestedAt', {
+              date: new Date(request.requestedAt).toLocaleDateString(i18n.language),
+            })}
+          </p>
+        </div>
+        <Badge tone={pending ? 'muted' : 'neutral'}>
+          {t(`enums.membershipStatus.${request.status}`)}
+        </Badge>
+      </div>
+
+      {/* O aviso é uma dica, não um veredito: só o dono aprova, e há motivos que
+          este aviso não enxerga (perda de Premium, por exemplo). */}
+      {request.issue && (
+        <p className="mt-3 text-sm font-bold text-accent">
+          {t('myRequests.mayNotBeApproved')}{' '}
+          {request.issue === 'BELOW_MINIMUM_LEVEL'
+            ? t('myRequests.issueBelowMinimumLevel', {
+                minimum: request.minimumLevel,
+                level: request.characterLevel ?? '?',
+              })
+            : t('myRequests.issueWorldMismatch', { world: request.world })}
+        </p>
+      )}
+
+      {pending && (
+        <div className="mt-3">
+          <Button
+            variant="neutral"
+            className="!px-3 !py-1 !text-xs"
+            disabled={cancel.isPending}
+            onClick={doCancel}
+          >
+            {t('myRequests.cancel')}
+          </Button>
+        </div>
+      )}
+      {error && <p className="mt-2 font-bold text-accent">{error}</p>}
+    </Card>
   )
 }
 

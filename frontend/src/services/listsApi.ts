@@ -4,6 +4,7 @@ import type {
   ListDetailResponse,
   ListSummaryResponse,
   MembershipResponse,
+  MyJoinRequestResponse,
   Page,
   SuggestionResponse,
 } from '../types/api'
@@ -56,6 +57,14 @@ export const listsApi = {
     apiClient.post<ListDetailResponse>('/api/lists', body).then((r) => r.data),
 
   mine: () => apiClient.get<ListSummaryResponse[]>('/api/lists/mine').then((r) => r.data),
+
+  /** Pedidos de entrada do próprio usuário (pendentes e recusados). */
+  myRequests: () =>
+    apiClient.get<MyJoinRequestResponse[]>('/api/lists/mine/requests').then((r) => r.data),
+
+  /** O solicitante desiste do próprio pedido. */
+  cancelMyRequest: (membershipId: number) =>
+    apiClient.delete<void>(`/api/lists/mine/requests/${membershipId}`).then(() => undefined),
 
   update: (id: number, body: UpdateListRequest) =>
     apiClient.patch<ListDetailResponse>(`/api/lists/${id}`, body).then((r) => r.data),

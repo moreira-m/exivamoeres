@@ -8,5 +8,14 @@ package com.exivamoeres.domain;
 public enum MembershipStatus {
     PENDING,
     APPROVED,
-    REJECTED
+    /** O <b>dono</b> recusou o pedido. */
+    REJECTED,
+    /**
+     * O <b>solicitante</b> desistiu do próprio pedido.
+     *
+     * Status separado de REJECTED de propósito: quem decidiu é outra pessoa, e o
+     * histórico do usuário não pode dizer que ele foi recusado quando ele
+     * simplesmente mudou de ideia.
+     */
+    CANCELLED
 }

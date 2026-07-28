@@ -68,7 +68,9 @@
     "tabInactive": "Completed / archived ({{count}})",
     "emptyActive": "No active teams. Create one or find one on the home page.",
     "emptyInactive": "No completed or archived teams.",
-    "renew": "Renew"
+    "renew": "Renew",
+    "tabRequests": "My requests ({{count}})",
+    "emptyRequests": "You have no join requests. Find a team in the search and ask to join."
   },
   "createTeam": {
     "title": "Create team",
@@ -176,6 +178,12 @@
     "plan": {
       "FREE": "Free",
       "PREMIUM": "Premium"
+    },
+    "membershipStatus": {
+      "PENDING": "Waiting",
+      "APPROVED": "Approved",
+      "REJECTED": "Rejected",
+      "CANCELLED": "Cancelled"
     }
   },
   "expiry": {
@@ -204,5 +212,14 @@
     "loadFailed": "Couldn't load this.",
     "network": "We couldn't reach the server. Check your connection and try again.",
     "retry": "Try again"
+  },
+  "myRequests": {
+    "withCharacter": "with {{character}}",
+    "requestedAt": "requested on {{date}}",
+    "cancel": "Cancel request",
+    "cancelConfirm": "Cancel this join request?",
+    "mayNotBeApproved": "May not be approved:",
+    "issueBelowMinimumLevel": "the team now requires level {{minimum}} and your character is {{level}}.",
+    "issueWorldMismatch": "your character is no longer in {{world}}."
   }
 }

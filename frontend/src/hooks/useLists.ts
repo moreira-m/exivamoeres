@@ -33,6 +33,20 @@ export function useMyLists() {
   return useQuery({ queryKey: ['lists', 'mine'], queryFn: listsApi.mine })
 }
 
+/** "Meus pedidos": o lado de quem pediu para entrar e ficava sem informação. */
+export function useMyJoinRequests() {
+  return useQuery({ queryKey: ['lists', 'mine', 'requests'], queryFn: listsApi.myRequests })
+}
+
+export function useCancelMyJoinRequest() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (membershipId: number) => listsApi.cancelMyRequest(membershipId),
+    // Invalida ['lists'] inteiro: o pedido sai da lista do solicitante e da do dono.
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['lists'] }),
+  })
+}
+
 export function useCreateList() {
   const qc = useQueryClient()
   return useMutation({

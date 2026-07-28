@@ -195,7 +195,9 @@
       "JOIN_REQUEST_REJECTED": "Seu pedido para {{team}} foi recusado",
       "KICKED_FROM_TEAM": "Você foi removido do time {{team}}",
       "TEAM_DELETED": "O time {{team}} foi encerrado",
-      "MEMBER_LEFT": "Um membro saiu do time {{team}}"
+      "MEMBER_LEFT": "Um membro saiu do time {{team}}",
+      "TEAM_SCHEDULE_CHANGED": "O horário do time {{team}} mudou",
+      "TEAM_MINIMUM_LEVEL_CHANGED": "O level mínimo do time {{team}} mudou"
     }
   }
 }

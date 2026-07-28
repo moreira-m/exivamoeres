@@ -194,7 +194,9 @@
       "JOIN_REQUEST_REJECTED": "Your request to {{team}} was declined",
       "KICKED_FROM_TEAM": "You were removed from {{team}}",
       "TEAM_DELETED": "The team {{team}} was closed",
-      "MEMBER_LEFT": "A member left the team {{team}}"
+      "MEMBER_LEFT": "A member left the team {{team}}",
+      "TEAM_SCHEDULE_CHANGED": "The schedule of {{team}} has changed",
+      "TEAM_MINIMUM_LEVEL_CHANGED": "The minimum level of {{team}} has changed"
     }
   }
 }

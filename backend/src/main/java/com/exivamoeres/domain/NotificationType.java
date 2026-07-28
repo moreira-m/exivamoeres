@@ -13,5 +13,13 @@ public enum NotificationType {
     /** Um time do qual você participava foi encerrado. */
     TEAM_DELETED,
     /** Um membro saiu do seu time (notifica o dono). */
-    MEMBER_LEFT
+    MEMBER_LEFT,
+    /**
+     * O dono mudou o horário da caçada (notifica os membros aprovados).
+     * É o campo pelo qual as pessoas escolhem o time — mudá-lo em silêncio faz
+     * quem entrou aparecer na hora errada.
+     */
+    TEAM_SCHEDULE_CHANGED,
+    /** O dono mudou o level mínimo do time (notifica os membros aprovados). */
+    TEAM_MINIMUM_LEVEL_CHANGED
 }

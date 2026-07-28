@@ -37,6 +37,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @Slf4j
@@ -144,6 +145,10 @@ public class HuntingListServiceImpl implements HuntingListService {
         }
         assertOwnerStillMeetsMinimumLevel(list, ownerId, request.minimumLevel());
 
+        // Guardado ANTES da escrita: é o que decide quem precisa ser avisado.
+        String horarioAnterior = list.getHuntSchedule();
+        Integer levelAnterior = list.getMinimumLevel();
+
         // Título vazio volta a assumir o nome da criatura — mesma regra da criação.
         list.setName(trimToNull(request.name()) != null
                 ? request.name().trim()
@@ -153,6 +158,8 @@ public class HuntingListServiceImpl implements HuntingListService {
         list.setDescription(trimToNull(request.description()));
         list.setHuntSchedule(trimToNull(request.huntSchedule()));
         list.setContact(trimToNull(request.contact()));
+
+        notifyRelevantChanges(list, ownerId, horarioAnterior, levelAnterior);
 
         log.info("list.updated listId={} ownerId={} minimumLevel={}",
                 listId, ownerId, list.getMinimumLevel());
@@ -464,6 +471,51 @@ public class HuntingListServiceImpl implements HuntingListService {
 
     private String trimToNull(String value) {
         return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    /**
+     * Avisa os membros aprovados quando muda algo que altera a **decisão de
+     * participar**: horário da caçada e level mínimo.
+     *
+     * O que fica de fora é a parte importante desta regra:
+     * <ul>
+     *   <li><b>Descrição, contato, título e preço não notificam.</b> Corrigir uma
+     *       vírgula no texto não pode virar notificação para todo o time — o
+     *       aviso que chega demais é o aviso que se aprende a ignorar.</li>
+     *   <li><b>Valor igual não notifica.</b> Salvar o formulário sem mexer no
+     *       campo é o caso mais comum de todos (o dono abriu para editar a
+     *       descrição), e não é mudança nenhuma.</li>
+     *   <li><b>O dono não recebe aviso da própria edição</b>, e pedido
+     *       {@code PENDING} também não: quem ainda não está no time não tem
+     *       plano para reorganizar.</li>
+     * </ul>
+     *
+     * Definir pela primeira vez (nulo → valor) e apagar (valor → nulo) contam
+     * como mudança: um horário que apareceu ou desapareceu muda o combinado.
+     */
+    private void notifyRelevantChanges(HuntingList list, Long ownerId,
+                                       String horarioAnterior, Integer levelAnterior) {
+        boolean horarioMudou = !Objects.equals(horarioAnterior, list.getHuntSchedule());
+        boolean levelMudou = !Objects.equals(levelAnterior, list.getMinimumLevel());
+        if (!horarioMudou && !levelMudou) {
+            return;
+        }
+        List<Long> destinatarios = membershipRepository
+                .findAllByListIdAndStatusAndActiveTrue(list.getId(), MembershipStatus.APPROVED).stream()
+                .map(m -> m.getUser().getId())
+                .filter(uid -> !uid.equals(ownerId))
+                .distinct()
+                .toList();
+        destinatarios.forEach(uid -> {
+            if (horarioMudou) {
+                notificationService.notifyTeamScheduleChanged(uid, list);
+            }
+            if (levelMudou) {
+                notificationService.notifyTeamMinimumLevelChanged(uid, list);
+            }
+        });
+        log.info("list.updated.notified listId={} scheduleChanged={} minimumLevelChanged={} recipients={}",
+                list.getId(), horarioMudou, levelMudou, destinatarios.size());
     }
 
     /**

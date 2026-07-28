@@ -14,6 +14,8 @@ export type NotificationType =
   | 'KICKED_FROM_TEAM'
   | 'TEAM_DELETED'
   | 'MEMBER_LEFT'
+  | 'TEAM_SCHEDULE_CHANGED'
+  | 'TEAM_MINIMUM_LEVEL_CHANGED'
 
 export interface UserResponse {
   id: number

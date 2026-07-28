@@ -25,6 +25,16 @@ public interface NotificationService {
     /** Avisa o dono do time que um membro saiu. */
     void notifyMemberLeft(Long ownerId, HuntingList list);
 
+    /**
+     * Avisa um membro aprovado que o **horário da caçada** mudou.
+     * Só o horário e o level mínimo geram aviso — ver
+     * {@code HuntingListServiceImpl#notifyRelevantChanges}.
+     */
+    void notifyTeamScheduleChanged(Long memberId, HuntingList list);
+
+    /** Avisa um membro aprovado que o **level mínimo** do time mudou. */
+    void notifyTeamMinimumLevelChanged(Long memberId, HuntingList list);
+
     Page<NotificationResponse> list(Long userId, Pageable pageable);
 
     long countUnread(Long userId);

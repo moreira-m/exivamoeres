@@ -224,7 +224,10 @@ public class HuntingListServiceImpl implements HuntingListService {
         HuntingList list = loadOwnedListForUpdate(listId, ownerId);
         ListMembership membership = loadPendingRequest(membershipId, list.getId());
 
+        // Ordem importa: vaga é um COUNT no banco, elegibilidade pode custar uma
+        // chamada externa. Time cheio nunca consulta a TibiaData.
         assertHasOpenSlot(list.getId());
+        assertStillEligible(list, membership);
         membership.setStatus(MembershipStatus.APPROVED);
         notificationService.notifyJoinRequestApproved(membership.getUser().getId(), list);
         log.info("list.request.approved listId={} membershipId={}", listId, membershipId);
@@ -415,6 +418,37 @@ public class HuntingListServiceImpl implements HuntingListService {
             throw new BusinessRuleException("Este pedido não está mais pendente");
         }
         return membership;
+    }
+
+    /**
+     * Revalida a elegibilidade **na hora da aprovação**, com o world e o level
+     * mínimo ATUAIS do time.
+     *
+     * Por que não bastava validar na entrada: entre pedir e ser aprovado o mundo
+     * muda. O dono pode ter subido o level mínimo (editar virou possível), o
+     * personagem pode ter feito world transfer, perdido o Premium ou caído de
+     * level. Sem isto, o time acabava com um membro que não cumpre a regra que o
+     * próprio time anuncia — e quem descobria depois era o dono, que aprovou de
+     * boa-fé.
+     *
+     * <p><b>O pedido continua `PENDING`.</b> Recusar por inelegibilidade não é
+     * "o dono não quis" (que é o significado de `REJECTED`, e dispara a
+     * notificação de recusa): a inelegibilidade costuma ser temporária e
+     * consertável — renovar o premium, subir de level, voltar de world. Deixando
+     * pendente, o dono aprova depois sem a pessoa precisar pedir de novo; e o
+     * botão de recusar continua ali para quando ele quiser mesmo dizer não.</p>
+     */
+    private void assertStillEligible(HuntingList list, ListMembership membership) {
+        try {
+            eligibilityService.assertEligible(
+                    membership.getCharacter(), list.getWorld(), list.getMinimumLevel());
+        } catch (BusinessRuleException e) {
+            // Reembrulha para deixar claro para o DONO (que é quem lê) que a
+            // recusa é do candidato e que nada foi alterado.
+            throw new BusinessRuleException(
+                    "Não é possível aprovar este pedido agora: " + e.getMessage()
+                            + ". O pedido continua pendente.");
+        }
     }
 
     private void assertWithinActiveTeamLimit(User owner) {

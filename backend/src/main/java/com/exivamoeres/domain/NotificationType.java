@@ -21,5 +21,14 @@ public enum NotificationType {
      */
     TEAM_SCHEDULE_CHANGED,
     /** O dono mudou o level mínimo do time (notifica os membros aprovados). */
-    TEAM_MINIMUM_LEVEL_CHANGED
+    TEAM_MINIMUM_LEVEL_CHANGED,
+    /**
+     * O time subiu o level mínimo **acima** do personagem de um pedido pendente:
+     * o pedido deixou de poder ser aprovado (notifica quem pediu).
+     *
+     * Tipo próprio, e não reuso do {@link #TEAM_MINIMUM_LEVEL_CHANGED}, porque o
+     * destinatário é outro: para o membro a notícia é "o time mudou"; para quem
+     * pediu é "**seu pedido** pode não ser aprovado".
+     */
+    JOIN_REQUEST_AT_RISK
 }

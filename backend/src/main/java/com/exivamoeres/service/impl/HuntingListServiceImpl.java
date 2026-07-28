@@ -613,8 +613,56 @@ public class HuntingListServiceImpl implements HuntingListService {
                 notificationService.notifyTeamMinimumLevelChanged(uid, list);
             }
         });
-        log.info("list.updated.notified listId={} scheduleChanged={} minimumLevelChanged={} recipients={}",
-                list.getId(), horarioMudou, levelMudou, destinatarios.size());
+        int emRisco = levelMudou ? notifyPendingRequestsAtRisk(list, levelAnterior) : 0;
+        log.info("list.updated.notified listId={} scheduleChanged={} minimumLevelChanged={} members={} pendingAtRisk={}",
+                list.getId(), horarioMudou, levelMudou, destinatarios.size(), emRisco);
+    }
+
+    /**
+     * Avisa quem tem pedido **pendente** que o pedido dele passou a não caber no
+     * requisito — o level mínimo subiu acima do personagem que ele usou.
+     *
+     * <p>Três recortes que impedem isto de virar spam:</p>
+     * <ul>
+     *   <li><b>Só a transição.</b> Notifica quem <b>estava</b> dentro do requisito
+     *       e <b>passou</b> a estar fora. Quem já não cabia antes da edição não é
+     *       avisado de novo: subir de 300 para 400 não é notícia nova para quem
+     *       tem level 150 — ele já sabia que não cabia.</li>
+     *   <li><b>Só o level mínimo.</b> Mudança de horário não avisa pendente: quem
+     *       ainda não entrou provavelmente não se organizou em volta do horário.
+     *       (World não é editável, então não existe esse caso.)</li>
+     *   <li><b>Level desconhecido não avisa.</b> Sem o level sincronizado não há
+     *       violação a provar — o mesmo critério do aviso da tela "meus pedidos".</li>
+     * </ul>
+     *
+     * <p>A notificação aponta o time e diz que o pedido corre risco; <b>os números</b>
+     * (requisito atual × level do personagem) ficam na aba "meus pedidos", que já os
+     * calcula. Notificação empurra, tela explica.</p>
+     *
+     * @return quantos solicitantes foram avisados
+     */
+    private int notifyPendingRequestsAtRisk(HuntingList list, Integer levelAnterior) {
+        Integer levelAtual = list.getMinimumLevel();
+        if (levelAtual == null) {
+            return 0; // requisito removido: ninguém passou a ficar de fora
+        }
+        List<Long> avisados = membershipRepository
+                .findAllByListIdAndStatusAndActiveTrue(list.getId(), MembershipStatus.PENDING).stream()
+                .filter(m -> passouAFicarDeFora(m.getCharacter().getLevel(), levelAnterior, levelAtual))
+                .map(m -> m.getUser().getId())
+                .distinct()
+                .toList();
+        avisados.forEach(uid -> notificationService.notifyJoinRequestAtRisk(uid, list));
+        return avisados.size();
+    }
+
+    private boolean passouAFicarDeFora(Integer levelDoPersonagem, Integer minimoAnterior, Integer minimoAtual) {
+        if (levelDoPersonagem == null) {
+            return false;
+        }
+        boolean estavaDeFora = minimoAnterior != null && levelDoPersonagem < minimoAnterior;
+        boolean estaDeFora = levelDoPersonagem < minimoAtual;
+        return estaDeFora && !estavaDeFora;
     }
 
     /**

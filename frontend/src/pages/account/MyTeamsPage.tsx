@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Layout } from '../../components/Layout'
 import { TeamCard } from '../../components/TeamCard'
@@ -30,7 +30,12 @@ export function MyTeamsPage() {
   // não sabia se tinha sido ignorada ou recusada.
   const myRequests = useMyJoinRequests()
   const { user } = useAuth()
-  const [tab, setTab] = useState<Tab>('active')
+  // `?tab=requests` deixa a aba linkável — é o destino do aviso de "pedido em
+  // risco" nas notificações.
+  const [searchParams] = useSearchParams()
+  const [tab, setTab] = useState<Tab>(
+    searchParams.get('tab') === 'requests' ? 'requests' : 'active',
+  )
 
   const { active, inactive } = useMemo(() => {
     const all = myLists.data ?? []

@@ -205,7 +205,8 @@
       "TEAM_DELETED": "The team {{team}} was closed",
       "MEMBER_LEFT": "A member left the team {{team}}",
       "TEAM_SCHEDULE_CHANGED": "The schedule of {{team}} has changed",
-      "TEAM_MINIMUM_LEVEL_CHANGED": "The minimum level of {{team}} has changed"
+      "TEAM_MINIMUM_LEVEL_CHANGED": "The minimum level of {{team}} has changed",
+      "JOIN_REQUEST_AT_RISK": "Your request to {{team}} may not be approved: the team raised its minimum level"
     }
   },
   "errors": {

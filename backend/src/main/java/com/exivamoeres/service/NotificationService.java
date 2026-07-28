@@ -35,6 +35,12 @@ public interface NotificationService {
     /** Avisa um membro aprovado que o **level mínimo** do time mudou. */
     void notifyTeamMinimumLevelChanged(Long memberId, HuntingList list);
 
+    /**
+     * Avisa quem tem pedido **pendente** que ele passou a não caber no requisito
+     * do time (o level mínimo subiu acima do personagem do pedido).
+     */
+    void notifyJoinRequestAtRisk(Long requesterId, HuntingList list);
+
     Page<NotificationResponse> list(Long userId, Pageable pageable);
 
     long countUnread(Long userId);

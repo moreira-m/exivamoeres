@@ -78,9 +78,18 @@ function NotificationRow({
       )}
     </Card>
   )
-  // Notificações com time levam para a página do time ao clicar.
-  return n.listId != null ? (
-    <Link to={`/teams/${n.listId}`} onClick={onRead} className="block">
+  // Para onde o clique leva: o aviso de pedido em risco tem que cair na aba
+  // "meus pedidos", que é onde estão os números (requisito × level) e o botão de
+  // cancelar. As outras notificações levam para a página do time.
+  const destino =
+    n.type === 'JOIN_REQUEST_AT_RISK'
+      ? '/account/teams?tab=requests'
+      : n.listId != null
+        ? `/teams/${n.listId}`
+        : null
+
+  return destino ? (
+    <Link to={destino} onClick={onRead} className="block">
       {body}
     </Link>
   ) : (

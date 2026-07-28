@@ -19,6 +19,7 @@ export type NotificationType =
   | 'MEMBER_LEFT'
   | 'TEAM_SCHEDULE_CHANGED'
   | 'TEAM_MINIMUM_LEVEL_CHANGED'
+  | 'JOIN_REQUEST_AT_RISK'
 
 export interface UserResponse {
   id: number

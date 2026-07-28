@@ -6,12 +6,13 @@ import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
 import { Input, Select, Textarea } from '../../components/ui/Input'
 import { QueryError } from '../../components/ui/QueryError'
+import { SlotComposer, emptyComposition } from '../../components/SlotComposer'
 import { useCreateList, useMyLists } from '../../hooks/useLists'
 import { useCreatures } from '../../hooks/useCatalog'
 import { useMyCharacters } from '../../hooks/useCharacters'
 import { useAuth } from '../../hooks/useAuth'
 import { getApiErrorMessage } from '../../lib/apiError'
-import type { JoinPolicy } from '../../types/api'
+import type { JoinPolicy, Vocation } from '../../types/api'
 
 const FREE_ACTIVE_LIMIT = 3
 
@@ -32,6 +33,8 @@ export function CreateTeamPage() {
   const [description, setDescription] = useState('')
   const [huntSchedule, setHuntSchedule] = useState('')
   const [contact, setContact] = useState('')
+  // Tudo "qualquer" = sem composição (o backend normaliza igual).
+  const [slots, setSlots] = useState<(Vocation | null)[]>(emptyComposition())
   const [error, setError] = useState('')
 
   // O world do time é ditado pelo personagem escolhido (regra: todos do mesmo world).
@@ -60,6 +63,7 @@ export function CreateTeamPage() {
         description: description.trim() || null,
         huntSchedule: huntSchedule.trim() || null,
         contact: contact.trim() || null,
+        slots,
       })
       navigate(`/teams/${detail.summary.id}`)
     } catch (err) {
@@ -195,6 +199,14 @@ export function CreateTeamPage() {
               <p className="mt-1 text-sm font-bold text-ink/60">
                 {t('createTeam.charsLeft', { count: 500 - description.length })}
               </p>
+            </div>
+
+            <div>
+              <span className="mb-1.5 block text-sm font-extrabold uppercase text-white">
+                {t('createTeam.composition')}
+              </span>
+              <SlotComposer value={slots} onChange={setSlots} />
+              <p className="mt-1 text-sm font-bold text-ink/60">{t('createTeam.compositionHint')}</p>
             </div>
 
             <div>

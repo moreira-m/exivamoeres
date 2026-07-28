@@ -43,6 +43,20 @@ public class ListMembership {
     @JoinColumn(name = "character_id", nullable = false)
     private Character character;
 
+    /**
+     * Vaga da composição que este membro ocupa. Nula em duas situações legítimas:
+     * time <b>sem</b> composição configurada, e pedido ainda <b>PENDENTE</b> — a
+     * vaga é atribuída na aprovação, porque pedido não reserva vaga (senão cinco
+     * pedidos travariam o time).
+     *
+     * A vaga é liberada por {@code active = false} (saída, expulsão, troca de dono
+     * do personagem): a referência fica, preservando o histórico de "esteve na
+     * vaga 2", e a vaga volta a contar como livre.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "slot_id")
+    private TeamSlot slot;
+
     @Column(nullable = false)
     private boolean active = true;
 

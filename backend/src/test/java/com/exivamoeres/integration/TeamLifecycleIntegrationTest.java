@@ -91,7 +91,7 @@ class TeamLifecycleIntegrationTest extends TeamIntegrationTestBase {
         // Alvo = Demon; desbloquear Demon conclui o time.
         ListDetailResponse team = listService.createList(owner.getId(), new CreateListRequest(
                 "Complete Team", "Antica", creature("Demon").getId(), JoinPolicy.AUTO_ACCEPT, ownerChar.getId(), null, null,
-                null, null, null));
+                null, null, null, null));
 
         soulcoreService.markUnlocked(owner.getId(), team.summary().id(),
                 creature("Demon").getId(), ownerChar.getId());
@@ -107,7 +107,7 @@ class TeamLifecycleIntegrationTest extends TeamIntegrationTestBase {
         stubPremium("Frozen Char", "Antica");
         ListDetailResponse team = listService.createList(owner.getId(), new CreateListRequest(
                 "Frozen Team", "Antica", creature("Demon").getId(), JoinPolicy.AUTO_ACCEPT, ownerChar.getId(), null, null,
-                null, null, null));
+                null, null, null, null));
         Long listId = team.summary().id();
         // Arquiva.
         jdbcTemplate.update("UPDATE hunting_lists SET expires_at = now() - INTERVAL '1 hour' WHERE id = ?", listId);
@@ -190,6 +190,6 @@ class TeamLifecycleIntegrationTest extends TeamIntegrationTestBase {
         stubPremium(characterName, world);
         return listService.createList(owner.getId(), new CreateListRequest(
                 teamName, world, creature("Demon").getId(), JoinPolicy.AUTO_ACCEPT, character.getId(), null, null,
-                null, null, null));
+                null, null, null, null));
     }
 }

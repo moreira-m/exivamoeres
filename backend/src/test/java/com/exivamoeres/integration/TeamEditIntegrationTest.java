@@ -255,7 +255,7 @@ class TeamEditIntegrationTest extends TeamIntegrationTestBase {
 
         ListDetailResponse detail = listService.createList(owner.getId(), new CreateListRequest(
                 prefix + " Team", world, creature("Demon").getId(), JoinPolicy.AUTO_ACCEPT,
-                ownerChar.getId(), minimumLevel, null, null, null, contact));
+                ownerChar.getId(), minimumLevel, null, null, null, contact, null));
         return new Ctx(detail.summary().id(), owner.getId(), ownerChar.getId(),
                 detail.summary().shareCode());
     }

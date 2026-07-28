@@ -95,7 +95,9 @@
     "charsLeft": "{{count}} characters left",
     "contact": "Contact",
     "contactPlaceholder": "e.g. discord: yourname#1234",
-    "contactHint": "Visible only to you and approved members — never in public search."
+    "contactHint": "Visible only to you and approved members — never in public search.",
+    "composition": "Composition by vocation (optional)",
+    "compositionHint": "Says who the team is missing (\"1 Knight, 1 Druid\"). Leave everything as \"any\" to accept any vocation — and remember you have to fit the composition too."
   },
   "billing": {
     "title": "Subscription",
@@ -184,6 +186,14 @@
       "APPROVED": "Approved",
       "REJECTED": "Rejected",
       "CANCELLED": "Cancelled"
+    },
+    "vocation": {
+      "KNIGHT": "Knight",
+      "PALADIN": "Paladin",
+      "SORCERER": "Sorcerer",
+      "DRUID": "Druid",
+      "MONK": "Monk",
+      "NONE": "No vocation"
     }
   },
   "expiry": {
@@ -222,5 +232,19 @@
     "mayNotBeApproved": "May not be approved:",
     "issueBelowMinimumLevel": "the team now requires level {{minimum}} and your character is {{level}}.",
     "issueWorldMismatch": "your character is no longer in {{world}}."
+  },
+  "slots": {
+    "title": "Team composition",
+    "slotN": "Slot {{position}}",
+    "any": "Any",
+    "open": "open slot",
+    "occupied": "taken",
+    "none": "This team accepts any vocation.",
+    "define": "Set composition",
+    "edit": "Edit composition",
+    "editHint": "A taken slot cannot change vocation — free it first. Setting everything to \"any\" removes the composition.",
+    "missing": "missing: {{list}}",
+    "freeSlots_one": "{{count}} open slot",
+    "freeSlots_other": "{{count}} open slots"
   }
 }

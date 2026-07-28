@@ -95,7 +95,9 @@
     "charsLeft": "{{count}} caracteres restantes",
     "contact": "Contato",
     "contactPlaceholder": "Ex.: discord: seunome#1234",
-    "contactHint": "Visível apenas para você e para os membros aprovados — nunca na busca pública."
+    "contactHint": "Visível apenas para você e para os membros aprovados — nunca na busca pública.",
+    "composition": "Composição por vocação (opcional)",
+    "compositionHint": "Define quem falta no time (\"1 Knight, 1 Druid\"). Deixe tudo em \"qualquer\" para aceitar qualquer vocação — e lembre que você também precisa caber na composição."
   },
   "billing": {
     "title": "Assinatura",
@@ -185,6 +187,14 @@
       "APPROVED": "Aprovado",
       "REJECTED": "Recusado",
       "CANCELLED": "Cancelado"
+    },
+    "vocation": {
+      "KNIGHT": "Knight",
+      "PALADIN": "Paladin",
+      "SORCERER": "Sorcerer",
+      "DRUID": "Druid",
+      "MONK": "Monk",
+      "NONE": "Sem vocação"
     }
   },
   "expiry": {
@@ -223,5 +233,19 @@
     "mayNotBeApproved": "Talvez não seja aprovado:",
     "issueBelowMinimumLevel": "o time agora exige level {{minimum}} e seu personagem tem {{level}}.",
     "issueWorldMismatch": "seu personagem não é mais do world {{world}}."
+  },
+  "slots": {
+    "title": "Composição do time",
+    "slotN": "Vaga {{position}}",
+    "any": "Qualquer",
+    "open": "vaga aberta",
+    "occupied": "ocupada",
+    "none": "Este time aceita qualquer vocação.",
+    "define": "Definir composição",
+    "edit": "Editar composição",
+    "editHint": "Vaga ocupada não pode mudar de vocação — libere a vaga antes. Deixar tudo em \"qualquer\" remove a composição.",
+    "missing": "faltam: {{list}}",
+    "freeSlots_one": "{{count}} vaga livre",
+    "freeSlots_other": "{{count}} vagas livres"
   }
 }

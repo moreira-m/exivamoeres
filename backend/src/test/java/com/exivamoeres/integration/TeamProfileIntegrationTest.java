@@ -205,7 +205,7 @@ class TeamProfileIntegrationTest extends TeamIntegrationTestBase {
 
         ListDetailResponse detail = listService.createList(owner.getId(), new CreateListRequest(
                 prefix + " Team", world, creature("Demon").getId(), policy, ownerChar.getId(),
-                null, null, description, schedule, contact));
+                null, null, description, schedule, contact, null));
         return new Ctx(detail.summary().id(), owner.getId(), detail.summary().shareCode(), detail);
     }
 }

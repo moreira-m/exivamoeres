@@ -178,7 +178,7 @@ class TeamUpdateNotificationIntegrationTest extends TeamIntegrationTestBase {
         stubPremium(prefix + " Dono", world);
         ListDetailResponse detail = listService.createList(owner.getId(), new CreateListRequest(
                 prefix + " Team", world, creature("Demon").getId(), policy, ownerChar.getId(),
-                null, null, null, horario, null));
+                null, null, null, horario, null, null));
 
         User membro = createUser(prefix.toLowerCase() + "-notify-membro@teste.com");
         Character membroChar = createCharacter(prefix + " Membro", world, membro);

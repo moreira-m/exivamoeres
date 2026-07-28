@@ -39,7 +39,7 @@ class TeamManagementIntegrationTest extends TeamIntegrationTestBase {
         stubPremium("Lvl Owner", "Antica", 400, "Elder Druid");
         ListDetailResponse team = listService.createList(owner.getId(), new CreateListRequest(
                 "Time Level 300", "Antica", creature("Demon").getId(),
-                JoinPolicy.AUTO_ACCEPT, ownerChar.getId(), 300, null, null, null, null));
+                JoinPolicy.AUTO_ACCEPT, ownerChar.getId(), 300, null, null, null, null, null));
 
         User joiner = createUser("lvl-joiner@teste.com");
         Character joinerChar = createCharacter("Lvl Joiner", "Antica", joiner);
@@ -57,7 +57,7 @@ class TeamManagementIntegrationTest extends TeamIntegrationTestBase {
         stubPremium("Lvl Owner Two", "Antica", 500, "Elder Druid");
         ListDetailResponse team = listService.createList(owner.getId(), new CreateListRequest(
                 "Time Level 300b", "Antica", creature("Demon").getId(),
-                JoinPolicy.AUTO_ACCEPT, ownerChar.getId(), 300, 1_000_000L, null, null, null));
+                JoinPolicy.AUTO_ACCEPT, ownerChar.getId(), 300, 1_000_000L, null, null, null, null));
 
         User joiner = createUser("lvl-joiner2@teste.com");
         Character joinerChar = createCharacter("Lvl Joiner Two", "Antica", joiner);
@@ -105,7 +105,7 @@ class TeamManagementIntegrationTest extends TeamIntegrationTestBase {
         stubPremium("Close Owner", world);
         ListDetailResponse team = listService.createList(owner.getId(), new CreateListRequest(
                 "Time a Encerrar", world, creature("Demon").getId(),
-                JoinPolicy.AUTO_ACCEPT, ownerChar.getId(), null, null, null, null, null));
+                JoinPolicy.AUTO_ACCEPT, ownerChar.getId(), null, null, null, null, null, null));
         Long listId = team.summary().id();
 
         listService.deleteTeam(owner.getId(), listId);
@@ -156,7 +156,7 @@ class TeamManagementIntegrationTest extends TeamIntegrationTestBase {
         stubPremium("Notif Owner", "Antica");
         ListDetailResponse team = listService.createList(owner.getId(), new CreateListRequest(
                 "Time Manual Notif", "Antica", creature("Demon").getId(),
-                JoinPolicy.MANUAL_APPROVAL, ownerChar.getId(), null, null, null, null, null));
+                JoinPolicy.MANUAL_APPROVAL, ownerChar.getId(), null, null, null, null, null, null));
 
         User joiner = createUser("notif-joiner@teste.com");
         Character joinerChar = createCharacter("Notif Joiner", "Antica", joiner);
@@ -185,7 +185,7 @@ class TeamManagementIntegrationTest extends TeamIntegrationTestBase {
         stubPremium("Kick Owner " + uniq, "Antica");
         ListDetailResponse team = listService.createList(owner.getId(), new CreateListRequest(
                 "Time Kick " + uniq, "Antica", creature("Demon").getId(),
-                JoinPolicy.AUTO_ACCEPT, ownerChar.getId(), null, null, null, null, null));
+                JoinPolicy.AUTO_ACCEPT, ownerChar.getId(), null, null, null, null, null, null));
 
         User joiner = createUser("kick-joiner-" + uniq + "@teste.com");
         Character joinerChar = createCharacter("Kick Joiner " + uniq, "Antica", joiner);

@@ -7,6 +7,7 @@ import com.exivamoeres.dto.list.ListSummaryResponse;
 import com.exivamoeres.dto.list.MembershipResponse;
 import com.exivamoeres.dto.list.MyJoinRequestResponse;
 import com.exivamoeres.dto.list.UpdateListRequest;
+import com.exivamoeres.dto.list.UpdateSlotsRequest;
 import com.exivamoeres.security.AuthenticatedUser;
 import com.exivamoeres.service.HuntingListService;
 import jakarta.validation.Valid;
@@ -75,6 +76,19 @@ public class ListController {
                                     @PathVariable Long id,
                                     @Valid @RequestBody UpdateListRequest request) {
         return listService.updateList(user.id(), id, request);
+    }
+
+    /**
+     * Substitui a composição por vocação do time (só o dono).
+     *
+     * Recurso separado do `PATCH` porque a regra é outra: **vaga ocupada não muda**,
+     * e uma edição de descrição não pode falhar por causa disso.
+     */
+    @PutMapping("/{id}/slots")
+    public ListDetailResponse replaceSlots(@AuthenticationPrincipal AuthenticatedUser user,
+                                          @PathVariable Long id,
+                                          @Valid @RequestBody UpdateSlotsRequest request) {
+        return listService.replaceSlots(user.id(), id, request);
     }
 
     /**

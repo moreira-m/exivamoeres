@@ -19,9 +19,10 @@ public record ListDetailResponse(
         List<MembershipResponse> members
 ) {
     public static ListDetailResponse from(HuntingList list, long memberCount, int maxMembers,
-                                          List<MembershipResponse> members, boolean showContact) {
+                                          List<MembershipResponse> members, boolean showContact,
+                                          List<TeamSlotResponse> slots) {
         return new ListDetailResponse(
-                ListSummaryResponse.from(list, memberCount, maxMembers),
+                ListSummaryResponse.from(list, memberCount, maxMembers, slots),
                 list.getOwner().getId(),
                 showContact ? list.getContact() : null,
                 members);

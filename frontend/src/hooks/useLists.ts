@@ -10,6 +10,7 @@ import {
   type SearchListsParams,
   type UpdateListRequest,
 } from '../services/listsApi'
+import type { Vocation } from '../types/api'
 
 /**
  * Busca da home, paginada por "carregar mais". Sem isso a tela mostrava só a
@@ -60,6 +61,15 @@ export function useUpdateList(listId: number) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (body: UpdateListRequest) => listsApi.update(listId, body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['lists'] }),
+  })
+}
+
+/** Composição por vocação (só o dono). Invalida detalhe e busca juntos. */
+export function useReplaceSlots(listId: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (slots: (Vocation | null)[]) => listsApi.replaceSlots(listId, slots),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['lists'] }),
   })
 }

@@ -7,8 +7,10 @@ import com.exivamoeres.domain.HuntingList;
 import com.exivamoeres.domain.JoinPolicy;
 import com.exivamoeres.domain.ListMembership;
 import com.exivamoeres.domain.MembershipStatus;
+import com.exivamoeres.domain.TeamSlot;
 import com.exivamoeres.domain.TeamStatus;
 import com.exivamoeres.domain.User;
+import com.exivamoeres.domain.Vocation;
 import com.exivamoeres.domain.exception.BusinessRuleException;
 import com.exivamoeres.domain.exception.ForbiddenOperationException;
 import com.exivamoeres.domain.exception.ResourceNotFoundException;
@@ -19,7 +21,9 @@ import com.exivamoeres.dto.list.ListDetailResponse;
 import com.exivamoeres.dto.list.ListSummaryResponse;
 import com.exivamoeres.dto.list.MembershipResponse;
 import com.exivamoeres.dto.list.MyJoinRequestResponse;
+import com.exivamoeres.dto.list.TeamSlotResponse;
 import com.exivamoeres.dto.list.UpdateListRequest;
+import com.exivamoeres.dto.list.UpdateSlotsRequest;
 import com.exivamoeres.repository.CharacterRepository;
 import com.exivamoeres.repository.CreatureRepository;
 import com.exivamoeres.repository.HuntingListRepository;
@@ -55,6 +59,7 @@ public class HuntingListServiceImpl implements HuntingListService {
     private final ShareCodeGenerator shareCodeGenerator;
     private final NotificationService notificationService;
     private final UserRateLimiter userRateLimiter;
+    private final TeamSlotAssigner slotAssigner;
     private final int maxMembers;
 
     public HuntingListServiceImpl(HuntingListRepository listRepository,
@@ -67,6 +72,7 @@ public class HuntingListServiceImpl implements HuntingListService {
                                   ShareCodeGenerator shareCodeGenerator,
                                   NotificationService notificationService,
                                   UserRateLimiter userRateLimiter,
+                                  TeamSlotAssigner slotAssigner,
                                   TeamProperties teamProperties) {
         this.listRepository = listRepository;
         this.membershipRepository = membershipRepository;
@@ -78,6 +84,7 @@ public class HuntingListServiceImpl implements HuntingListService {
         this.shareCodeGenerator = shareCodeGenerator;
         this.notificationService = notificationService;
         this.userRateLimiter = userRateLimiter;
+        this.slotAssigner = slotAssigner;
         this.maxMembers = teamProperties.maxMembers();
     }
 
@@ -96,7 +103,11 @@ public class HuntingListServiceImpl implements HuntingListService {
         assertWithinActiveTeamLimit(owner);
         // A elegibilidade do criador é validada com o world e o level mínimo
         // do próprio time (o criador precisa atender ao requisito que define).
-        eligibilityService.assertEligible(character, request.world(), request.minimumLevel());
+        // O snapshot é reaproveitado para a vocação: é o dado mais fresco que
+        // existe (o local pode estar defasado até o próximo refresh).
+        Vocation vocacaoDoCriador = Vocation.fromTibiaData(
+                eligibilityService.assertEligible(character, request.world(), request.minimumLevel())
+                        .vocation());
 
         HuntingList list = new HuntingList();
         // O time é identificado pela criatura-alvo; o título é opcional e cai
@@ -120,6 +131,10 @@ public class HuntingListServiceImpl implements HuntingListService {
         list.setExpiresAt(Instant.now().plus(planPolicy.teamDuration(owner.getPlan())));
         listRepository.save(list);
 
+        // Composição opcional. Criada antes da membership do dono porque é ela que
+        // decide em qual vaga ele entra — e se ele cabe na composição que definiu.
+        slotAssigner.createSlots(list, request.slots());
+
         // O criador entra já aprovado como primeiro membro.
         ListMembership membership = new ListMembership();
         membership.setList(list);
@@ -127,6 +142,9 @@ public class HuntingListServiceImpl implements HuntingListService {
         membership.setCharacter(character);
         membership.setActive(true);
         membership.setStatus(MembershipStatus.APPROVED);
+        // Mesma regra de todo mundo: o dono também precisa caber na composição.
+        // Se não couber, o 422 sai aqui e a transação inteira volta atrás.
+        slotAssigner.assignSlot(list, vocacaoDoCriador).ifPresent(membership::setSlot);
         membershipRepository.save(membership);
 
         log.info("list.created listId={} ownerId={} world={} targetCreatureId={}",
@@ -173,6 +191,22 @@ public class HuntingListServiceImpl implements HuntingListService {
 
     @Override
     @Transactional
+    public ListDetailResponse replaceSlots(Long ownerId, Long listId, UpdateSlotsRequest request) {
+        // Mesmo teto da edição de texto: reconfigurar em rajada é o abuso.
+        userRateLimiter.checkTeamUpdate(ownerId);
+        HuntingList list = loadOwnedList(listId, ownerId); // 403 se não for o dono
+        if (!list.allowsWrites()) {
+            throw new BusinessRuleException(
+                    "Este time não aceita mais alterações; ele está " + list.getStatus());
+        }
+        slotAssigner.replaceSlots(list, request.slots());
+        log.info("list.slots.replaced listId={} ownerId={} slots={}",
+                listId, ownerId, request.slots().size());
+        return buildDetail(list, ownerId);
+    }
+
+    @Override
+    @Transactional
     public ListDetailResponse joinByShareCode(Long userId, String shareCode, JoinListRequest request) {
         // A elegibilidade abaixo consulta a TibiaData (com cache por personagem):
         // sem limite por usuário, entrar em time vira um proxy para a API deles.
@@ -187,7 +221,12 @@ public class HuntingListServiceImpl implements HuntingListService {
         }
 
         Character character = loadOwnedCharacter(request.characterId(), userId);
-        eligibilityService.assertEligible(character, list.getWorld(), list.getMinimumLevel());
+        Vocation vocacao = Vocation.fromTibiaData(
+                eligibilityService.assertEligible(character, list.getWorld(), list.getMinimumLevel())
+                        .vocation());
+        // Recusa já no pedido quem não caberia em vaga nenhuma da composição —
+        // nem ocupada. Esperar aprovação que nunca pode vir é o limbo que o P4 acabou.
+        slotAssigner.assertVocationHasSlot(list, vocacao);
 
         ListMembership membership = membershipRepository
                 .findByListIdAndCharacterId(list.getId(), character.getId())
@@ -203,6 +242,8 @@ public class HuntingListServiceImpl implements HuntingListService {
 
         if (list.getJoinPolicy() == JoinPolicy.AUTO_ACCEPT) {
             assertHasOpenSlot(list.getId());
+            // Entra aprovado, então já ocupa vaga (se o time tiver composição).
+            slotAssigner.assignSlot(list, vocacao).ifPresent(membership::setSlot);
             membership.setStatus(MembershipStatus.APPROVED);
         } else {
             membership.setStatus(MembershipStatus.PENDING);
@@ -229,7 +270,10 @@ public class HuntingListServiceImpl implements HuntingListService {
         // Ordem importa: vaga é um COUNT no banco, elegibilidade pode custar uma
         // chamada externa. Time cheio nunca consulta a TibiaData.
         assertHasOpenSlot(list.getId());
-        assertStillEligible(list, membership);
+        Vocation vocacao = assertStillEligible(list, membership);
+        // A vaga é atribuída AQUI, não no pedido: pedido não reserva vaga (cinco
+        // pedidos travariam o time), então quem é aprovado primeiro ocupa primeiro.
+        slotAssigner.assignSlot(list, vocacao).ifPresent(membership::setSlot);
         membership.setStatus(MembershipStatus.APPROVED);
         notificationService.notifyJoinRequestApproved(membership.getUser().getId(), list);
         log.info("list.request.approved listId={} membershipId={}", listId, membershipId);
@@ -500,10 +544,10 @@ public class HuntingListServiceImpl implements HuntingListService {
      * pendente, o dono aprova depois sem a pessoa precisar pedir de novo; e o
      * botão de recusar continua ali para quando ele quiser mesmo dizer não.</p>
      */
-    private void assertStillEligible(HuntingList list, ListMembership membership) {
+    private Vocation assertStillEligible(HuntingList list, ListMembership membership) {
         try {
-            eligibilityService.assertEligible(
-                    membership.getCharacter(), list.getWorld(), list.getMinimumLevel());
+            return Vocation.fromTibiaData(eligibilityService.assertEligible(
+                    membership.getCharacter(), list.getWorld(), list.getMinimumLevel()).vocation());
         } catch (BusinessRuleException e) {
             // Reembrulha para deixar claro para o DONO (que é quem lê) que a
             // recusa é do candidato e que nada foi alterado.
@@ -551,7 +595,7 @@ public class HuntingListServiceImpl implements HuntingListService {
         long approved = membershipRepository
                 .countByListIdAndActiveTrueAndStatus(list.getId(), MembershipStatus.APPROVED);
         return ListDetailResponse.from(list, approved, maxMembers, members,
-                canSeeContact(list, viewerId));
+                canSeeContact(list, viewerId), slotsOf(list.getId()));
     }
 
     /**
@@ -713,7 +757,30 @@ public class HuntingListServiceImpl implements HuntingListService {
     private ListSummaryResponse toSummary(HuntingList list) {
         long approved = membershipRepository
                 .countByListIdAndActiveTrueAndStatus(list.getId(), MembershipStatus.APPROVED);
-        return ListSummaryResponse.from(list, approved, maxMembers);
+        return ListSummaryResponse.from(list, approved, maxMembers, slotsOf(list.getId()));
+    }
+
+    /**
+     * As vagas do time com quem as ocupa. Lista vazia = time sem composição.
+     *
+     * Uma consulta de vagas + uma de memberships por time — o mesmo custo por item
+     * que a contagem de membros que já existia (e que segue como gatilho de escala
+     * na seção 5 do NEXT_STEPS, agora com mais um motivo).
+     */
+    private List<TeamSlotResponse> slotsOf(Long listId) {
+        List<TeamSlot> slots = slotAssigner.slotsOf(listId);
+        if (slots.isEmpty()) {
+            return List.of();
+        }
+        List<ListMembership> ocupantes = membershipRepository
+                .findAllByListIdAndStatusAndActiveTrue(listId, MembershipStatus.APPROVED);
+        return slots.stream()
+                .map(slot -> ocupantes.stream()
+                        .filter(m -> m.getSlot() != null && m.getSlot().getId().equals(slot.getId()))
+                        .findFirst()
+                        .map(m -> TeamSlotResponse.occupied(slot, m))
+                        .orElseGet(() -> TeamSlotResponse.open(slot)))
+                .toList();
     }
 
     private String blankToNull(String value) {

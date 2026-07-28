@@ -5,6 +5,7 @@ import { Card } from './ui/Card'
 import { Badge } from './ui/Badge'
 import { CreatureIcon } from './CreatureIcon'
 import { formatExpiry } from '../lib/format'
+import { missingComposition } from '../lib/slots'
 
 /** Cartão de time exibido na busca pública e em "meus times". */
 export function TeamCard({ team }: { team: ListSummaryResponse }) {
@@ -33,6 +34,12 @@ export function TeamCard({ team }: { team: ListSummaryResponse }) {
               quem procura, e antes disso só era negociável depois de entrar. */}
           {team.huntSchedule && (
             <p className="truncate text-xs font-bold text-ink/70">🕑 {team.huntSchedule}</p>
+          )}
+          {/* "faltam 1 EK e 1 ED" — o anúncio que só cabia no texto livre até o P3. */}
+          {isActive && missingComposition(team.slots, t) && (
+            <p className="truncate text-xs font-bold text-primary">
+              {t('slots.missing', { list: missingComposition(team.slots, t) })}
+            </p>
           )}
           <div className="flex flex-wrap items-center gap-x-3 text-xs font-bold text-ink/50">
             <span>{isActive ? formatExpiry(team.expiresAt) : t(`enums.teamStatus.${team.status}`)}</span>

@@ -5,6 +5,7 @@ import com.exivamoeres.domain.JoinPolicy;
 import com.exivamoeres.domain.TeamStatus;
 
 import java.time.Instant;
+import java.util.List;
 
 public record ListSummaryResponse(
         Long id,
@@ -34,9 +35,20 @@ public record ListSummaryResponse(
         int memberCount,
         int maxMembers,
         boolean hasOpenSlots,
+        /**
+         * Composição por vocação — **vazia** quando o time não configurou nenhuma
+         * (aceita qualquer vocação). Vem também na busca: é o que permite ao card
+         * dizer "faltam 1 EK e 1 ED".
+         */
+        List<TeamSlotResponse> slots,
         Instant createdAt
 ) {
     public static ListSummaryResponse from(HuntingList list, long memberCount, int maxMembers) {
+        return from(list, memberCount, maxMembers, List.of());
+    }
+
+    public static ListSummaryResponse from(HuntingList list, long memberCount, int maxMembers,
+                                           List<TeamSlotResponse> slots) {
         return new ListSummaryResponse(
                 list.getId(),
                 list.getName(),
@@ -56,6 +68,7 @@ public record ListSummaryResponse(
                 (int) memberCount,
                 maxMembers,
                 memberCount < maxMembers,
+                slots,
                 list.getCreatedAt());
     }
 }

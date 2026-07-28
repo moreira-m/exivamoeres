@@ -5,6 +5,8 @@ export type AuthProvider = 'LOCAL' | 'GOOGLE' | 'DISCORD' | 'ANONYMOUS'
 export type ClaimStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
 export type JoinPolicy = 'MANUAL_APPROVAL' | 'AUTO_ACCEPT'
 // CANCELLED = o solicitante desistiu (≠ REJECTED, que é o dono recusando).
+/** Vocação BASE (papel no grupo): promovido e não promovido caem no mesmo valor. */
+export type Vocation = 'KNIGHT' | 'PALADIN' | 'SORCERER' | 'DRUID' | 'MONK' | 'NONE'
 export type MembershipStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED'
 /** Motivo (código, não frase) de um pedido provavelmente não ser aprovado. */
 export type JoinRequestIssue = 'BELOW_MINIMUM_LEVEL' | 'WORLD_MISMATCH'
@@ -76,6 +78,16 @@ export interface MembershipResponse {
   joinedAt: string
 }
 
+/** Uma vaga da composição. `vocation` null = livre; `characterName` null = aberta. */
+export interface TeamSlotResponse {
+  id: number
+  position: number
+  vocation: Vocation | null
+  characterId: number | null
+  characterName: string | null
+  characterVocation: Vocation | null
+}
+
 export interface ListSummaryResponse {
   id: number
   name: string
@@ -96,6 +108,8 @@ export interface ListSummaryResponse {
   memberCount: number
   maxMembers: number
   hasOpenSlots: boolean
+  // Vazia quando o time não configurou composição (aceita qualquer vocação).
+  slots: TeamSlotResponse[]
   createdAt: string
 }
 

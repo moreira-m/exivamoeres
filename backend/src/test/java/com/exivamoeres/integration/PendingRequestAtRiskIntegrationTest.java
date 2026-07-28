@@ -198,7 +198,7 @@ class PendingRequestAtRiskIntegrationTest extends TeamIntegrationTestBase {
         stubPremium(prefix + " Dono", world);
         ListDetailResponse time = listService.createList(owner.getId(), new CreateListRequest(
                 prefix + " Team", world, creature("Demon").getId(), JoinPolicy.MANUAL_APPROVAL,
-                ownerChar.getId(), minimoDoTime, null, null, null, null));
+                ownerChar.getId(), minimoDoTime, null, null, null, null, null));
 
         User requester = createUser(prefix.toLowerCase() + "-risco-pediu@teste.com");
         Character requesterChar = createCharacter(prefix + " Pediu", world, requester);

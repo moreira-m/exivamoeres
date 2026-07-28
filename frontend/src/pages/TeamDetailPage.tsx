@@ -8,6 +8,7 @@ import { Input, Select, Textarea } from '../components/ui/Input'
 import { Spinner } from '../components/ui/Spinner'
 import { QueryError } from '../components/ui/QueryError'
 import { CreatureIcon } from '../components/CreatureIcon'
+import { SlotComposer, MAX_TEAM_SLOTS, emptyComposition } from '../components/SlotComposer'
 import { ChatPanel } from '../components/ChatPanel'
 import {
   useListDetail,
@@ -19,13 +20,19 @@ import {
   useRenewTeam,
   useKickMember,
   useDeleteTeam,
+  useReplaceSlots,
 } from '../hooks/useLists'
 import { useMyCharacters } from '../hooks/useCharacters'
 import { useAuthStore } from '../store/authStore'
 import { getApiErrorMessage, isNotFound } from '../lib/apiError'
 import { formatExpiry, tibiaCharacterUrl } from '../lib/format'
 import { useTranslation } from 'react-i18next'
-import type { ListDetailResponse, MembershipResponse } from '../types/api'
+import type {
+  ListDetailResponse,
+  MembershipResponse,
+  TeamSlotResponse,
+  Vocation,
+} from '../types/api'
 
 export function TeamDetailPage() {
   const { t } = useTranslation()
@@ -132,6 +139,12 @@ export function TeamDetailPage() {
 
       {/* Editar é ação de dono e só em time ativo — o backend recusa o resto. */}
       {isOwner && isActive && <EditTeamCard listId={listId} detail={detail.data} />}
+
+      {/* Composição: mostra a todos (é o que faz alguém decidir se serve para ele)
+          e deixa o dono reconfigurar as vagas VAZIAS. */}
+      {(team.slots.length > 0 || (isOwner && isActive)) && (
+        <SlotsCard listId={listId} slots={team.slots} canEdit={isOwner && isActive} />
+      )}
 
       {team.description && (
         <Card className="mb-6 p-5">
@@ -298,6 +311,105 @@ function EditTeamCard({ listId, detail }: { listId: number; detail: ListDetailRe
           </Button>
         </div>
       </form>
+    </Card>
+  )
+}
+
+/**
+ * A composição do time por vocação. Para quem olha, é "quem falta"; para o dono, é
+ * onde ele reconfigura — só as **vagas vazias**, porque mudar a exigência de uma
+ * vaga ocupada só daria em expulsar alguém ou anunciar composição irreal (o backend
+ * recusa, e a UI trava o campo para não prometer o que não pode).
+ */
+function SlotsCard({
+  listId,
+  slots,
+  canEdit,
+}: {
+  listId: number
+  slots: TeamSlotResponse[]
+  canEdit: boolean
+}) {
+  const { t } = useTranslation()
+  const replace = useReplaceSlots(listId)
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState<(Vocation | null)[]>([])
+  const [error, setError] = useState('')
+
+  const abrirEdicao = () => {
+    // Preenche o rascunho com a composição atual, completando até o máximo do time
+    // para o dono poder acrescentar vaga sem outro controle.
+    const atual = slots.map((s) => s.vocation)
+    setDraft([...atual, ...emptyComposition(Math.max(0, MAX_TEAM_SLOTS - atual.length))])
+    setError('')
+    setEditing(true)
+  }
+
+  const salvar = async () => {
+    setError('')
+    try {
+      await replace.mutateAsync(draft)
+      setEditing(false)
+    } catch (err) {
+      setError(getApiErrorMessage(err))
+    }
+  }
+
+  const ocupadas = slots.filter((s) => s.characterName != null).map((s) => s.position)
+
+  return (
+    <Card className="mb-6 p-5">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <h3 className="text-lg text-ink">{t('slots.title')}</h3>
+        {canEdit && !editing && (
+          <Button variant="neutral" className="!px-3 !py-1 !text-xs" onClick={abrirEdicao}>
+            {slots.length > 0 ? t('slots.edit') : t('slots.define')}
+          </Button>
+        )}
+      </div>
+
+      {editing ? (
+        <>
+          <SlotComposer value={draft} onChange={setDraft} disabledPositions={ocupadas} />
+          <p className="mt-2 text-sm font-bold text-ink/60">{t('slots.editHint')}</p>
+          {error && <p className="mt-2 font-bold text-accent">{error}</p>}
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button disabled={replace.isPending} onClick={salvar}>
+              {t('common.save')}
+            </Button>
+            <Button variant="neutral" onClick={() => setEditing(false)}>
+              {t('common.cancel')}
+            </Button>
+          </div>
+        </>
+      ) : slots.length === 0 ? (
+        <p className="text-sm font-bold text-ink/60">{t('slots.none')}</p>
+      ) : (
+        <ul className="space-y-2">
+          {slots.map((slot) => (
+            <li key={slot.id} className="flex flex-wrap items-center gap-2 text-sm">
+              <span className="w-16 shrink-0 font-extrabold uppercase text-ink/60">
+                {t('slots.slotN', { position: slot.position })}
+              </span>
+              <Badge tone={slot.vocation ? 'muted' : 'neutral'}>
+                {slot.vocation ? t(`enums.vocation.${slot.vocation}`) : t('slots.any')}
+              </Badge>
+              {slot.characterName ? (
+                <a
+                  href={tibiaCharacterUrl(slot.characterName)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-bold text-primary underline decoration-2 underline-offset-2 hover:text-accent"
+                >
+                  {slot.characterName}
+                </a>
+              ) : (
+                <span className="font-bold text-accent">{t('slots.open')}</span>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
     </Card>
   )
 }

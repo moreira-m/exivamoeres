@@ -78,7 +78,7 @@ class ChatWebSocketHandshakeTest extends IntegrationTestBase {
         Character ownerChar = newCharacter("WS Owner", owner);
         ListDetailResponse team = listService.createList(owner.getId(), new CreateListRequest(
                 "Time WS", "Antica",
-                creatureId(), JoinPolicy.AUTO_ACCEPT, ownerChar.getId(), null, null, null, null, null));
+                creatureId(), JoinPolicy.AUTO_ACCEPT, ownerChar.getId(), null, null, null, null, null, null));
 
         String token = jwtService.generateAccessToken(owner);
         WebSocketStompClient client = newStompClient();

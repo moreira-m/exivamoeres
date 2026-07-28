@@ -1,6 +1,7 @@
 import { apiClient } from './apiClient'
 import type {
   JoinPolicy,
+  Vocation,
   ListDetailResponse,
   ListSummaryResponse,
   MembershipResponse,
@@ -19,6 +20,9 @@ export interface CreateListRequest {
   description?: string | null
   huntSchedule?: string | null
   contact?: string | null
+  // Composição por vocação, na ordem das vagas. `null` numa posição = vaga livre;
+  // lista só com nulos = time sem composição (o backend normaliza igual).
+  slots?: (Vocation | null)[] | null
 }
 
 /**
@@ -33,6 +37,8 @@ export interface UpdateListRequest {
   description?: string | null
   huntSchedule?: string | null
   contact?: string | null
+  // ⚠️ Composição NÃO entra aqui: é o `PUT /api/lists/{id}/slots`, porque a regra é
+  // outra (vaga ocupada não muda) e uma edição de descrição não pode falhar por isso.
 }
 
 export interface SearchListsParams {
@@ -65,6 +71,13 @@ export const listsApi = {
   /** O solicitante desiste do próprio pedido. */
   cancelMyRequest: (membershipId: number) =>
     apiClient.delete<void>(`/api/lists/mine/requests/${membershipId}`).then(() => undefined),
+
+  /**
+   * Substitui a composição por vocação (só o dono). Endpoint separado do PATCH: a
+   * regra é outra — vaga ocupada não muda, e lista vazia remove a composição.
+   */
+  replaceSlots: (id: number, slots: (Vocation | null)[]) =>
+    apiClient.put<ListDetailResponse>(`/api/lists/${id}/slots`, { slots }).then((r) => r.data),
 
   update: (id: number, body: UpdateListRequest) =>
     apiClient.patch<ListDetailResponse>(`/api/lists/${id}`, body).then((r) => r.data),

@@ -7,6 +7,7 @@ import com.exivamoeres.dto.list.ListSummaryResponse;
 import com.exivamoeres.dto.list.MembershipResponse;
 import com.exivamoeres.dto.list.MyJoinRequestResponse;
 import com.exivamoeres.dto.list.UpdateListRequest;
+import com.exivamoeres.dto.list.UpdateSlotsRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -87,6 +88,15 @@ public interface HuntingListService {
 
     /** Pedidos pendentes do time — só o dono enxerga. */
     List<MembershipResponse> listPendingRequests(Long ownerId, Long listId);
+
+    /**
+     * Substitui a **composição por vocação** do time (só o dono, só em time ATIVO).
+     *
+     * Lista vazia remove a composição. **Vaga ocupada não muda** — libere a vaga
+     * antes. Recurso separado do `PATCH` de propósito: ver
+     * {@link com.exivamoeres.dto.list.UpdateSlotsRequest}.
+     */
+    ListDetailResponse replaceSlots(Long ownerId, Long listId, UpdateSlotsRequest request);
 
     /**
      * Pedidos de entrada **do próprio usuário** — pendentes e recusados, mais

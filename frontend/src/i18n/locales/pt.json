@@ -24,16 +24,19 @@
   },
   "home": {
     "title": "Encontre seu time de Soul Core",
-    "subtitle": "Grupos organizados para caçar bosses do Tibia e trocar soul cores. Filtre por mundo, criatura e vagas — entre em um time ou crie o seu.",
+    "subtitle": "Grupos organizados para caçar bosses do Tibia e trocar soul cores. Filtre por mundo, criatura, sua vocação e vagas — entre em um time ou crie o seu.",
     "world": "Mundo",
     "creature": "Criatura",
+    "vocation": "Minha vocação",
+    "anyVocation": "Qualquer vocação",
     "slots": "Vagas",
     "openOnly": "Só com vaga aberta",
     "searchPlaceholder": "Digite para buscar…",
     "results_one": "{{count}} time encontrado",
     "results_other": "{{count}} times encontrados",
     "loadMore": "Carregar mais",
-    "empty": "Nenhum time encontrado com esses filtros. Que tal criar um?"
+    "empty": "Nenhum time encontrado com esses filtros. Que tal criar um?",
+    "vocationHint": "Mostrando times onde um {{vocation}} cabe agora — inclui times sem composição definida."
   },
   "login": {
     "login": "Entrar",

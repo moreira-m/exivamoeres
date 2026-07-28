@@ -1,5 +1,6 @@
 package com.exivamoeres.controller;
 
+import com.exivamoeres.domain.Vocation;
 import com.exivamoeres.dto.list.CreateListRequest;
 import com.exivamoeres.dto.list.JoinListRequest;
 import com.exivamoeres.dto.list.ListDetailResponse;
@@ -31,14 +32,22 @@ public class ListController {
 
     // ----- Público (sem login) -----
 
-    /** Busca da home: filtros opcionais por world, criatura-alvo e vaga disponível. */
+    /**
+     * Busca da home: filtros opcionais por world, criatura-alvo, vaga disponível e
+     * vocação.
+     *
+     * `vocation` responde "onde um personagem desta vocação **cabe agora**" — inclui
+     * vaga livre e time sem composição. Ver `HuntingListRepository.search`.
+     */
     @GetMapping("/search")
     public Page<ListSummaryResponse> search(@RequestParam(required = false) String world,
                                             @RequestParam(required = false) Long creatureId,
                                             @RequestParam(required = false) Boolean hasOpenSlots,
+                                            @RequestParam(required = false) Vocation vocation,
                                             @RequestParam(defaultValue = "0") int page,
                                             @RequestParam(defaultValue = "20") int size) {
-        return listService.search(world, creatureId, hasOpenSlots, PageRequest.of(page, Math.min(size, 50)));
+        return listService.search(world, creatureId, hasOpenSlots, vocation,
+                PageRequest.of(page, Math.min(size, 50)));
     }
 
     /**

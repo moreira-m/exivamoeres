@@ -204,7 +204,7 @@ class TeamSlotIntegrationTest extends TeamIntegrationTestBase {
         time(world, "SearchS", JoinPolicy.AUTO_ACCEPT, "Elder Druid",
                 Arrays.asList(Vocation.KNIGHT, Vocation.DRUID, Vocation.PALADIN));
 
-        var pagina = listService.search(world, null, null, PageRequest.of(0, 20));
+        var pagina = listService.search(world, null, null, null, PageRequest.of(0, 20));
 
         assertThat(pagina.getContent()).singleElement().satisfies(s -> {
             assertThat(s.slots()).hasSize(3);

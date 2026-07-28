@@ -3,6 +3,7 @@ package com.exivamoeres.integration;
 import com.exivamoeres.domain.Character;
 import com.exivamoeres.domain.JoinPolicy;
 import com.exivamoeres.domain.User;
+import com.exivamoeres.domain.Vocation;
 import com.exivamoeres.dto.list.CreateListRequest;
 import com.exivamoeres.dto.list.JoinListRequest;
 import com.exivamoeres.dto.list.ListDetailResponse;
@@ -14,6 +15,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -110,11 +112,130 @@ class TeamSearchIntegrationTest extends TeamIntegrationTestBase {
                 .doesNotContain(dragonTeam);
     }
 
+    // ----- Filtro por vocação (P20) -----
+
+    @Test
+    void filtroDeVocacaoTrazTimeComVagaLivreDaquelaVocacao() {
+        String world = "VocSearchWorld";
+        Long precisaDeDruid = createTeamComComposicao(world, "VocSearch Knight Dono", "Elite Knight",
+                Arrays.asList(Vocation.KNIGHT, Vocation.DRUID)).summary().id();
+        Long soPrecisaDePaladin = createTeamComComposicao(world, "VocSearch Pal Dono", "Royal Paladin",
+                Arrays.asList(Vocation.PALADIN, Vocation.SORCERER)).summary().id();
+
+        List<Long> encontrados = ids(search(world, null, null, Vocation.DRUID, 0, 20));
+
+        assertThat(encontrados).contains(precisaDeDruid).doesNotContain(soPrecisaDePaladin);
+    }
+
+    @Test
+    void filtroDeVocacaoNaoTrazTimeCujaVagaDaquelaVocacaoEstaOcupada() {
+        String world = "VocTakenWorld";
+        // O dono é o próprio Druid e ocupa a única vaga de Druid.
+        Long comDruidOcupado = createTeamComComposicao(world, "VocTaken Druid Dono", "Elder Druid",
+                Arrays.asList(Vocation.KNIGHT, Vocation.DRUID)).summary().id();
+
+        assertThat(ids(search(world, null, null, Vocation.DRUID, 0, 20)))
+                .doesNotContain(comDruidOcupado);
+        // E o mesmo time continua aparecendo para quem cabe na vaga que sobrou.
+        assertThat(ids(search(world, null, null, Vocation.KNIGHT, 0, 20)))
+                .contains(comDruidOcupado);
+    }
+
+    @Test
+    void filtroDeVocacaoTrazTimeComVagaSemExigencia() {
+        String world = "VocFreeSlotWorld";
+        // Vaga livre aceita qualquer vocação — esconder este time faria o filtro
+        // recusar um time onde a pessoa entra sem problema.
+        Long comVagaLivre = createTeamComComposicao(world, "VocFree Knight Dono", "Elite Knight",
+                Arrays.asList(Vocation.KNIGHT, null)).summary().id();
+
+        assertThat(ids(search(world, null, null, Vocation.SORCERER, 0, 20)))
+                .contains(comVagaLivre);
+    }
+
+    @Test
+    void filtroDeVocacaoTrazTimeSemComposicaoQueAindaTemVaga() {
+        String world = "VocNoCompWorld";
+        Long semComposicao = createTeam(world, "VocNoComp Dono", "Demon").summary().id();
+
+        // Time sem composição aceita qualquer vocação: excluí-lo esconderia a maior
+        // parte do site (é o estado de tudo que existia antes da V17).
+        assertThat(ids(search(world, null, null, Vocation.MONK, 0, 20))).contains(semComposicao);
+    }
+
+    @Test
+    void filtroDeVocacaoNaoTrazTimeSemComposicaoQueEstaCheio() {
+        String world = "VocFullWorld";
+        ListDetailResponse cheio = createTeam(world, "VocFull Dono", "Demon");
+        fillTeam(cheio, world, "VocFull");
+
+        assertThat(ids(search(world, null, null, Vocation.DRUID, 0, 20)))
+                .doesNotContain(cheio.summary().id());
+    }
+
+    @Test
+    void filtroDeVocacaoContaCertoEPaginaJunto() {
+        String world = "VocCountWorld";
+        createTeamComComposicao(world, "VocCount A", "Elite Knight",
+                Arrays.asList(Vocation.KNIGHT, Vocation.DRUID));
+        createTeamComComposicao(world, "VocCount B", "Elite Knight",
+                Arrays.asList(Vocation.KNIGHT, Vocation.DRUID));
+        createTeamComComposicao(world, "VocCount C", "Royal Paladin",
+                Arrays.asList(Vocation.PALADIN, Vocation.SORCERER));
+
+        // O total tem que ser o total de verdade (a lição do P1): dois times com
+        // vaga de Druid, mesmo pedindo página de tamanho 1.
+        Page<ListSummaryResponse> primeira = search(world, null, null, Vocation.DRUID, 0, 1);
+        assertThat(primeira.getTotalElements()).isEqualTo(2);
+        assertThat(primeira.getContent()).hasSize(1);
+
+        List<Long> vistos = new ArrayList<>();
+        for (int page = 0; page < primeira.getTotalPages(); page++) {
+            vistos.addAll(ids(search(world, null, null, Vocation.DRUID, page, 1)));
+        }
+        assertThat(vistos).doesNotHaveDuplicates().hasSize(2);
+    }
+
+    @Test
+    void filtroDeVocacaoCombinaComOsOutrosFiltros() {
+        String world = "VocComboWorld";
+        Long demonComDruid = createTeamComComposicao(world, "VocCombo Demon", "Elite Knight",
+                Arrays.asList(Vocation.KNIGHT, Vocation.DRUID)).summary().id();
+        createTeamComComposicaoECriatura(world, "VocCombo Dragon", "Elite Knight", "Dragon Lord",
+                Arrays.asList(Vocation.KNIGHT, Vocation.DRUID));
+
+        List<Long> encontrados = ids(search(world, creature("Demon").getId(), true,
+                Vocation.DRUID, 0, 20));
+
+        assertThat(encontrados).containsExactly(demonComDruid);
+    }
+
     // ----- Helpers -----
+
+    private ListDetailResponse createTeamComComposicao(String world, String characterName,
+                                                       String vocacaoDoDono, List<Vocation> slots) {
+        return createTeamComComposicaoECriatura(world, characterName, vocacaoDoDono, "Demon", slots);
+    }
+
+    private ListDetailResponse createTeamComComposicaoECriatura(String world, String characterName,
+                                                                String vocacaoDoDono, String criatura,
+                                                                List<Vocation> slots) {
+        User owner = createUser(characterName.toLowerCase().replace(' ', '-') + "@teste.com");
+        Character character = createCharacter(characterName, world, owner);
+        stubPremium(characterName, world, 300, vocacaoDoDono);
+        return listService.createList(owner.getId(), new CreateListRequest(
+                null, world, creature(criatura).getId(), JoinPolicy.AUTO_ACCEPT,
+                character.getId(), null, null, null, null, null, slots));
+    }
 
     private Page<ListSummaryResponse> search(String world, Long creatureId, Boolean hasOpenSlots,
                                              int page, int size) {
-        return listService.search(world, creatureId, hasOpenSlots, PageRequest.of(page, size));
+        return search(world, creatureId, hasOpenSlots, null, page, size);
+    }
+
+    private Page<ListSummaryResponse> search(String world, Long creatureId, Boolean hasOpenSlots,
+                                             Vocation vocation, int page, int size) {
+        return listService.search(world, creatureId, hasOpenSlots, vocation, PageRequest.of(page, size));
     }
 
     private List<Long> ids(Page<ListSummaryResponse> page) {

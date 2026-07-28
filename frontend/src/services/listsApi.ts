@@ -45,6 +45,12 @@ export interface SearchListsParams {
   world?: string
   creatureId?: number
   hasOpenSlots?: boolean
+  /**
+   * Filtra por "onde um personagem desta vocação cabe AGORA" — não por quem
+   * *exige* esta vocação. Time sem composição entra (aceita qualquer vocação) e
+   * vaga livre também; vaga da vocação já ocupada, não.
+   */
+  vocation?: Vocation
   page?: number
   size?: number
 }

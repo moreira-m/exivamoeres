@@ -170,7 +170,7 @@ class TeamLifecycleIntegrationTest extends TeamIntegrationTestBase {
                 archivedTeam.summary().id());
         lifecycleService.archiveExpiredTeams();
 
-        var results = listService.search(world, null, null,
+        var results = listService.search(world, null, null, null,
                 org.springframework.data.domain.PageRequest.of(0, 20)).getContent();
 
         // Arquivado fora; premium antes do free.

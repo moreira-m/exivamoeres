@@ -7,18 +7,22 @@ import { Card } from '../components/ui/Card'
 import { Combobox } from '../components/ui/Combobox'
 import { Spinner } from '../components/ui/Spinner'
 import { QueryError } from '../components/ui/QueryError'
+import { SELECTABLE_VOCATIONS } from '../components/SlotComposer'
 import { useSearchLists } from '../hooks/useLists'
 import { useWorlds, useCreatures } from '../hooks/useCatalog'
+import type { Vocation } from '../types/api'
 
 /**
- * Área pública (sem login): busca de times existentes por world, criatura-alvo
- * e vaga disponível. Experiência principal de quem quer só encontrar um time.
+ * Área pública (sem login): busca de times existentes por world, criatura-alvo,
+ * vaga disponível e vocação que cabe. Experiência principal de quem quer só
+ * encontrar um time.
  */
 export function HomePage() {
   const { t } = useTranslation()
   const [world, setWorld] = useState('')
   const [creatureId, setCreatureId] = useState('')
   const [onlyOpen, setOnlyOpen] = useState('')
+  const [vocation, setVocation] = useState('')
 
   const worlds = useWorlds()
   const creatures = useCreatures()
@@ -26,6 +30,9 @@ export function HomePage() {
     world: world || undefined,
     creatureId: creatureId ? Number(creatureId) : undefined,
     hasOpenSlots: onlyOpen === 'open' ? true : undefined,
+    // "Sou Druid" = me mostre os times onde um Druid entra hoje, não os times que
+    // exigem Druid em alguma vaga (a vaga pode estar ocupada por outro Druid).
+    vocation: (vocation || undefined) as Vocation | undefined,
   })
 
   const worldOptions = useMemo(
@@ -35,6 +42,10 @@ export function HomePage() {
   const creatureOptions = useMemo(
     () => (creatures.data ?? []).map((c) => ({ value: String(c.id), label: c.name })),
     [creatures.data],
+  )
+  const vocationOptions = useMemo(
+    () => SELECTABLE_VOCATIONS.map((v) => ({ value: v, label: t(`enums.vocation.${v}`) })),
+    [t],
   )
 
   const teams = useMemo(
@@ -50,7 +61,7 @@ export function HomePage() {
         <p className="mt-2 max-w-2xl font-bold text-white/90">{t('home.subtitle')}</p>
       </section>
 
-      <Card className="mb-6 grid gap-4 p-4 sm:grid-cols-3">
+      <Card className="mb-6 grid gap-4 p-4 sm:grid-cols-2 lg:grid-cols-4">
         <Combobox
           label={t('home.world')}
           value={world}
@@ -68,6 +79,14 @@ export function HomePage() {
           placeholder={t('home.searchPlaceholder')}
         />
         <Combobox
+          label={t('home.vocation')}
+          value={vocation}
+          onChange={setVocation}
+          options={vocationOptions}
+          allLabel={t('home.anyVocation')}
+          searchable={false}
+        />
+        <Combobox
           label={t('home.slots')}
           value={onlyOpen}
           onChange={setOnlyOpen}
@@ -76,6 +95,14 @@ export function HomePage() {
           searchable={false}
         />
       </Card>
+
+      {vocation && (
+        /* O filtro é "cabe agora", e sem esta linha ele parece "exige esta vocação" —
+           o usuário estranharia ver time sem composição no resultado. */
+        <p className="mb-3 text-sm font-bold text-white/80">
+          {t('home.vocationHint', { vocation: t(`enums.vocation.${vocation}`) })}
+        </p>
+      )}
 
       {search.isLoading ? (
         <Spinner />

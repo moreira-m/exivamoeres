@@ -1,5 +1,6 @@
 package com.exivamoeres.service;
 
+import com.exivamoeres.domain.Vocation;
 import com.exivamoeres.dto.list.CreateListRequest;
 import com.exivamoeres.dto.list.JoinListRequest;
 import com.exivamoeres.dto.list.ListDetailResponse;
@@ -80,11 +81,16 @@ public interface HuntingListService {
     ListDetailResponse getList(Long listId, Long viewerId);
 
     /**
-     * Busca pública (home): filtros opcionais por world, criatura-alvo e vaga
-     * disponível. NÃO filtra por level — quem procura vê todos os times; o
-     * requisito de level mínimo é só exibido e validado na entrada.
+     * Busca pública (home): filtros opcionais por world, criatura-alvo, vaga
+     * disponível e **vocação**. NÃO filtra por level — quem procura vê todos os
+     * times; o requisito de level mínimo é só exibido e validado na entrada.
+     *
+     * @param vocation quando informada, devolve só times onde um personagem dessa
+     *                 vocação **cabe agora**: vaga livre compatível (incluindo vaga
+     *                 sem exigência) ou time sem composição que ainda tem vaga
      */
-    Page<ListSummaryResponse> search(String world, Long creatureId, Boolean hasOpenSlots, Pageable pageable);
+    Page<ListSummaryResponse> search(String world, Long creatureId, Boolean hasOpenSlots,
+                                     Vocation vocation, Pageable pageable);
 
     /** Pedidos pendentes do time — só o dono enxerga. */
     List<MembershipResponse> listPendingRequests(Long ownerId, Long listId);

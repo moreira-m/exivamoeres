@@ -396,12 +396,12 @@ public class HuntingListServiceImpl implements HuntingListService {
     @Override
     @Transactional(readOnly = true)
     public Page<ListSummaryResponse> search(String world, Long creatureId, Boolean hasOpenSlots,
-                                            Pageable pageable) {
+                                            Vocation vocation, Pageable pageable) {
         // Todos os filtros vão para a query: o total da página precisa ser o
         // total de verdade, senão a paginação da home não sabe quando parar.
         return listRepository
                 .search(blankToNull(world), creatureId, Boolean.TRUE.equals(hasOpenSlots),
-                        maxMembers, pageable)
+                        vocation, maxMembers, pageable)
                 .map(this::toSummary);
     }
 

@@ -2,6 +2,7 @@ package com.exivamoeres.repository;
 
 import com.exivamoeres.domain.HuntingList;
 import com.exivamoeres.domain.TeamStatus;
+import com.exivamoeres.domain.Vocation;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -46,6 +47,13 @@ public interface HuntingListRepository extends JpaRepository<HuntingList, Long> 
      * O desempate por id no order by não é enfeite: sem ordenação total, dois
      * times criados no mesmo instante podem trocar de lugar entre uma página e
      * a seguinte, fazendo o "carregar mais" repetir um e esconder o outro.
+     *
+     * <p>O filtro de <b>vocação</b> responde "onde um personagem desta vocação
+     * cabe AGORA", não "quem exige esta vocação": entra o time com vaga livre
+     * compatível (inclusive vaga <b>sem</b> exigência) e o time <b>sem</b>
+     * composição que ainda tenha vaga. Excluir esses dois casos deixaria o filtro
+     * escondendo a maior parte do site — e o que ele precisa evitar é o pedido que
+     * vai ser recusado, não a lista curta.</p>
      */
     @Query(value = """
             select l from HuntingList l
@@ -60,6 +68,27 @@ public interface HuntingListRepository extends JpaRepository<HuntingList, Long> 
                       and m.active = true
                       and m.status = com.exivamoeres.domain.MembershipStatus.APPROVED
                   ) < :maxMembers)
+              and (:vocation is null or (
+                    (not exists (
+                        select s from TeamSlot s where s.list = l
+                      ) and (
+                        select count(m) from ListMembership m
+                        where m.list = l
+                          and m.active = true
+                          and m.status = com.exivamoeres.domain.MembershipStatus.APPROVED
+                      ) < :maxMembers)
+                    or exists (
+                        select s from TeamSlot s
+                        where s.list = l
+                          and (s.vocation is null or s.vocation = :vocation)
+                          and not exists (
+                            select m from ListMembership m
+                            where m.slot = s
+                              and m.active = true
+                              and m.status = com.exivamoeres.domain.MembershipStatus.APPROVED
+                          )
+                      )
+                  ))
             order by case when o.plan = com.exivamoeres.domain.Plan.PREMIUM then 0 else 1 end,
                      l.createdAt desc, l.id desc
             """,
@@ -74,10 +103,32 @@ public interface HuntingListRepository extends JpaRepository<HuntingList, Long> 
                       and m.active = true
                       and m.status = com.exivamoeres.domain.MembershipStatus.APPROVED
                   ) < :maxMembers)
+              and (:vocation is null or (
+                    (not exists (
+                        select s from TeamSlot s where s.list = l
+                      ) and (
+                        select count(m) from ListMembership m
+                        where m.list = l
+                          and m.active = true
+                          and m.status = com.exivamoeres.domain.MembershipStatus.APPROVED
+                      ) < :maxMembers)
+                    or exists (
+                        select s from TeamSlot s
+                        where s.list = l
+                          and (s.vocation is null or s.vocation = :vocation)
+                          and not exists (
+                            select m from ListMembership m
+                            where m.slot = s
+                              and m.active = true
+                              and m.status = com.exivamoeres.domain.MembershipStatus.APPROVED
+                          )
+                      )
+                  ))
             """)
     Page<HuntingList> search(@Param("world") String world,
                              @Param("creatureId") Long creatureId,
                              @Param("onlyOpenSlots") boolean onlyOpenSlots,
+                             @Param("vocation") Vocation vocation,
                              @Param("maxMembers") int maxMembers,
                              Pageable pageable);
 }

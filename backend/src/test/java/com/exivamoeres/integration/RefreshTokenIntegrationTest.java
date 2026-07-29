@@ -1,7 +1,7 @@
 package com.exivamoeres.integration;
 
 import com.exivamoeres.domain.RefreshToken;
-import com.exivamoeres.domain.exception.BusinessRuleException;
+import com.exivamoeres.domain.exception.InvalidCredentialsException;
 import com.exivamoeres.dto.auth.AuthResponse;
 import com.exivamoeres.repository.RefreshTokenRepository;
 import com.exivamoeres.service.AuthService;
@@ -21,6 +21,7 @@ import java.util.HexFormat;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
@@ -66,8 +67,8 @@ class RefreshTokenIntegrationTest extends IntegrationTestBase {
         authService.refresh(rawToken);
 
         assertThatThrownBy(() -> authService.refresh(rawToken))
-                .isInstanceOf(BusinessRuleException.class)
-                .hasMessageContaining("inválido ou expirado");
+                .isInstanceOf(InvalidCredentialsException.class)
+                .hasMessageContaining("Sessão expirada");
     }
 
     @Test
@@ -77,8 +78,8 @@ class RefreshTokenIntegrationTest extends IntegrationTestBase {
         authService.logout(rawToken);
 
         assertThatThrownBy(() -> authService.refresh(rawToken))
-                .isInstanceOf(BusinessRuleException.class)
-                .hasMessageContaining("inválido ou expirado");
+                .isInstanceOf(InvalidCredentialsException.class)
+                .hasMessageContaining("Sessão expirada");
     }
 
     @Test
@@ -89,18 +90,50 @@ class RefreshTokenIntegrationTest extends IntegrationTestBase {
         refreshTokenRepository.save(persistido);
 
         assertThatThrownBy(() -> authService.refresh(rawToken))
-                .isInstanceOf(BusinessRuleException.class)
-                .hasMessageContaining("inválido ou expirado");
+                .isInstanceOf(InvalidCredentialsException.class)
+                .hasMessageContaining("Sessão expirada");
     }
 
     @Test
-    void refreshComTokenDesconhecidoRetorna422() throws Exception {
+    void refreshComTokenDesconhecidoRetorna401() throws Exception {
         mockMvc.perform(post("/api/auth/refresh")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"refreshToken":"token-que-nunca-foi-emitido"}
                                 """))
-                .andExpect(status().isUnprocessableEntity());
+                // 401 (era 422): credencial recusada é "autentique de novo", não
+                // "corrija o payload" — ver NEXT_STEPS S12.
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("Sessão expirada. Entre novamente."));
+    }
+
+    @Test
+    void refreshRecusadoNaoDizPorQue() throws Exception {
+        // Token desconhecido, expirado e revogado respondem a MESMA coisa: qual dos
+        // três falhou é informação que ajuda mais quem ataca que quem depura (a
+        // diferença fica no log, com o userId quando existe).
+        String rawToken = novaSessao().refreshToken();
+        authService.logout(rawToken);
+
+        String revogado = mockMvc.perform(post("/api/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"refreshToken\":\"" + rawToken + "\"}"))
+                .andExpect(status().isUnauthorized())
+                .andReturn().getResponse().getContentAsString();
+        String desconhecido = mockMvc.perform(post("/api/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"refreshToken":"token-que-nunca-foi-emitido"}
+                                """))
+                .andExpect(status().isUnauthorized())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(mensagemDe(revogado)).isEqualTo(mensagemDe(desconhecido));
+    }
+
+    /** Só a mensagem: o envelope tem `timestamp`, que difere entre as duas respostas. */
+    private String mensagemDe(String corpo) {
+        return corpo.replaceAll(".*\"message\":\"([^\"]+)\".*", "$1");
     }
 
     private AuthResponse novaSessao() {

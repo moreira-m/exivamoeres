@@ -3,9 +3,10 @@ package com.exivamoeres.service.impl;
 import com.exivamoeres.config.JwtProperties;
 import com.exivamoeres.domain.RefreshToken;
 import com.exivamoeres.domain.User;
-import com.exivamoeres.domain.exception.BusinessRuleException;
+import com.exivamoeres.domain.exception.InvalidCredentialsException;
 import com.exivamoeres.repository.RefreshTokenRepository;
 import com.exivamoeres.service.RefreshTokenService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +20,7 @@ import java.util.Base64;
 import java.util.HexFormat;
 
 @Service
+@Slf4j
 public class RefreshTokenServiceImpl implements RefreshTokenService {
 
     private static final SecureRandom RANDOM = new SecureRandom();
@@ -44,12 +46,29 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
         return rawToken;
     }
 
+    /** Mensagem única para os três motivos de recusa — a diferença vai só para o log. */
+    private static final String RECUSADO = "Sessão expirada. Entre novamente.";
+
     @Override
     @Transactional
     public RotationResult rotate(String rawToken) {
         RefreshToken current = repository.findByTokenHash(sha256(rawToken))
-                .filter(RefreshToken::isUsable)
-                .orElseThrow(() -> new BusinessRuleException("Refresh token inválido ou expirado"));
+                .orElseThrow(() -> {
+                    // Token que nunca existiu (ou de outro ambiente): sem userId para logar.
+                    log.warn("auth.refresh_rejected reason=unknown_token");
+                    return new InvalidCredentialsException(RECUSADO);
+                });
+
+        if (!current.isUsable()) {
+            // Aqui a distinção importa, e é o motivo de a consulta ter sido separada do
+            // filtro: **revogado** é o sinal de token reaproveitado (S7, detecção de
+            // reuso), e **expirado** é rotina. Misturados num `filter`, os dois viravam
+            // a mesma linha de log e a diferença se perdia.
+            log.warn("auth.refresh_rejected reason={} userId={}",
+                    current.isRevoked() ? "revoked" : "expired", current.getUser().getId());
+            throw new InvalidCredentialsException(RECUSADO);
+        }
+
         current.setRevoked(true);
         return new RotationResult(current.getUser(), issue(current.getUser()));
     }

@@ -25,10 +25,11 @@ test('sem fragmento nenhum, cai no login (e não numa tela em branco)', async ({
 
 test('com refresh token inválido, cai no login', async ({ page, problems }) => {
   // Token forjado é recusado pelo backend — é o que o `.catch` da página trata.
-  // ⚠️ A recusa vem como **422**, não 401: `/api/auth/refresh` trata token
-  // inválido como violação de regra de negócio (a convenção de 422 do projeto).
-  // Foi este teste que mostrou isso; a divergência ficou registrada como S12.
-  problems.allow(/HTTP 422 — POST .*\/api\/auth\/refresh/)
+  // A recusa é **401** desde o S12 (era 422, e foi este teste que mostrou a
+  // divergência: credencial recusada é "autentique de novo", não "corrija o payload").
+  // Este `allow` foi o lembrete automático de que o contrato mudou — ele reprovou no
+  // primeiro run depois da mudança no backend.
+  problems.allow(/HTTP 401 — POST .*\/api\/auth\/refresh/)
 
   await page.goto('/oauth/callback#refresh_token=nao-e-um-token-de-verdade')
 

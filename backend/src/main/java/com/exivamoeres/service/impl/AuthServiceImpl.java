@@ -3,6 +3,7 @@ package com.exivamoeres.service.impl;
 import com.exivamoeres.domain.AuthProvider;
 import com.exivamoeres.domain.User;
 import com.exivamoeres.domain.exception.BusinessRuleException;
+import com.exivamoeres.domain.exception.InvalidCredentialsException;
 import com.exivamoeres.dto.auth.AuthResponse;
 import com.exivamoeres.dto.auth.LoginRequest;
 import com.exivamoeres.dto.auth.RegisterRequest;
@@ -56,7 +57,9 @@ public class AuthServiceImpl implements AuthService {
         User user = userRepository.findByEmailIgnoreCase(request.email())
                 .filter(u -> u.getPasswordHash() != null)
                 .filter(u -> passwordEncoder.matches(request.password(), u.getPasswordHash()))
-                .orElseThrow(() -> new BusinessRuleException("Email ou senha incorretos"));
+                // 401, não 422: é credencial recusada, não payload inválido. A mensagem
+                // segue idêntica para email inexistente e senha errada.
+                .orElseThrow(() -> new InvalidCredentialsException("Email ou senha incorretos"));
         return buildAuthResponse(user);
     }
 

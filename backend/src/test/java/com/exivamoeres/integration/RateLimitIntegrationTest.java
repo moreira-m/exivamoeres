@@ -53,7 +53,9 @@ class RateLimitIntegrationTest extends IntegrationTestBase {
         String ip = "203.0.113.30";
         // Credencial errada de propósito: o que se mede é a tentativa, não o acerto.
         for (int i = 1; i <= 10; i++) {
-            mockMvc.perform(login(ip)).andExpect(status().isUnprocessableEntity());
+            // Credencial errada responde 401 desde o S12; o que se mede aqui é a
+            // tentativa, não o status dela.
+            mockMvc.perform(login(ip)).andExpect(status().isUnauthorized());
         }
 
         mockMvc.perform(login(ip)).andExpect(status().isTooManyRequests());

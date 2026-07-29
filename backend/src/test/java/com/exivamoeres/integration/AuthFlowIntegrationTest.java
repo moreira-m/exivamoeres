@@ -74,7 +74,8 @@ class AuthFlowIntegrationTest extends IntegrationTestBase {
                         .content("""
                                 {"email":"outro@teste.com","password":"senha-errada"}
                                 """))
-                .andExpect(status().isUnprocessableEntity())
+                // 401 (era 422): senha errada é credencial recusada — S12.
+                .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.message").value("Email ou senha incorretos"));
     }
 

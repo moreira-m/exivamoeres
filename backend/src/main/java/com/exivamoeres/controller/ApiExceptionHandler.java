@@ -3,6 +3,7 @@ package com.exivamoeres.controller;
 import com.exivamoeres.domain.exception.BusinessRuleException;
 import com.exivamoeres.domain.exception.ExternalServiceException;
 import com.exivamoeres.domain.exception.ForbiddenOperationException;
+import com.exivamoeres.domain.exception.InvalidCredentialsException;
 import com.exivamoeres.domain.exception.ResourceNotFoundException;
 import com.exivamoeres.domain.exception.TooManyRequestsException;
 import com.exivamoeres.dto.error.ApiErrorResponse;
@@ -40,6 +41,19 @@ public class ApiExceptionHandler {
     @ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
     public ApiErrorResponse handleBusinessRule(BusinessRuleException e) {
         return ApiErrorResponse.of(422, e.getMessage());
+    }
+
+    /**
+     * Credencial que não vale (senha, refresh token). **401**, não 422: quem consome
+     * a API precisa distinguir "autentique de novo" de "corrija o payload".
+     *
+     * Sem `WWW-Authenticate` de propósito: o header faria alguns navegadores abrirem
+     * o diálogo de basic auth, e esta API é Bearer — o cliente já sabe o que fazer.
+     */
+    @ExceptionHandler(InvalidCredentialsException.class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    public ApiErrorResponse handleInvalidCredentials(InvalidCredentialsException e) {
+        return ApiErrorResponse.of(401, e.getMessage());
     }
 
     @ExceptionHandler(ForbiddenOperationException.class)

@@ -63,10 +63,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Igual ao NODE_VERSION do frontend/netlify.toml: o CI tem que compilar na
-      # mesma versão que o deploy. O Vite 7 exige ^20.19.0 || >=22.12.0 — o '20'
-      # anterior resolvia para o último 20.x e funcionava, mas o Node 20 saiu do
-      # suporte e um runner com 20.x antigo quebraria o build sem aviso.
+      # Igual ao NODE_VERSION do netlify.toml: o CI tem que compilar na mesma versão
+      # que o deploy. O piso hoje é do react-router 8 (`>=22.22.0`, declarado em
+      # engines do package.json); '22' resolve sempre para o 22.x mais novo, que o
+      # satisfaz. Fixar só o major é de propósito: patch de segurança do Node entra
+      # sem precisar de commit.
       - uses: actions/setup-node@v4
         with:
           node-version: '22'

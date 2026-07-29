@@ -31,9 +31,15 @@ public class CharacterLevelRefreshScheduler {
     public void refreshLevels() {
         try {
             refreshService.refreshStaleTeamCharacters();
-        } catch (Exception e) {
-            // O scheduler nunca pode morrer: loga e espera o próximo ciclo.
-            log.error("character.level_refresh.cycle_error error={}", e.toString(), e);
+        } catch (RuntimeException e) {
+            // Loga e **relança**: o agendamento sobrevive de qualquer forma (o
+            // ErrorHandler padrão do Spring registra e suprime, mantendo o próximo
+            // ciclo), mas engolir a exceção aqui fazia a observação automática do
+            // job (`tasks.scheduled.execution`) marcar `outcome=SUCCESS` num ciclo
+            // que falhou — ou seja, a métrica mentia justamente no caso que
+            // interessa. Ver NEXT_STEPS T7.
+            log.error("character.level_refresh.cycle_error error={}", e.toString());
+            throw e;
         }
     }
 }

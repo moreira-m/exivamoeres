@@ -152,6 +152,24 @@ management:
       # Railway), então "autorizado" incluía qualquer conta — e o detalhe conta
       # status do banco e do disco. Público não detalha.
       show-details: never
+  metrics:
+    tags:
+      # Tag em TODA métrica. Existe porque um coletor gratuito (Grafana Cloud e
+      # afins) costuma receber séries de mais de um projeto/ambiente: sem isto,
+      # "a latência subiu" não diz de onde. `environment` vem do ambiente para
+      # produção e dev não se misturarem no mesmo gráfico.
+      application: exivamoeres
+      environment: ${APP_ENVIRONMENT:dev}
+    distribution:
+      # Sem isto, `http_server_requests_seconds` só tem contagem e soma — dá
+      # média, e média esconde exatamente o que se procura (a cauda). Percentis
+      # do lado do cliente, não histograma: bem mais barato em número de séries,
+      # que é o que aperta em free tier.
+      # ⚠️ Percentil calculado na instância NÃO agrega entre réplicas. Com mais
+      # de uma, troque por `percentiles-histogram: true` e calcule no Prometheus.
+      percentiles:
+        http.server.requests: 0.95,0.99
+        tasks.scheduled.execution: 0.95
 
 logging:
   level:

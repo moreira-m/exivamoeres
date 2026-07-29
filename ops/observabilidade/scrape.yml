@@ -1,0 +1,38 @@
+# Exemplo de scraping do Exivamoeres para Prometheus / Grafana Agent.
+#
+# Este arquivo é referência, não configuração ativa: quem faz o scraping é um
+# serviço fora deste repositório (Grafana Cloud, Prometheus próprio). Está aqui
+# para o `job` e o header de autenticação não serem redescobertos por tentativa e
+# erro — e porque as regras de `alertas.yml` dependem de `job="exivamoeres"`.
+#
+# ⚠️ O token NÃO vai neste arquivo. Use o mecanismo de segredo do seu coletor
+# (no Grafana Agent, `authorization.credentials_file`, ou variável de ambiente).
+
+scrape_configs:
+  - job_name: exivamoeres
+    metrics_path: /actuator/prometheus
+    scheme: https
+    # 30s dá granularidade suficiente para os alertas de 5m e não estoura o free
+    # tier de nenhum coletor conhecido.
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['SEU-BACKEND.up.railway.app']
+    # O endpoint não aceita sessão de usuário: o segredo é o X-Actuator-Token,
+    # conferido em tempo constante pelo SecurityConfig (ver
+    # new-features/actuator-fechado.md). Sem ele, 401 — inclusive para admin.
+    http_headers:
+      X-Actuator-Token:
+        secrets:
+          - '<use o mecanismo de segredo do coletor>'
+
+# Checklist antes de considerar ligado:
+#
+#   1. ACTUATOR_ENDPOINTS=health,metrics,prometheus no Railway
+#   2. ACTUATOR_TOKEN definido (openssl rand -base64 32) — mesmo valor no coletor
+#   3. APP_ENVIRONMENT=prod (senão as séries de produção entram como "dev" e as
+#      regras de alerta, que filtram environment="prod", nunca disparam)
+#   4. curl -s -o /dev/null -w '%{http_code}' <API>/actuator/prometheus            → 401
+#   5. curl -s -o /dev/null -w '%{http_code}' -H "X-Actuator-Token: $TOKEN" ...    → 200
+#   6. up{job="exivamoeres"} == 1 no coletor
+#   7. Importar ops/observabilidade/alertas.yml e disparar um alerta de propósito
+#      (o mais fácil: derrubar o backend por 5 min e esperar o BackendSemMetrica)

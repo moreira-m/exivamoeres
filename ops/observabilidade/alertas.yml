@@ -1,0 +1,162 @@
+# Regras de alerta do Exivamoeres — Prometheus / Grafana Cloud.
+#
+# Por que isto está no repositório e não só no painel: alerta clicado numa UI não
+# tem revisão, não tem histórico e desaparece com a conta. Aqui ele é lido junto
+# com o código que ele vigia.
+#
+# Como usar (Grafana Cloud): Alerting → Alert rules → "Import from Prometheus" e
+# colar este arquivo; ou apontar o Mimir/Prometheus próprio para ele. O passo a
+# passo de ligar o scraping está em `new-features/actuator-fechado.md` §6.
+#
+# ⚠️ Todos os limiares abaixo são **chutes calibrados para um site pequeno com uma
+# instância**. Depois de uma semana de dados, ajuste com o que os gráficos
+# mostrarem: alerta que dispara sem motivo é desligado, e alerta desligado é pior
+# que nenhum.
+#
+# As séries vêm com as tags comuns `application="exivamoeres"` e
+# `environment="prod|dev"` (application.yml → management.metrics.tags), então cada
+# regra filtra por elas — senão dev acorda alguém às 3h.
+
+groups:
+  - name: exivamoeres-disponibilidade
+    interval: 1m
+    rules:
+      # ---------------------------------------------------------------------
+      # O alerta que o item T7 pedia primeiro: "taxa de 5xx acima de X por 5
+      # minutos". É o único que significa **o site está quebrado para alguém**.
+      # ---------------------------------------------------------------------
+      - alert: TaxaDeErro5xxAlta
+        expr: |
+          sum(rate(http_server_requests_seconds_count{application="exivamoeres",environment="prod",outcome="SERVER_ERROR"}[5m]))
+            /
+          sum(rate(http_server_requests_seconds_count{application="exivamoeres",environment="prod"}[5m]))
+            > 0.02
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Mais de 2% das requisições estão devolvendo 5xx"
+          description: >-
+            Proporção de 5xx em 5 minutos acima de 2%. Comece pela rota:
+            topk(5, sum by (uri) (rate(http_server_requests_seconds_count{outcome="SERVER_ERROR"}[5m]))).
+            ⚠️ Parâmetro de query inválido também vira 5xx hoje (NEXT_STEPS S11),
+            então confira se não é um crawler mandando lixo antes de procurar bug.
+
+      # O app respondendo mas sem chegar métrica nenhuma = instância morta ou
+      # scraping quebrado. Sem esta regra, "silêncio" parece "tudo bem".
+      - alert: BackendSemMetrica
+        expr: absent(up{job="exivamoeres"}) == 1 or up{job="exivamoeres"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "O coletor não está conseguindo ler o /actuator/prometheus"
+          description: >-
+            Ou a instância caiu, ou o ACTUATOR_TOKEN mudou e o scraping virou 401.
+            Confira o health público primeiro: curl -sf <API>/actuator/health.
+
+  - name: exivamoeres-dependencias
+    interval: 1m
+    rules:
+      # ---------------------------------------------------------------------
+      # Circuit breaker da TibiaData aberto = ninguém consegue verificar
+      # personagem nem entrar em time. Hoje o breaker é compartilhado por todos
+      # os fluxos (NEXT_STEPS S3), então aberto significa "o produto travou".
+      # ---------------------------------------------------------------------
+      - alert: CircuitBreakerTibiaDataAberto
+        expr: resilience4j_circuitbreaker_state{application="exivamoeres",environment="prod",state="open"} == 1
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Circuit breaker da TibiaData aberto há 2 minutos"
+          description: >-
+            Claim, entrada em time e refresh de level param enquanto ele estiver
+            aberto. Confira se a TibiaData está fora (https://api.tibiadata.com)
+            antes de mexer em qualquer coisa aqui.
+
+      # Pool saturado aparece como espera para *pegar* conexão. É o sintoma que
+      # antecede o timeout, e dá tempo de agir antes de o usuário ver erro.
+      - alert: PoolDeConexoesEsperando
+        expr: hikaricp_connections_pending{application="exivamoeres",environment="prod"} > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Requisições esperando conexão do banco há 5 minutos"
+          description: >-
+            Alguma consulta está segurando conexão por muito tempo, ou o pool está
+            pequeno para o tráfego. Cruze com a latência por rota antes de aumentar
+            o pool — pool maior costuma esconder consulta ruim.
+
+  - name: exivamoeres-jobs
+    interval: 5m
+    rules:
+      # ---------------------------------------------------------------------
+      # Ciclo de job falhando. Isto só funciona porque os schedulers passaram a
+      # **relançar** a exceção (T7): antes eles engoliam o erro e a observação
+      # marcava `outcome=SUCCESS` num ciclo que falhou.
+      # ---------------------------------------------------------------------
+      - alert: JobFalhandoTodoCiclo
+        expr: |
+          sum by (code_function) (
+            rate(tasks_scheduled_execution_seconds_count{application="exivamoeres",environment="prod",outcome="ERROR"}[15m])
+          ) > 0
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "O job {{ $labels.code_function }} está falhando"
+          description: >-
+            Nenhum usuário vê este erro: claim deixa de ser verificado, time deixa
+            de expirar ou level deixa de atualizar, e o site continua "de pé".
+            O log tem a causa (chaves *.cycle_error).
+
+      # ---------------------------------------------------------------------
+      # Job que simplesmente PAROU. É o modo de falha mais silencioso do sistema:
+      # sem execução, não há série com `outcome=ERROR` para disparar o alerta
+      # acima — o gráfico fica reto e parece saudável.
+      # O claim roda a cada 15 min (CLAIM_POLL_INTERVAL): 45 min sem execução é
+      # três ciclos perdidos.
+      # ---------------------------------------------------------------------
+      - alert: JobDeClaimParou
+        # As duas metades importam: `increase == 0` pega o job que travou depois de
+        # ter rodado, e `absent(...)` pega o que **nunca** rodou — nesse caso a série
+        # não existe, e sem o `absent` a expressão não retorna amostra nenhuma e o
+        # alerta fica em silêncio justamente no pior cenário. O `for: 10m` cobre a
+        # janela normal de boot (o job tem initialDelay de 1 min).
+        expr: |
+          increase(
+            tasks_scheduled_execution_seconds_count{application="exivamoeres",environment="prod",code_function="verifyPendingClaims"}[45m]
+          ) == 0
+          or absent(
+            tasks_scheduled_execution_seconds_count{application="exivamoeres",environment="prod",code_function="verifyPendingClaims"}
+          )
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "O job de verificação de claim não roda há 45 minutos"
+          description: >-
+            Todo mundo que colou o código no comment fica esperando para sempre, e
+            a fila de PENDING só cresce. Confira se a instância reiniciou em loop.
+
+  - name: exivamoeres-abuso
+    interval: 5m
+    rules:
+      # 429 em volume não é ataque: quase sempre é limite calibrado errado
+      # punindo gente legítima. Por isso é warning, e por isso o texto manda
+      # olhar a rota antes de concluir qualquer coisa.
+      - alert: MuitosBloqueiosDeRateLimit
+        expr: |
+          sum(rate(http_server_requests_seconds_count{application="exivamoeres",environment="prod",status="429"}[10m])) > 0.2
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Volume alto de 429 (mais de ~12/min por 10 minutos)"
+          description: >-
+            Veja qual rota está estourando:
+            topk(5, sum by (uri) (rate(http_server_requests_seconds_count{status="429"}[10m]))).
+            Se for /api/auth/anonymous, provavelmente é um humano tentando entrar e
+            o limite de 3/hora está apertado demais para o caso real.

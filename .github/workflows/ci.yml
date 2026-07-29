@@ -46,7 +46,7 @@ jobs:
       # (stack trace de cada teste) fica aqui para download.
       - name: Guardar os relatórios do Surefire
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: surefire-reports
           path: backend/target/surefire-reports/
@@ -208,7 +208,7 @@ jobs:
       # trace de cada teste que reprovou, e o log do backend explica os 5xx.
       - name: Guardar o relatório e os logs
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-report
           path: |

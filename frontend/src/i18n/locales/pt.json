@@ -250,7 +250,7 @@
     "none": "Este time aceita qualquer vocação.",
     "define": "Definir composição",
     "edit": "Editar composição",
-    "editHint": "Vaga ocupada não pode mudar de vocação — libere a vaga antes. Deixar tudo em \"qualquer\" remove a composição.",
+    "editHint": "A composição nova precisa caber em quem já está no time: reordenar as vagas é permitido, e o servidor recusa dizendo quem ficaria de fora. Deixar tudo em \"qualquer\" remove a composição.",
     "missing": "faltam: {{list}}",
     "freeSlots_one": "{{count}} vaga livre",
     "freeSlots_other": "{{count}} vagas livres"

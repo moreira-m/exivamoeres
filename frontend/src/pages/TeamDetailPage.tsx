@@ -381,7 +381,7 @@ function SlotsCard({
 
       {editing ? (
         <>
-          <SlotComposer value={draft} onChange={setDraft} disabledPositions={ocupadas} />
+          <SlotComposer value={draft} onChange={setDraft} occupiedPositions={ocupadas} />
           <p className="mt-2 text-sm font-bold text-ink/60">{t('slots.editHint')}</p>
           {error && <p className="mt-2 font-bold text-accent">{error}</p>}
           <div className="mt-3 flex flex-wrap gap-2">

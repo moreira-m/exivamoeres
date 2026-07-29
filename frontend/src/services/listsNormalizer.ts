@@ -1,3 +1,4 @@
+import { arrayOrEmpty, pageOrEmpty } from './apiShapes'
 import type { ListDetailResponse, ListSummaryResponse, Page } from '../types/api'
 
 /**
@@ -15,9 +16,11 @@ import type { ListDetailResponse, ListSummaryResponse, Page } from '../types/api
  * time sem composição significa.
  */
 export function normalizeSummary(summary: ListSummaryResponse): ListSummaryResponse {
-  // Identidade quando já veio certo: o React Query compara referências, e clonar
-  // à toa faria a tela remontar sem motivo.
-  return Array.isArray(summary.slots) ? summary : { ...summary, slots: [] }
+  // `arrayOrEmpty` devolve o mesmo array quando já veio certo, então a comparação
+  // por referência abaixo é o que preserva a identidade do objeto inteiro (o React
+  // Query compara referências: clonar à toa remontaria a tela sem motivo).
+  const slots = arrayOrEmpty(summary.slots)
+  return slots === summary.slots ? summary : { ...summary, slots }
 }
 
 export function normalizeDetail(detail: ListDetailResponse): ListDetailResponse {
@@ -25,7 +28,7 @@ export function normalizeDetail(detail: ListDetailResponse): ListDetailResponse 
   // `members` nunca faltou em API nenhuma até hoje, e é justamente por isso que
   // entra aqui: a tela do time faz `members.find(...)` sem guarda, e a promessa
   // deste módulo é o **contrato inteiro** — garantia parcial é a que engana.
-  const members = Array.isArray(detail.members) ? detail.members : []
+  const members = arrayOrEmpty(detail.members)
   if (summary === detail.summary && members === detail.members) return detail
   return { ...detail, summary, members }
 }
@@ -35,5 +38,6 @@ export function normalizeSummaries(summaries: ListSummaryResponse[]): ListSummar
 }
 
 export function normalizeSummaryPage(page: Page<ListSummaryResponse>): Page<ListSummaryResponse> {
-  return { ...page, content: normalizeSummaries(page.content) }
+  const envelope = pageOrEmpty(page)
+  return { ...envelope, content: normalizeSummaries(envelope.content) }
 }

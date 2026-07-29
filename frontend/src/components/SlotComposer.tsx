@@ -23,12 +23,21 @@ export const MAX_TEAM_SLOTS = 5
 export function SlotComposer({
   value,
   onChange,
-  disabledPositions = [],
+  occupiedPositions = [],
 }: {
   value: (Vocation | null)[]
   onChange: (slots: (Vocation | null)[]) => void
-  /** Posições (1-based) que não podem mudar — vaga ocupada, no caso da edição. */
-  disabledPositions?: number[]
+  /**
+   * Posições (1-based) que têm alguém dentro. Elas são **marcadas**, não travadas:
+   * a regra do backend é "a composição nova precisa caber em quem já está no time"
+   * (reordenar é permitido, e a recusa nomeia quem ficaria de fora).
+   *
+   * Antes esta prop se chamava `disabledPositions` e desabilitava o campo, porque a
+   * primeira versão do P3 tinha a regra "vaga ocupada não muda". A regra mudou no meio
+   * da entrega e a UI ficou para trás, proibindo o que o servidor aceita — ver
+   * NEXT_STEPS P23.
+   */
+  occupiedPositions?: number[]
 }) {
   const { t } = useTranslation()
 
@@ -42,7 +51,7 @@ export function SlotComposer({
     <div className="space-y-2">
       {value.map((vocation, index) => {
         const position = index + 1
-        const travada = disabledPositions.includes(position)
+        const ocupada = occupiedPositions.includes(position)
         return (
           <div key={position} className="flex items-center gap-2">
             <span className="w-16 shrink-0 text-sm font-extrabold uppercase text-ink/60">
@@ -50,9 +59,7 @@ export function SlotComposer({
             </span>
             <Select
               value={vocation ?? ''}
-              disabled={travada}
               onChange={(e) => setAt(index, (e.target.value || null) as Vocation | null)}
-              className={travada ? 'opacity-60' : ''}
             >
               <option value="">{t('slots.any')}</option>
               {SELECTABLE_VOCATIONS.map((v) => (
@@ -61,7 +68,9 @@ export function SlotComposer({
                 </option>
               ))}
             </Select>
-            {travada && (
+            {ocupada && (
+              // Informação, não impedimento: o dono precisa saber quem já está dentro
+              // para escolher uma composição que caiba.
               <span className="shrink-0 text-xs font-bold text-ink/50">{t('slots.occupied')}</span>
             )}
           </div>

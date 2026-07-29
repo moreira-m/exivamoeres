@@ -116,8 +116,20 @@ groups:
       # Job que simplesmente PAROU. É o modo de falha mais silencioso do sistema:
       # sem execução, não há série com `outcome=ERROR` para disparar o alerta
       # acima — o gráfico fica reto e parece saudável.
-      # O claim roda a cada 15 min (CLAIM_POLL_INTERVAL): 45 min sem execução é
-      # três ciclos perdidos.
+      #
+      # São **três regras quase iguais**, uma por job, e não uma com regex. O motivo
+      # é o `absent()`: com um seletor que casa vários jobs, ele só devolve 1 quando
+      # **todas** as séries faltam — então o job que nunca rodou passaria batido
+      # enquanto os outros dois estivessem de pé. Um `absent()` por job é o preço de
+      # cobrir o pior cenário. (Há teste para isso: `alertas-test.yml`.)
+      #
+      # A janela de cada um é **três ciclos perdidos**, e o `for: 10m` cobre a janela
+      # normal de boot (os jobs têm initialDelay de 1–2 min).
+      #
+      # ⚠️ As janelas assumem os intervalos padrão. Se alguém subir
+      # CLAIM_POLL_INTERVAL, TEAM_EXPIRATION_CHECK_INTERVAL ou
+      # CHARACTER_LEVEL_REFRESH_INTERVAL **acima** da janela da regra, o alerta passa
+      # a disparar para sempre — mude os dois juntos.
       # ---------------------------------------------------------------------
       - alert: JobDeClaimParou
         # As duas metades importam: `increase == 0` pega o job que travou depois de
@@ -140,6 +152,44 @@ groups:
           description: >-
             Todo mundo que colou o código no comment fica esperando para sempre, e
             a fila de PENDING só cresce. Confira se a instância reiniciou em loop.
+
+      # Roda a cada 1h (TEAM_EXPIRATION_CHECK_INTERVAL) → janela de 3h.
+      - alert: JobDeExpiracaoDeTimesParou
+        expr: |
+          increase(
+            tasks_scheduled_execution_seconds_count{application="exivamoeres",environment="prod",code_function="archiveExpiredTeams"}[3h]
+          ) == 0
+          or absent(
+            tasks_scheduled_execution_seconds_count{application="exivamoeres",environment="prod",code_function="archiveExpiredTeams"}
+          )
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "O job de expiração de times não roda há 3 horas"
+          description: >-
+            Time vencido **continua aparecendo na busca**: o anúncio mente sobre estar
+            ativo, e quem pede para entrar num time morto não recebe resposta de
+            ninguém. Nenhum usuário reporta isto — não há erro para ele ver.
+
+      # Roda a cada 1h (CHARACTER_LEVEL_REFRESH_INTERVAL) → janela de 3h.
+      - alert: JobDeRefreshDeLevelParou
+        expr: |
+          increase(
+            tasks_scheduled_execution_seconds_count{application="exivamoeres",environment="prod",code_function="refreshStaleTeamCharacters"}[3h]
+          ) == 0
+          or absent(
+            tasks_scheduled_execution_seconds_count{application="exivamoeres",environment="prod",code_function="refreshStaleTeamCharacters"}
+          )
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "O job de refresh de level não roda há 3 horas"
+          description: >-
+            O level exibido congela, e o **level mínimo do time passa a ser cobrado
+            sobre dado velho**: alguém que subiu de nível continua sendo recusado, e
+            alguém que caiu continua aceito. Silencioso do mesmo jeito.
 
   - name: exivamoeres-abuso
     interval: 5m

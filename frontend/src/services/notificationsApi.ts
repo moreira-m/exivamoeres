@@ -1,11 +1,12 @@
 import { apiClient } from './apiClient'
+import { pageOrEmpty } from './apiShapes'
 import type { NotificationResponse, Page } from '../types/api'
 
 export const notificationsApi = {
   list: (page = 0, size = 20) =>
     apiClient
       .get<Page<NotificationResponse>>('/api/notifications', { params: { page, size } })
-      .then((r) => r.data),
+      .then((r) => pageOrEmpty(r.data)),
 
   unreadCount: () =>
     apiClient.get<{ count: number }>('/api/notifications/unread-count').then((r) => r.data.count),

@@ -249,7 +249,7 @@
     "none": "This team accepts any vocation.",
     "define": "Set composition",
     "edit": "Edit composition",
-    "editHint": "A taken slot cannot change vocation — free it first. Setting everything to \"any\" removes the composition.",
+    "editHint": "The new composition has to fit whoever is already on the team: reordering slots is allowed, and the server refuses naming whoever would be left out. Setting everything to \"any\" removes the composition.",
     "missing": "missing: {{list}}",
     "freeSlots_one": "{{count}} open slot",
     "freeSlots_other": "{{count}} open slots"

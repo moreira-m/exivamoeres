@@ -1,0 +1,173 @@
+# Testes das regras de alerta — `promtool test rules`.
+#
+# Por que existem: `promtool check rules` valida **sintaxe**. Uma regra pode estar
+# perfeitamente escrita e não disparar nunca — e a hora de descobrir isso seria o
+# incidente. Estes testes alimentam séries sintéticas e afirmam quem dispara e quem
+# não dispara.
+#
+# Rodar (sem instalar nada):
+#   docker run --rm --entrypoint promtool -v "$PWD/ops/observabilidade:/rules:ro" \
+#     prom/prometheus:latest test rules /rules/alertas-test.yml
+#
+# O foco é o grupo `exivamoeres-jobs`, que é o único com lógica de verdade
+# (`increase(...) == 0 or absent(...)`). As outras regras são comparações diretas.
+
+rule_files:
+  - alertas.yml
+
+evaluation_interval: 5m
+
+tests:
+  # -------------------------------------------------------------------------
+  # 1. Job rodando normalmente NÃO dispara.
+  #    É o teste que impede o alerta de virar ruído — e o mais fácil de esquecer.
+  # -------------------------------------------------------------------------
+  - interval: 5m
+    name: os tres jobs rodando de hora em hora nao disparam nada
+    input_series:
+      # Uma execução por hora = +1 a cada 12 amostras de 5 min.
+      - series: 'tasks_scheduled_execution_seconds_count{application="exivamoeres",environment="prod",code_function="verifyPendingClaims",outcome="SUCCESS"}'
+        values: '0+1x60'   # a cada 5 min (o claim roda de 15 em 15)
+      - series: 'tasks_scheduled_execution_seconds_count{application="exivamoeres",environment="prod",code_function="archiveExpiredTeams",outcome="SUCCESS"}'
+        values: '0+1x60'
+      - series: 'tasks_scheduled_execution_seconds_count{application="exivamoeres",environment="prod",code_function="refreshStaleTeamCharacters",outcome="SUCCESS"}'
+        values: '0+1x60'
+    alert_rule_test:
+      - eval_time: 4h
+        alertname: JobDeClaimParou
+        exp_alerts: []
+      - eval_time: 4h
+        alertname: JobDeExpiracaoDeTimesParou
+        exp_alerts: []
+      - eval_time: 4h
+        alertname: JobDeRefreshDeLevelParou
+        exp_alerts: []
+
+  # -------------------------------------------------------------------------
+  # 2. Job que rodou e TRAVOU dispara (o ramo `increase(...) == 0`).
+  # -------------------------------------------------------------------------
+  - interval: 5m
+    name: job de expiracao que travou depois de rodar dispara
+    input_series:
+      # Sobe até 1h e congela: contador parado = nenhum ciclo novo.
+      - series: 'tasks_scheduled_execution_seconds_count{application="exivamoeres",environment="prod",code_function="archiveExpiredTeams",outcome="SUCCESS"}'
+        values: '0+1x12 12x60'
+      # O de claim segue vivo: o alerta dele não pode disparar por tabela.
+      - series: 'tasks_scheduled_execution_seconds_count{application="exivamoeres",environment="prod",code_function="verifyPendingClaims",outcome="SUCCESS"}'
+        values: '0+1x100'
+    alert_rule_test:
+      # 5h depois do congelamento: passou da janela de 3h + os 10 min de `for`.
+      - eval_time: 5h
+        alertname: JobDeExpiracaoDeTimesParou
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              application: exivamoeres
+              environment: prod
+              code_function: archiveExpiredTeams
+              outcome: SUCCESS
+            exp_annotations:
+              summary: "O job de expiração de times não roda há 3 horas"
+              description: >-
+                Time vencido **continua aparecendo na busca**: o anúncio mente sobre estar ativo, e quem pede para entrar num time morto não recebe resposta de ninguém. Nenhum usuário reporta isto — não há erro para ele ver.
+      - eval_time: 5h
+        alertname: JobDeClaimParou
+        exp_alerts: []
+
+  # -------------------------------------------------------------------------
+  # 3. Job que NUNCA rodou dispara (o ramo `absent(...)`).
+  #    Sem ele, a série não existe, a expressão não devolve amostra nenhuma e o
+  #    alerta ficaria calado no pior cenário possível.
+  # -------------------------------------------------------------------------
+  - interval: 5m
+    name: job que nunca rodou dispara pelo absent
+    input_series:
+      # Só o claim existe. As séries dos outros dois nunca nascem.
+      - series: 'tasks_scheduled_execution_seconds_count{application="exivamoeres",environment="prod",code_function="verifyPendingClaims",outcome="SUCCESS"}'
+        values: '0+1x60'
+    alert_rule_test:
+      - eval_time: 1h
+        alertname: JobDeExpiracaoDeTimesParou
+        exp_alerts:
+          # ⚠️ O ramo `absent()` produz as labels do **seletor** — sem `outcome`, que
+          # o seletor não casa. O ramo `increase(...) == 0` produz as labels da
+          # **série**, com `outcome`. Mesmo alerta, conjuntos diferentes de label:
+          # quem rotear alerta por label precisa saber disto.
+          - exp_labels:
+              severity: warning
+              application: exivamoeres
+              environment: prod
+              code_function: archiveExpiredTeams
+            exp_annotations:
+              summary: "O job de expiração de times não roda há 3 horas"
+              description: >-
+                Time vencido **continua aparecendo na busca**: o anúncio mente sobre estar ativo, e quem pede para entrar num time morto não recebe resposta de ninguém. Nenhum usuário reporta isto — não há erro para ele ver.
+      - eval_time: 1h
+        alertname: JobDeRefreshDeLevelParou
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              application: exivamoeres
+              environment: prod
+              code_function: refreshStaleTeamCharacters
+            exp_annotations:
+              summary: "O job de refresh de level não roda há 3 horas"
+              description: >-
+                O level exibido congela, e o **level mínimo do time passa a ser cobrado sobre dado velho**: alguém que subiu de nível continua sendo recusado, e alguém que caiu continua aceito. Silencioso do mesmo jeito.
+      # E o que está vivo continua sem alerta.
+      - eval_time: 1h
+        alertname: JobDeClaimParou
+        exp_alerts: []
+
+  # -------------------------------------------------------------------------
+  # 4. O teste que justifica **uma regra por job** em vez de uma com regex.
+  #
+  #    Com um seletor `code_function=~"a|b"`, o `absent()` só devolveria 1 quando as
+  #    DUAS séries faltassem. Aqui uma existe e a outra não: só o alerta do job
+  #    ausente pode disparar. Se algum dia alguém "simplificar" as três regras numa,
+  #    é este teste que reprova.
+  # -------------------------------------------------------------------------
+  - interval: 5m
+    name: um job ausente dispara sozinho enquanto o outro roda
+    input_series:
+      - series: 'tasks_scheduled_execution_seconds_count{application="exivamoeres",environment="prod",code_function="archiveExpiredTeams",outcome="SUCCESS"}'
+        values: '0+1x60'
+      - series: 'tasks_scheduled_execution_seconds_count{application="exivamoeres",environment="prod",code_function="verifyPendingClaims",outcome="SUCCESS"}'
+        values: '0+1x60'
+    alert_rule_test:
+      - eval_time: 1h
+        alertname: JobDeExpiracaoDeTimesParou
+        exp_alerts: []
+      - eval_time: 1h
+        alertname: JobDeRefreshDeLevelParou
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              application: exivamoeres
+              environment: prod
+              code_function: refreshStaleTeamCharacters
+            exp_annotations:
+              summary: "O job de refresh de level não roda há 3 horas"
+              description: >-
+                O level exibido congela, e o **level mínimo do time passa a ser cobrado sobre dado velho**: alguém que subiu de nível continua sendo recusado, e alguém que caiu continua aceito. Silencioso do mesmo jeito.
+
+  # -------------------------------------------------------------------------
+  # 5. Ciclo que falha dispara `JobFalhandoTodoCiclo` — a regra que só passou a
+  #    funcionar quando os schedulers deixaram de engolir a exceção (T7).
+  # -------------------------------------------------------------------------
+  - interval: 5m
+    name: ciclo com outcome ERROR dispara o alerta de job falhando
+    input_series:
+      - series: 'tasks_scheduled_execution_seconds_count{application="exivamoeres",environment="prod",code_function="verifyPendingClaims",outcome="ERROR"}'
+        values: '0+1x60'
+    alert_rule_test:
+      - eval_time: 1h
+        alertname: JobFalhandoTodoCiclo
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              code_function: verifyPendingClaims
+            exp_annotations:
+              summary: "O job verifyPendingClaims está falhando"
+              description: >-
+                Nenhum usuário vê este erro: claim deixa de ser verificado, time deixa de expirar ou level deixa de atualizar, e o site continua "de pé". O log tem a causa (chaves *.cycle_error).

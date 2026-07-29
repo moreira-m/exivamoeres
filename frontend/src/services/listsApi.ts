@@ -1,4 +1,9 @@
 import { apiClient } from './apiClient'
+import {
+  normalizeDetail,
+  normalizeSummaries,
+  normalizeSummaryPage,
+} from './listsNormalizer'
 import type {
   JoinPolicy,
   Vocation,
@@ -60,15 +65,18 @@ export const listsApi = {
   search: (params: SearchListsParams) =>
     apiClient
       .get<Page<ListSummaryResponse>>('/api/lists/search', { params })
-      .then((r) => r.data),
+      .then((r) => normalizeSummaryPage(r.data)),
 
   get: (id: number) =>
-    apiClient.get<ListDetailResponse>(`/api/lists/${id}`).then((r) => r.data),
+    apiClient.get<ListDetailResponse>(`/api/lists/${id}`).then((r) => normalizeDetail(r.data)),
 
   create: (body: CreateListRequest) =>
-    apiClient.post<ListDetailResponse>('/api/lists', body).then((r) => r.data),
+    apiClient.post<ListDetailResponse>('/api/lists', body).then((r) => normalizeDetail(r.data)),
 
-  mine: () => apiClient.get<ListSummaryResponse[]>('/api/lists/mine').then((r) => r.data),
+  mine: () =>
+    apiClient
+      .get<ListSummaryResponse[]>('/api/lists/mine')
+      .then((r) => normalizeSummaries(r.data)),
 
   /** Pedidos de entrada do próprio usuário (pendentes e recusados). */
   myRequests: () =>
@@ -83,20 +91,26 @@ export const listsApi = {
    * regra é outra — vaga ocupada não muda, e lista vazia remove a composição.
    */
   replaceSlots: (id: number, slots: (Vocation | null)[]) =>
-    apiClient.put<ListDetailResponse>(`/api/lists/${id}/slots`, { slots }).then((r) => r.data),
+    apiClient
+      .put<ListDetailResponse>(`/api/lists/${id}/slots`, { slots })
+      .then((r) => normalizeDetail(r.data)),
 
   update: (id: number, body: UpdateListRequest) =>
-    apiClient.patch<ListDetailResponse>(`/api/lists/${id}`, body).then((r) => r.data),
+    apiClient
+      .patch<ListDetailResponse>(`/api/lists/${id}`, body)
+      .then((r) => normalizeDetail(r.data)),
 
   join: (shareCode: string, characterId: number) =>
     apiClient
       .post<ListDetailResponse>(`/api/lists/${shareCode}/join`, { characterId })
-      .then((r) => r.data),
+      .then((r) => normalizeDetail(r.data)),
 
   leave: (id: number) => apiClient.post<void>(`/api/lists/${id}/leave`).then(() => undefined),
 
   renew: (id: number) =>
-    apiClient.post<ListDetailResponse>(`/api/lists/${id}/renew`).then((r) => r.data),
+    apiClient
+      .post<ListDetailResponse>(`/api/lists/${id}/renew`)
+      .then((r) => normalizeDetail(r.data)),
 
   kickMember: (id: number, membershipId: number) =>
     apiClient.delete<void>(`/api/lists/${id}/members/${membershipId}`).then(() => undefined),

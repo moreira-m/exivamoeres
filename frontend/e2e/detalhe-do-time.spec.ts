@@ -26,6 +26,43 @@ test('o time da busca abre com conteúdo, sem erro de console nem de rede', asyn
   await expect(page.getByText(/Couldn't load this/i)).toHaveCount(0)
 })
 
+test('resposta sem a composição (API mais antiga que o site) não derruba a página', async ({
+  page,
+}) => {
+  const id = await primeiroTimeDaBusca()
+  test.skip(id === null, 'Nenhum time ativo no banco de dev — nada para abrir.')
+
+  // Site e API sobem separados: durante um deploy o site novo conversa com a API
+  // antiga, que responde **sem** `slots`. Era o bastante para `team.slots.length`
+  // estourar e deixar a tela do time em branco. Aqui a resposta é a de verdade,
+  // só que com o campo removido — o mesmo que o usuário recebia em produção.
+  const detalhe = (await (await fetch(`${API_BASE}/api/lists/${id}`)).json()) as {
+    summary: Record<string, unknown>
+    members?: unknown
+  }
+  delete detalhe.summary.slots
+  // `members` some junto: é a outra lista que a tela percorre sem guarda, e o
+  // ponto do teste é o contrato inteiro — não o campo de hoje.
+  delete detalhe.members
+
+  await page.route(`**/api/lists/${id}`, (route) =>
+    route.fulfill({
+      status: 200,
+      // A resposta é servida como se viesse do backend (outra origem), então
+      // precisa do CORS — sem isto o navegador a descarta e o teste reprovaria
+      // por rede, não pelo que veio verificar.
+      headers: { 'content-type': 'application/json', 'access-control-allow-origin': '*' },
+      body: JSON.stringify(detalhe),
+    }),
+  )
+
+  await visit(page, `/teams/${id}`)
+
+  const main = page.locator('main')
+  await expect(main).toContainText(/World/i)
+  await expect(main).toContainText(/members/i)
+})
+
 test('id que não existe diz "time não encontrado" (e não "não deu para carregar")', async ({
   page,
   problems,

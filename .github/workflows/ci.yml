@@ -83,3 +83,138 @@ jobs:
       # produção — os níveis 1 e 3 de verificação do TESTS.md.
       - name: Compilar o build de produção
         run: npm run build
+
+  # ---------------------------------------------------------------------------
+  # Testes de navegação: abrem cada página num Chromium real, contra o backend e
+  # o banco de verdade. É o job mais caro do CI e o único que precisa de dois
+  # processos de pé — por isso ele é um job separado, e não um passo do frontend.
+  #
+  # Roda em paralelo com os outros dois: nada aqui depende do resultado deles, e
+  # serializar só faria o feedback demorar mais.
+  # ---------------------------------------------------------------------------
+  e2e:
+    name: Navegação (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    services:
+      # As credenciais têm que casar com o que o application.yml espera: o
+      # DATABASE_URL padrão já aponta para localhost:5432/exivamoeres, então só a
+      # senha precisa ser passada para o backend (POSTGRES_PASSWORD, abaixo).
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: exivamoeres
+          POSTGRES_USER: exivamoeres
+          POSTGRES_PASSWORD: ci-postgres
+        ports:
+          - 5432:5432
+        # Sem o healthcheck, o backend sobe antes do banco aceitar conexão e o
+        # Flyway falha no boot.
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: temurin
+          cache: maven
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      # -DskipTests de propósito: a suíte de backend é o job `backend`. Aqui o jar
+      # é só o servidor que as páginas vão consultar — rodar 201 testes de novo
+      # dobraria o tempo do CI sem cobrir nada novo.
+      - name: Compilar o jar do backend
+        working-directory: backend
+        run: mvn -B --no-transfer-progress -DskipTests package
+
+      # O suíte reprova qualquer requisição 4xx/5xx, e a home chama /api/worlds,
+      # que no backend vira chamada de verdade à api.tibiadata.com. Sem o stub, o
+      # job dependeria de uma API pública de terceiro estar de pé e não bloquear o
+      # IP do runner — receita conhecida de job que falha sem culpa do código.
+      - name: Subir o stub da TibiaData
+        run: |
+          python3 ops/ci/tibiadata-stub.py 8081 > tibiadata-stub.log 2>&1 &
+          for _ in $(seq 1 20); do
+            curl -sf http://localhost:8081/health > /dev/null && exit 0
+            sleep 1
+          done
+          echo "::error::o stub da TibiaData não subiu"; cat tibiadata-stub.log; exit 1
+
+      - name: Subir o backend
+        env:
+          POSTGRES_PASSWORD: ci-postgres
+          # >= 64 bytes (HMAC-SHA512). Valor de teste, público de propósito: este
+          # backend só existe durante o job.
+          JWT_SECRET: chave-de-ci-apenas-para-testes-0123456789-0123456789-0123456789
+          FRONTEND_URL: http://localhost:5173
+          TIBIADATA_BASE_URL: http://localhost:8081
+          # O cache de sessão do suíte (e2e/.auth) começa vazio a cada execução,
+          # então ele cria uma conta anônima — que é limitada a 3/hora por IP. Sem
+          # este teto alto, a terceira execução da hora falharia por motivo que não
+          # tem nada a ver com o código.
+          RATE_LIMIT_ANONYMOUS_PER_HOUR: '100'
+          # A tag `environment` de toda métrica (T7). 'ci' mantém as séries do CI
+          # separadas de dev e de prod, caso um dia este job exporte métrica.
+          APP_ENVIRONMENT: ci
+        run: |
+          java -jar backend/target/*.jar > backend.log 2>&1 &
+          for _ in $(seq 1 60); do
+            curl -sf http://localhost:8080/actuator/health > /dev/null && exit 0
+            sleep 2
+          done
+          echo "::error::o backend não respondeu em 120s"; tail -50 backend.log; exit 1
+
+      # Cinco testes precisam de um time que exista (a página de detalhe e os dois
+      # do ErrorBoundary). Num banco recém-criado eles pulariam em silêncio.
+      # O psql vem da mesma imagem do serviço de banco, em vez do runner: não
+      # depende de qual cliente o ubuntu-latest traz instalado hoje.
+      - name: Semear o time de fixture
+        run: |
+          docker run --rm --network host \
+            -e PGPASSWORD=ci-postgres \
+            -v "$PWD/ops/ci:/seed:ro" \
+            postgres:16-alpine \
+            psql -h localhost -U exivamoeres -d exivamoeres -f /seed/seed-e2e.sql
+
+      - name: Instalar as dependências do frontend
+        working-directory: frontend
+        run: npm ci
+
+      # Só o Chromium: é o único projeto configurado no playwright.config.ts, e
+      # baixar os três navegadores custaria minutos por execução.
+      - name: Instalar o Chromium do Playwright
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      # O próprio Playwright compila o frontend e sobe o `vite preview` na 5173
+      # (webServer do playwright.config.ts).
+      - name: Rodar os testes de navegação
+        working-directory: frontend
+        run: npm run test:e2e
+
+      # O que torna uma falha remota investigável: o relatório tem screenshot e
+      # trace de cada teste que reprovou, e o log do backend explica os 5xx.
+      - name: Guardar o relatório e os logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            frontend/playwright-report/
+            frontend/test-results/
+            backend.log
+            tibiadata-stub.log
+          if-no-files-found: ignore
+          retention-days: 7

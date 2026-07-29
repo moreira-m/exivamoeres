@@ -226,7 +226,11 @@
   "errors": {
     "loadFailed": "Não foi possível carregar.",
     "network": "Não conseguimos falar com o servidor. Confira sua conexão e tente de novo.",
-    "retry": "Tentar de novo"
+    "retry": "Tentar de novo",
+    "crashTitle": "Algo deu errado nesta tela",
+    "crashHelp": "Não foi você: um pedaço da página falhou ao ser desenhado. Recarregar resolve na maioria dos casos.",
+    "reload": "Recarregar a página",
+    "goHome": "Ir para a página inicial"
   },
   "myRequests": {
     "withCharacter": "com {{character}}",

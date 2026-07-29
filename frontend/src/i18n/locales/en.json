@@ -225,7 +225,11 @@
   "errors": {
     "loadFailed": "Couldn't load this.",
     "network": "We couldn't reach the server. Check your connection and try again.",
-    "retry": "Try again"
+    "retry": "Try again",
+    "crashTitle": "Something went wrong on this screen",
+    "crashHelp": "It wasn't you: part of the page failed to render. Reloading fixes it most of the time.",
+    "reload": "Reload the page",
+    "goHome": "Go to the home page"
   },
   "myRequests": {
     "withCharacter": "with {{character}}",

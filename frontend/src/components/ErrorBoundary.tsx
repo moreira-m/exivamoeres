@@ -1,0 +1,74 @@
+import { Component, type ErrorInfo, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
+import { Button } from './ui/Button'
+import { Card } from './ui/Card'
+
+/**
+ * Última linha de defesa contra **tela branca**.
+ *
+ * Um erro lançado durante o render derruba a árvore inteira do React: sem
+ * boundary, o `<div id="root">` fica vazio — sem cabeçalho, sem mensagem, sem
+ * caminho de volta, e com **HTTP 200** para qualquer monitoramento. Foi assim que
+ * um `team.slots.length` num cartão secundário apagou a página do time inteira
+ * quando a API respondeu sem o campo.
+ *
+ * ⚠️ **Não confunda com o [`QueryError`](./ui/QueryError.tsx).** Requisição que
+ * falha é *estado* do React Query e **nunca** chega aqui; boundary pega erro de
+ * *render*. Os dois são necessários e não se substituem.
+ *
+ * Só uma classe pode ser boundary (é o único lugar onde `componentDidCatch`
+ * existe) — daí o componente de classe num projeto que é todo função.
+ */
+interface Props {
+  children: ReactNode
+}
+
+interface State {
+  crashed: boolean
+}
+
+export class ErrorBoundary extends Component<Props, State> {
+  state: State = { crashed: false }
+
+  static getDerivedStateFromError(): State {
+    return { crashed: true }
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    // Não há serviço de erro no projeto (é o T7 do NEXT_STEPS): o console é o
+    // único destino, e `componentStack` é o que diz **qual tela** quebrou —
+    // a mensagem sozinha ("undefined is not an object") não localiza nada.
+    console.error('[ErrorBoundary] erro de render:', error, info.componentStack)
+  }
+
+  render() {
+    return this.state.crashed ? <CrashScreen /> : this.props.children
+  }
+}
+
+/**
+ * A tela de falha. Componente de função separado só para poder usar i18n (a
+ * classe não tem hooks).
+ *
+ * As duas ações são **navegação de verdade** (`location`), não do roteador, de
+ * propósito: depois de um erro de render a árvore está num estado desconhecido, e
+ * remontá-la costuma estourar de novo no mesmo lugar. Recarregar sempre funciona;
+ * um `<Link>` daqui deixaria o usuário preso nesta tela.
+ */
+function CrashScreen() {
+  const { t } = useTranslation()
+  return (
+    <div className="flex min-h-screen items-center justify-center p-4">
+      <Card className="max-w-lg p-6 text-center">
+        <h1 className="mb-2 text-2xl text-ink">{t('errors.crashTitle')}</h1>
+        <p className="mb-5 font-bold text-ink/70">{t('errors.crashHelp')}</p>
+        <div className="flex flex-wrap justify-center gap-2">
+          <Button onClick={() => window.location.reload()}>{t('errors.reload')}</Button>
+          <a href="/" className="inline-flex">
+            <Button variant="neutral">{t('errors.goHome')}</Button>
+          </a>
+        </div>
+      </Card>
+    </div>
+  )
+}

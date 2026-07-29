@@ -9,64 +9,69 @@ import { CreateTeamPage } from './pages/account/CreateTeamPage'
 import { BillingPage } from './pages/account/BillingPage'
 import { NotificationsPage } from './pages/account/NotificationsPage'
 import { NotFoundPage } from './pages/NotFoundPage'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import { ProtectedRoute } from './components/ProtectedRoute'
 
 export function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        {/* Área pública */}
-        <Route path="/" element={<HomePage />} />
-        <Route path="/teams/:id" element={<TeamDetailPage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
+    // O boundary fica FORA do roteador: assim ele pega também um erro do próprio
+    // roteamento, e a tela de falha não depende de contexto nenhum para renderizar.
+    <ErrorBoundary>
+      <BrowserRouter>
+        <Routes>
+          {/* Área pública */}
+          <Route path="/" element={<HomePage />} />
+          <Route path="/teams/:id" element={<TeamDetailPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
 
-        {/* Área logada */}
-        <Route
-          path="/account/characters"
-          element={
-            <ProtectedRoute>
-              <CharactersPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/account/teams"
-          element={
-            <ProtectedRoute>
-              <MyTeamsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/account/teams/new"
-          element={
-            <ProtectedRoute>
-              <CreateTeamPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/account/billing"
-          element={
-            <ProtectedRoute>
-              <BillingPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/account/notifications"
-          element={
-            <ProtectedRoute>
-              <NotificationsPage />
-            </ProtectedRoute>
-          }
-        />
+          {/* Área logada */}
+          <Route
+            path="/account/characters"
+            element={
+              <ProtectedRoute>
+                <CharactersPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/account/teams"
+            element={
+              <ProtectedRoute>
+                <MyTeamsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/account/teams/new"
+            element={
+              <ProtectedRoute>
+                <CreateTeamPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/account/billing"
+            element={
+              <ProtectedRoute>
+                <BillingPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/account/notifications"
+            element={
+              <ProtectedRoute>
+                <NotificationsPage />
+              </ProtectedRoute>
+            }
+          />
 
-        {/* Qualquer outro endereço. Sem esta rota, nenhuma casava e a tela ficava
-            **em branco** — nem cabeçalho, nem explicação. */}
-        <Route path="*" element={<NotFoundPage />} />
-      </Routes>
-    </BrowserRouter>
+          {/* Qualquer outro endereço. Sem esta rota, nenhuma casava e a tela ficava
+              **em branco** — nem cabeçalho, nem explicação. */}
+          <Route path="*" element={<NotFoundPage />} />
+          </Routes>
+      </BrowserRouter>
+    </ErrorBoundary>
   )
 }

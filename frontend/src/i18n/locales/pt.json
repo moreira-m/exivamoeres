@@ -230,7 +230,9 @@
     "crashTitle": "Algo deu errado nesta tela",
     "crashHelp": "Não foi você: um pedaço da página falhou ao ser desenhado. Recarregar resolve na maioria dos casos.",
     "reload": "Recarregar a página",
-    "goHome": "Ir para a página inicial"
+    "goHome": "Ir para a página inicial",
+    "sectionFailed": "Não foi possível mostrar: {{section}}.",
+    "sectionFailedHelp": "O resto da página continua funcionando. Recarregar costuma resolver esta parte."
   },
   "myRequests": {
     "withCharacter": "com {{character}}",
@@ -246,7 +248,7 @@
     "slotN": "Vaga {{position}}",
     "any": "Qualquer",
     "open": "vaga aberta",
-    "occupied": "ocupada",
+    "occupiedBy": "ocupada por {{name}} ({{vocation}})",
     "none": "Este time aceita qualquer vocação.",
     "define": "Definir composição",
     "edit": "Editar composição",

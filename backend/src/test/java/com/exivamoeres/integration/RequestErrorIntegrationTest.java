@@ -15,8 +15,10 @@ import org.springframework.test.web.servlet.MockMvc;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.MediaType.TEXT_PLAIN;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -119,6 +121,34 @@ class RequestErrorIntegrationTest extends IntegrationTestBase {
         mockMvc.perform(post("/api/auth/login").contentType(TEXT_PLAIN).content("x"))
                 .andExpect(status().isUnsupportedMediaType())
                 .andExpect(jsonPath("$.message").value("Esta API aceita apenas application/json."));
+    }
+
+    // ----- Método HTTP errado -----
+
+    @Test
+    void metodoNaoSuportadoRetorna405ComOAllow() throws Exception {
+        // `/api/notifications/unread-count` só existe como GET, e nenhuma outra rota
+        // casa esse caminho — é o cenário que o S14 dizia não existir. Existe: o
+        // exemplo que eu tinha usado (`DELETE /api/lists/search`) só não servia porque
+        // casa com `DELETE /api/lists/{id}`.
+        mockMvc.perform(post("/api/notifications/unread-count")
+                        .header("Authorization", "Bearer " + tokenDeUmUsuarioQualquer()))
+                .andExpect(status().isMethodNotAllowed())
+                // O `Allow` é obrigatório num 405 (RFC 7231) e é o que diz a quem
+                // chamou o que fazer.
+                .andExpect(header().string("Allow", org.hamcrest.Matchers.containsString("GET")))
+                .andExpect(jsonPath("$.message").value("Este endereço não aceita este método HTTP."));
+    }
+
+    @Test
+    void caminhoAmbiguoContinuaRespondendo400() throws Exception {
+        // `DELETE /api/lists/search` **não** é método errado: casa com
+        // `DELETE /api/lists/{id}` e o "search" é um id inválido. 400 é o certo, e este
+        // teste existe para o handler de 405 não "consertar" o que já estava certo.
+        mockMvc.perform(delete("/api/lists/search")
+                        .header("Authorization", "Bearer " + tokenDeUmUsuarioQualquer()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors.id").value("deve ser um número"));
     }
 
     // ----- Caminho inexistente -----

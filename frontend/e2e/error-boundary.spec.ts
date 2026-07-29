@@ -21,7 +21,43 @@ async function primeiroTime(): Promise<number | null> {
   return page.content[0]?.id ?? null
 }
 
-test('erro de render mostra a tela de falha em vez de página em branco', async ({
+test('erro num cartão secundário derruba só o cartão, não a página (T9)', async ({
+  page,
+  problems,
+}) => {
+  // Este teste era o inverso: antes, `slots: [null]` trocava a **página inteira** pela
+  // tela de falha. Com o boundary de seção, o time continua legível e só a composição
+  // vira aviso — melhor que "algo deu errado" no lugar de tudo.
+  const id = await primeiroTime()
+  test.skip(id === null, 'Nenhum time ativo no banco de dev — nada para abrir.')
+
+  problems.allow(/Cannot read properties of null/)
+  problems.allow(/\[ErrorBoundary\]/)
+
+  const detalhe = (await (await fetch(`${API_BASE}/api/lists/${id}`)).json()) as {
+    summary: Record<string, unknown>
+  }
+  detalhe.summary.slots = [null]
+  await page.route(`**/api/lists/${id}`, (route) =>
+    route.fulfill({
+      status: 200,
+      headers: { 'content-type': 'application/json', 'access-control-allow-origin': '*' },
+      body: JSON.stringify(detalhe),
+    }),
+  )
+
+  await page.goto(`/teams/${id}`)
+
+  // O aviso do tamanho do bloco, nomeando o que faltou.
+  await expect(page.getByText(/Couldn't show: Team composition/i)).toBeVisible()
+  // E o time continua na tela: identidade, mundo e membros.
+  await expect(page.locator('main')).toContainText(/World/i)
+  await expect(page.locator('main')).toContainText(/members/i)
+  // A tela cheia de falha **não** aparece.
+  await expect(page.getByText(/Something went wrong on this screen/i)).toHaveCount(0)
+})
+
+test('erro fora de qualquer seção mostra a tela de falha inteira', async ({
   page,
   problems,
 }) => {
@@ -34,10 +70,13 @@ test('erro de render mostra a tela de falha em vez de página em branco', async 
   problems.allow(/Cannot read properties of null/)
   problems.allow(/\[ErrorBoundary\]/)
 
+  // `members` é percorrido **fora** de qualquer boundary de seção (é bloco essencial:
+  // sem membros a página do time não tem propósito), então um item inválido ali é o
+  // caminho para a tela de falha inteira.
   const detalhe = (await (await fetch(`${API_BASE}/api/lists/${id}`)).json()) as {
-    summary: Record<string, unknown>
+    members: unknown[]
   }
-  detalhe.summary.slots = [null]
+  detalhe.members = [null]
 
   await page.route(`**/api/lists/${id}`, (route) =>
     route.fulfill({
@@ -66,9 +105,9 @@ test('a saída da tela de falha leva de volta para a home funcionando', async ({
   problems.allow(/\[ErrorBoundary\]/)
 
   const detalhe = (await (await fetch(`${API_BASE}/api/lists/${id}`)).json()) as {
-    summary: Record<string, unknown>
+    members: unknown[]
   }
-  detalhe.summary.slots = [null]
+  detalhe.members = [null]
   await page.route(`**/api/lists/${id}`, (route) =>
     route.fulfill({
       status: 200,

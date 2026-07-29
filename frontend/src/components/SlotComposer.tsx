@@ -20,24 +20,33 @@ export const MAX_TEAM_SLOTS = 5
  * **Tudo em "qualquer" = time sem composição** (é como o backend normaliza), e é o
  * default: quem não quer restringir não precisa entender a seção.
  */
+/** Quem está numa vaga, na hora de editar a composição. */
+export interface SlotOccupant {
+  /** Posição (1-based) da vaga. */
+  position: number
+  characterName: string
+  vocation: Vocation | null
+}
+
 export function SlotComposer({
   value,
   onChange,
-  occupiedPositions = [],
+  occupants = [],
 }: {
   value: (Vocation | null)[]
   onChange: (slots: (Vocation | null)[]) => void
   /**
-   * Posições (1-based) que têm alguém dentro. Elas são **marcadas**, não travadas:
-   * a regra do backend é "a composição nova precisa caber em quem já está no time"
-   * (reordenar é permitido, e a recusa nomeia quem ficaria de fora).
+   * Quem já está dentro, por vaga. Serve para **marcar**, nunca para travar: a regra
+   * do backend é "a composição nova precisa caber em quem já está no time" (reordenar
+   * é permitido, e a recusa nomeia quem ficaria de fora).
    *
-   * Antes esta prop se chamava `disabledPositions` e desabilitava o campo, porque a
-   * primeira versão do P3 tinha a regra "vaga ocupada não muda". A regra mudou no meio
-   * da entrega e a UI ficou para trás, proibindo o que o servidor aceita — ver
-   * NEXT_STEPS P23.
+   * Mostrar o **nome** é o ponto: sem ele, o dono sabe que a vaga tem alguém e não
+   * quem — e é justamente quem que precisa caber na composição nova. Antes a prop era
+   * `number[]` (só as posições) e antes disso `disabledPositions`, que desabilitava o
+   * campo porque a primeira versão do P3 tinha a regra "vaga ocupada não muda" — regra
+   * que mudou no meio da entrega. Ver NEXT_STEPS P23 e P24.
    */
-  occupiedPositions?: number[]
+  occupants?: SlotOccupant[]
 }) {
   const { t } = useTranslation()
 
@@ -51,7 +60,7 @@ export function SlotComposer({
     <div className="space-y-2">
       {value.map((vocation, index) => {
         const position = index + 1
-        const ocupada = occupiedPositions.includes(position)
+        const ocupante = occupants.find((o) => o.position === position)
         return (
           <div key={position} className="flex items-center gap-2">
             <span className="w-16 shrink-0 text-sm font-extrabold uppercase text-ink/60">
@@ -68,10 +77,17 @@ export function SlotComposer({
                 </option>
               ))}
             </Select>
-            {ocupada && (
-              // Informação, não impedimento: o dono precisa saber quem já está dentro
-              // para escolher uma composição que caiba.
-              <span className="shrink-0 text-xs font-bold text-ink/50">{t('slots.occupied')}</span>
+            {ocupante && (
+              // Informação, não impedimento. As vagas que o dono acrescenta no editor
+              // (o rascunho vai até MAX_TEAM_SLOTS) não têm ocupante e não mostram nada.
+              <span className="shrink-0 text-xs font-bold text-ink/50">
+                {t('slots.occupiedBy', {
+                  name: ocupante.characterName,
+                  vocation: ocupante.vocation
+                    ? t(`enums.vocation.${ocupante.vocation}`)
+                    : t('slots.any'),
+                })}
+              </span>
             )}
           </div>
         )

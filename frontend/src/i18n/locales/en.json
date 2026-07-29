@@ -229,7 +229,9 @@
     "crashTitle": "Something went wrong on this screen",
     "crashHelp": "It wasn't you: part of the page failed to render. Reloading fixes it most of the time.",
     "reload": "Reload the page",
-    "goHome": "Go to the home page"
+    "goHome": "Go to the home page",
+    "sectionFailed": "Couldn't show: {{section}}.",
+    "sectionFailedHelp": "The rest of the page still works. Reloading usually fixes this part."
   },
   "myRequests": {
     "withCharacter": "with {{character}}",
@@ -245,7 +247,7 @@
     "slotN": "Slot {{position}}",
     "any": "Any",
     "open": "open slot",
-    "occupied": "taken",
+    "occupiedBy": "taken by {{name}} ({{vocation}})",
     "none": "This team accepts any vocation.",
     "define": "Set composition",
     "edit": "Edit composition",

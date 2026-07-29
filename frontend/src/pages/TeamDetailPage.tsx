@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
+import { ErrorBoundary } from '../components/ErrorBoundary'
 import { Layout } from '../components/Layout'
 import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
@@ -148,13 +149,23 @@ export function TeamDetailPage() {
 
       {isOwner && team.status === 'ARCHIVED' && <RenewCard listId={listId} />}
 
-      {/* Editar é ação de dono e só em time ativo — o backend recusa o resto. */}
-      {isOwner && isActive && <EditTeamCard listId={listId} detail={detail.data} />}
+      {/* Editar é ação de dono e só em time ativo — o backend recusa o resto.
+          Cercado por boundary de seção: é bloco secundário, e um erro aqui não pode
+          esconder o time de quem só quer ler (T9). */}
+      {isOwner && isActive && (
+        <ErrorBoundary section={t('teamDetail.edit')}>
+          <EditTeamCard listId={listId} detail={detail.data} />
+        </ErrorBoundary>
+      )}
 
       {/* Composição: mostra a todos (é o que faz alguém decidir se serve para ele)
           e deixa o dono reconfigurar as vagas VAZIAS. */}
       {(team.slots.length > 0 || (isOwner && isActive)) && (
-        <SlotsCard listId={listId} slots={team.slots} canEdit={isOwner && isActive} />
+        // Este é o bloco que originou o T9: foi um `team.slots.length` daqui que
+        // derrubou a página do time inteira.
+        <ErrorBoundary section={t('slots.title')}>
+          <SlotsCard listId={listId} slots={team.slots} canEdit={isOwner && isActive} />
+        </ErrorBoundary>
       )}
 
       {team.description && (
@@ -191,7 +202,11 @@ export function TeamDetailPage() {
           {isOwner && isActive && <DeleteTeamCard listId={listId} />}
         </div>
         <div className="space-y-6">
-          {canWrite && <ChatPanel listId={listId} actingCharacterId={canWrite} />}
+          {canWrite && (
+            <ErrorBoundary section={t('chat.title')}>
+              <ChatPanel listId={listId} actingCharacterId={canWrite} />
+            </ErrorBoundary>
+          )}
         </div>
       </div>
     </Layout>
@@ -366,7 +381,15 @@ function SlotsCard({
     }
   }
 
-  const ocupadas = slots.filter((s) => s.characterName != null).map((s) => s.position)
+  // O dado já vem no `TeamSlotResponse` — antes ele era jogado fora ao montar o
+  // rascunho, e o editor só sabia dizer "ocupada".
+  const ocupantes = slots
+    .filter((s) => s.characterName != null)
+    .map((s) => ({
+      position: s.position,
+      characterName: s.characterName as string,
+      vocation: s.characterVocation,
+    }))
 
   return (
     <Card className="mb-6 p-5">
@@ -381,7 +404,7 @@ function SlotsCard({
 
       {editing ? (
         <>
-          <SlotComposer value={draft} onChange={setDraft} occupiedPositions={ocupadas} />
+          <SlotComposer value={draft} onChange={setDraft} occupants={ocupantes} />
           <p className="mt-2 text-sm font-bold text-ink/60">{t('slots.editHint')}</p>
           {error && <p className="mt-2 font-bold text-accent">{error}</p>}
           <div className="mt-3 flex flex-wrap gap-2">

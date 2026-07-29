@@ -8,10 +8,13 @@ import com.exivamoeres.domain.exception.ResourceNotFoundException;
 import com.exivamoeres.domain.exception.TooManyRequestsException;
 import com.exivamoeres.dto.error.ApiErrorResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -134,6 +137,31 @@ public class ApiExceptionHandler {
     public ApiErrorResponse handleUnsupportedMediaType(HttpMediaTypeNotSupportedException e) {
         logClientError("api.unsupported_media_type value={}", String.valueOf(e.getContentType()));
         return ApiErrorResponse.of(415, "Esta API aceita apenas application/json.");
+    }
+
+    /**
+     * Método HTTP que o caminho não aceita (`GET /api/auth/login`,
+     * `POST /api/notifications/unread-count`). Era **500**.
+     *
+     * O `Allow` é obrigatório num 405 pelo RFC 7231, e aqui não tem contraindicação
+     * (diferente do `WWW-Authenticate` no 401, que faz alguns navegadores abrirem o
+     * diálogo de basic auth): é a informação que resolve o problema de quem chamou.
+     *
+     * ⚠️ Só chega aqui caminho **sem ambiguidade**. `DELETE /api/lists/search` casa com
+     * `DELETE /api/lists/{id}` e responde **400** ("id deve ser um número"), que é a
+     * resposta certa — o Spring casou uma rota de verdade.
+     */
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ApiErrorResponse> handleMethodNotSupported(
+            HttpRequestMethodNotSupportedException e) {
+        logClientError("api.method_not_allowed method={}", e.getMethod());
+        HttpHeaders headers = new HttpHeaders();
+        if (e.getSupportedHttpMethods() != null) {
+            headers.setAllow(e.getSupportedHttpMethods());
+        }
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
+                .headers(headers)
+                .body(ApiErrorResponse.of(405, "Este endereço não aceita este método HTTP."));
     }
 
     /**

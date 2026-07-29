@@ -250,5 +250,10 @@
     "missing": "faltam: {{list}}",
     "freeSlots_one": "{{count}} vaga livre",
     "freeSlots_other": "{{count}} vagas livres"
+  },
+  "notFound": {
+    "title": "Página não encontrada",
+    "explanation": "Este endereço não existe no site:",
+    "backHome": "Ir para a página inicial"
   }
 }

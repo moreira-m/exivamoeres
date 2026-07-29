@@ -8,6 +8,7 @@ import { MyTeamsPage } from './pages/account/MyTeamsPage'
 import { CreateTeamPage } from './pages/account/CreateTeamPage'
 import { BillingPage } from './pages/account/BillingPage'
 import { NotificationsPage } from './pages/account/NotificationsPage'
+import { NotFoundPage } from './pages/NotFoundPage'
 import { ProtectedRoute } from './components/ProtectedRoute'
 
 export function App() {
@@ -61,6 +62,10 @@ export function App() {
             </ProtectedRoute>
           }
         />
+
+        {/* Qualquer outro endereço. Sem esta rota, nenhuma casava e a tela ficava
+            **em branco** — nem cabeçalho, nem explicação. */}
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>
   )

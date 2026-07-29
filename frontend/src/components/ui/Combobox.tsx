@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { fuzzyFilter, type FuzzyOption } from '../../lib/fuzzy'
 
@@ -35,6 +35,11 @@ export function Combobox({
   searchable = true,
 }: Props) {
   const { t } = useTranslation()
+  // Liga o <label> ao controle e o controle à lista. É acessibilidade (leitor de
+  // tela anuncia "My vocation, combobox") e é o que dá aos testes de navegação um
+  // seletor estável: `getByLabel(rótulo)` + `getByRole('option', ...)`.
+  const controlId = useId()
+  const listId = `${controlId}-list`
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [highlight, setHighlight] = useState(0)
@@ -95,10 +100,17 @@ export function Combobox({
 
   return (
     <div ref={containerRef} className="relative">
-      <label className="mb-1.5 block text-sm font-extrabold uppercase text-ink">{label}</label>
+      <label htmlFor={controlId} className="mb-1.5 block text-sm font-extrabold uppercase text-ink">
+        {label}
+      </label>
 
       {searchable ? (
         <input
+          id={controlId}
+          role="combobox"
+          aria-expanded={open}
+          aria-controls={listId}
+          aria-autocomplete="list"
           className={triggerClass}
           value={open ? query : selectedLabel}
           placeholder={placeholder ?? allLabel}
@@ -115,7 +127,11 @@ export function Combobox({
         />
       ) : (
         <button
+          id={controlId}
           type="button"
+          aria-haspopup="listbox"
+          aria-expanded={open}
+          aria-controls={listId}
           className={`${triggerClass} flex items-center justify-between text-left`}
           onClick={() => setOpen((o) => !o)}
           onKeyDown={onKeyDown}
@@ -128,11 +144,20 @@ export function Combobox({
       )}
 
       {open && (
-        <ul className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto border-[3px] border-ink bg-surface shadow-retro-sm">
+        <ul
+          id={listId}
+          role="listbox"
+          className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto border-[3px] border-ink bg-surface shadow-retro-sm"
+        >
           {items.map((option, i) => (
-            <li key={option.value || '__all__'}>
+            /* O <li> só existe pela semântica de lista; quem é a opção é o botão. */
+            <li key={option.value || '__all__'} role="presentation">
               <button
                 type="button"
+                role="option"
+                aria-selected={option.value === value}
+                // Seleciona no mousedown para o clique não perder o foco do input
+                // antes de a lista fechar.
                 onMouseDown={(e) => {
                   e.preventDefault()
                   select(option.value)

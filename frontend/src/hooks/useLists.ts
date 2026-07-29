@@ -26,8 +26,18 @@ export function useSearchLists(params: SearchListsParams) {
   })
 }
 
-export function useListDetail(id: number) {
-  return useQuery({ queryKey: ['lists', id], queryFn: () => listsApi.get(id) })
+/**
+ * `enabled = false` para id que não é time (`/teams/abc` → `NaN`): sem isso o app
+ * pede `/api/lists/NaN`, o backend responde 500 e a tela fica ~20s em "carregando"
+ * (as tentativas do React Query) para terminar num erro de servidor — quando a
+ * verdade é simplesmente "este endereço não é um time".
+ */
+export function useListDetail(id: number, enabled = true) {
+  return useQuery({
+    queryKey: ['lists', id],
+    queryFn: () => listsApi.get(id),
+    enabled,
+  })
 }
 
 export function useMyLists() {

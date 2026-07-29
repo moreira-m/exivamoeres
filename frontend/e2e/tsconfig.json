@@ -1,0 +1,12 @@
+{
+  // Os testes rodam em Node (leem arquivo, chamam a API), o app roda no
+  // navegador. Configuração separada para o bundle do site nunca "ver" os tipos
+  // de Node e alguém importar `node:fs` numa página por engano.
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "noEmit": true,
+    "allowImportingTsExtensions": true
+  },
+  "include": [".", "../playwright.config.ts"]
+}

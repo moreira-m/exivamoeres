@@ -249,5 +249,10 @@
     "missing": "missing: {{list}}",
     "freeSlots_one": "{{count}} open slot",
     "freeSlots_other": "{{count}} open slots"
+  },
+  "notFound": {
+    "title": "Page not found",
+    "explanation": "This address doesn't exist on the site:",
+    "backHome": "Go to the home page"
   }
 }

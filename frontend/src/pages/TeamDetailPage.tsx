@@ -38,10 +38,21 @@ export function TeamDetailPage() {
   const { t } = useTranslation()
   const { id } = useParams()
   const listId = Number(id)
-  const detail = useListDetail(listId)
+  // Id de time é inteiro positivo. Qualquer outra coisa na URL não é "erro do
+  // servidor", é endereço que não aponta para time nenhum — e a tela diz isso na
+  // hora, sem gastar requisição.
+  const listIdValido = Number.isInteger(listId) && listId > 0
+  const detail = useListDetail(listId, listIdValido)
   const user = useAuthStore((s) => s.user)
   const myChars = useMyCharacters()
 
+  if (!listIdValido) {
+    return (
+      <Layout>
+        <Card className="p-6 text-center font-bold">{t('teamDetail.notFound')}</Card>
+      </Layout>
+    )
+  }
   if (detail.isLoading) {
     return (
       <Layout>

@@ -39,8 +39,8 @@ groups:
           description: >-
             Proporção de 5xx em 5 minutos acima de 2%. Comece pela rota:
             topk(5, sum by (uri) (rate(http_server_requests_seconds_count{outcome="SERVER_ERROR"}[5m]))).
-            ⚠️ Parâmetro de query inválido também vira 5xx hoje (NEXT_STEPS S11),
-            então confira se não é um crawler mandando lixo antes de procurar bug.
+            Desde 29/07/2026 (S11) requisição malformada e rota inexistente respondem
+            4xx, então 5xx aqui é bug de verdade — não é crawler mandando lixo.
 
       # O app respondendo mas sem chegar métrica nenhuma = instância morta ou
       # scraping quebrado. Sem esta regra, "silêncio" parece "tudo bem".

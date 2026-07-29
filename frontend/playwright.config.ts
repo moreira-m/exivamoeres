@@ -47,7 +47,10 @@ export default defineConfig({
   webServer: {
     command: 'npm run build && npm run preview -- --port 5173 --strictPort',
     url: 'http://localhost:5173',
-    reuseExistingServer: true,
+    // Localmente, reaproveita um preview que já esteja na 5173 (iterar fica rápido).
+    // No CI, nunca: não existe servidor anterior, e reaproveitar esconderia um
+    // build que não aconteceu.
+    reuseExistingServer: !process.env.CI,
     timeout: 120_000,
     stdout: 'ignore',
     stderr: 'pipe',

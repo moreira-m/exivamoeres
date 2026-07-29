@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Navigate, useLocation } from 'react-router-dom'
+import { Navigate, useLocation } from 'react-router'
 import { useAuthStore } from '../store/authStore'
 
 /** Envolve rotas da área logada; sem sessão, manda para /login guardando a origem. */

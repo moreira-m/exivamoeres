@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation } from 'react-router'
 import { Layout } from '../components/Layout'
 import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'

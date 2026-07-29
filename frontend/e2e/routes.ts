@@ -31,6 +31,14 @@ export const PUBLIC_ROUTES: AppRoute[] = [
 
 export const LOGGED_ROUTES: AppRoute[] = [
   { path: '/account/teams', name: 'meus times', access: 'logged', mustShow: /My teams/i },
+  {
+    // `?tab=requests` é o destino do aviso de "pedido em risco" (P18) e depende do
+    // `useSearchParams` do roteador — que é API de roteador, logo assunto de major.
+    path: '/account/teams?tab=requests',
+    name: 'meus times · aba de pedidos',
+    access: 'logged',
+    mustShow: /You have no join requests|Requested on/i,
+  },
   { path: '/account/teams/new', name: 'criar time', access: 'logged', mustShow: /Create team/i },
   { path: '/account/characters', name: 'personagens', access: 'logged', mustShow: /My characters/i },
   { path: '/account/notifications', name: 'notificações', access: 'logged', mustShow: /Notifications/i },
@@ -45,6 +53,6 @@ export const ALL_ROUTES = [...PUBLIC_ROUTES, ...LOGGED_ROUTES]
  * "esquecer" uma rota só omitindo-a.
  */
 export const ROUTES_OUT_OF_SCOPE: Record<string, string> = {
-  '/oauth/callback': 'só faz sentido com o fragmento de token de um provider real',
+  '/oauth/callback': 'não é página, é redirecionador — coberto em oauth-callback.spec.ts',
   '/teams/:id': 'depende de um time existente — coberto em detalhe-do-time.spec.ts',
 }

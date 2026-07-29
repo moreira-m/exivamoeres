@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router'
 import { useUnreadCount } from '../hooks/useNotifications'
 
 /** Sino de notificações com badge de não-lidas (link para a página). */

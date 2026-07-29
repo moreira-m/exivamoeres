@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router'
 import { Layout } from '../components/Layout'
 import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'

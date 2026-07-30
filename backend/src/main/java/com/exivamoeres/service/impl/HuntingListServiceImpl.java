@@ -14,6 +14,7 @@ import com.exivamoeres.domain.Vocation;
 import com.exivamoeres.domain.exception.BusinessRuleException;
 import com.exivamoeres.domain.exception.ForbiddenOperationException;
 import com.exivamoeres.domain.exception.ResourceNotFoundException;
+import com.exivamoeres.dto.error.ErrorCode;
 import com.exivamoeres.dto.list.CreateListRequest;
 import com.exivamoeres.dto.list.JoinListRequest;
 import com.exivamoeres.dto.list.JoinRequestIssue;
@@ -225,7 +226,9 @@ public class HuntingListServiceImpl implements HuntingListService {
         // Trava a linha do time: impede corrida no limite de vagas.
         HuntingList list = listRepository.findByIdForUpdate(listId).orElseThrow();
         if (list.getStatus() != TeamStatus.ACTIVE) {
-            throw new BusinessRuleException("Este time não está aceitando novos membros");
+            throw new BusinessRuleException(ErrorCode.TEAM_NOT_ACCEPTING,
+                    "Este time não está aceitando novos membros")
+                    .with("status", list.getStatus());
         }
 
         Character character = loadOwnedCharacter(request.characterId(), userId);
@@ -242,10 +245,12 @@ public class HuntingListServiceImpl implements HuntingListService {
         membership.setUser(character.getOwner());
 
         if (membership.isActive() && membership.getStatus() == MembershipStatus.APPROVED) {
-            throw new BusinessRuleException("Este personagem já é membro do time");
+            throw new BusinessRuleException(ErrorCode.ALREADY_MEMBER,
+                    "Este personagem já é membro do time");
         }
         if (membership.isActive() && membership.getStatus() == MembershipStatus.PENDING) {
-            throw new BusinessRuleException("Já existe um pedido pendente para este personagem");
+            throw new BusinessRuleException(ErrorCode.PENDING_REQUEST_EXISTS,
+                    "Já existe um pedido pendente para este personagem");
         }
 
         if (list.getJoinPolicy() == JoinPolicy.AUTO_ACCEPT) {
@@ -605,9 +610,10 @@ public class HuntingListServiceImpl implements HuntingListService {
         long activeTeams = listRepository.countByOwnerIdAndStatus(owner.getId(), TeamStatus.ACTIVE);
         int limit = planPolicy.maxActiveTeams(owner.getPlan());
         if (activeTeams >= limit) {
-            throw new BusinessRuleException(
+            throw new BusinessRuleException(ErrorCode.ACTIVE_TEAM_LIMIT,
                     "Você atingiu o limite de " + limit + " times ativos do seu plano. "
-                            + "Conclua, deixe expirar ou assine o premium para criar mais.");
+                            + "Conclua, deixe expirar ou assine o premium para criar mais.")
+                    .with("limit", limit);
         }
     }
 
@@ -615,8 +621,9 @@ public class HuntingListServiceImpl implements HuntingListService {
         long approved = membershipRepository
                 .countByListIdAndActiveTrueAndStatus(listId, MembershipStatus.APPROVED);
         if (approved >= maxMembers) {
-            throw new BusinessRuleException(
-                    "O time está cheio (máximo de " + maxMembers + " jogadores)");
+            throw new BusinessRuleException(ErrorCode.TEAM_FULL,
+                    "O time está cheio (máximo de " + maxMembers + " jogadores)")
+                    .with("max", maxMembers);
         }
     }
 

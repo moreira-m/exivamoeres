@@ -234,7 +234,19 @@
     "goHome": "Ir para a página inicial",
     "sectionFailed": "Não foi possível mostrar: {{section}}.",
     "sectionFailedHelp": "O resto da página continua funcionando. Recarregar costuma resolver esta parte.",
-    "requestId": "Código para reportar:"
+    "requestId": "Código para reportar:",
+    "codes": {
+      "ACTIVE_TEAM_LIMIT": "Você atingiu o limite de {{limit}} times ativos do seu plano. Conclua, deixe expirar ou assine o premium para criar mais.",
+      "ALREADY_MEMBER": "Este personagem já está no time.",
+      "BELOW_MINIMUM_LEVEL": "O time exige level {{minimum}} e {{character}} tem level {{level}}.",
+      "CHARACTER_NOT_FOUND": "Não encontramos {{character}} no Tibia.com — confira o nome.",
+      "FREE_ACCOUNT": "{{character}} é Free Account e não pode participar de times.",
+      "PENDING_REQUEST_EXISTS": "Já existe um pedido pendente para este personagem.",
+      "TEAM_FULL": "O time está cheio (máximo de {{max}} jogadores).",
+      "TEAM_NOT_ACCEPTING": "Este time não está aceitando novos membros.",
+      "VOCATION_WITHOUT_SLOT": "A composição deste time não tem vaga para {{vocation}}.",
+      "WORLD_MISMATCH": "{{character}} é do mundo {{characterWorld}}, e o time é do mundo {{teamWorld}}."
+    }
   },
   "myRequests": {
     "withCharacter": "com {{character}}",

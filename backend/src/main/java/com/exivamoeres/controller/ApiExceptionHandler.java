@@ -43,7 +43,9 @@ public class ApiExceptionHandler {
     @ExceptionHandler(BusinessRuleException.class)
     @ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
     public ApiErrorResponse handleBusinessRule(BusinessRuleException e) {
-        return ApiErrorResponse.of(422, e.getMessage());
+        // `code`/`params` quando a regra já foi convertida (T2); a frase em português vai
+        // sempre, como reserva para as que ainda não foram e para o log.
+        return ApiErrorResponse.coded(422, e.getMessage(), e.getCode(), e.getParams());
     }
 
     /**

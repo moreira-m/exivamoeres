@@ -7,6 +7,7 @@ import com.exivamoeres.domain.MembershipStatus;
 import com.exivamoeres.domain.TeamSlot;
 import com.exivamoeres.domain.Vocation;
 import com.exivamoeres.domain.exception.BusinessRuleException;
+import com.exivamoeres.dto.error.ErrorCode;
 import com.exivamoeres.repository.ListMembershipRepository;
 import com.exivamoeres.repository.TeamSlotRepository;
 import org.springframework.stereotype.Component;
@@ -231,8 +232,9 @@ public class TeamSlotAssigner {
         }
         boolean cabeEmAlguma = slots.stream().anyMatch(s -> s.accepts(vocation));
         if (!cabeEmAlguma) {
-            throw new BusinessRuleException(
-                    "A composição deste time não tem vaga para " + descrever(vocation) + ".");
+            throw new BusinessRuleException(ErrorCode.VOCATION_WITHOUT_SLOT,
+                    "A composição deste time não tem vaga para " + descrever(vocation) + ".")
+                    .with("vocation", descrever(vocation));
         }
     }
 

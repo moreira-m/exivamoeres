@@ -234,7 +234,19 @@
     "goHome": "Go to the home page",
     "sectionFailed": "Couldn't show: {{section}}.",
     "sectionFailedHelp": "The rest of the page still works. Reloading usually fixes this part.",
-    "requestId": "Code to report:"
+    "requestId": "Code to report:",
+    "codes": {
+      "ACTIVE_TEAM_LIMIT": "You reached the limit of {{limit}} active teams on your plan. Finish one, let it expire, or subscribe to premium to create more.",
+      "ALREADY_MEMBER": "This character is already in the team.",
+      "BELOW_MINIMUM_LEVEL": "The team requires level {{minimum}} and {{character}} is level {{level}}.",
+      "CHARACTER_NOT_FOUND": "We couldn't find {{character}} on Tibia.com — check the name.",
+      "FREE_ACCOUNT": "{{character}} is a Free Account and cannot join teams.",
+      "PENDING_REQUEST_EXISTS": "There is already a pending request for this character.",
+      "TEAM_FULL": "The team is full (maximum of {{max}} players).",
+      "TEAM_NOT_ACCEPTING": "This team is not accepting new members.",
+      "VOCATION_WITHOUT_SLOT": "This team's composition has no slot for {{vocation}}.",
+      "WORLD_MISMATCH": "{{character}} is on {{characterWorld}}, and the team is on {{teamWorld}}."
+    }
   },
   "myRequests": {
     "withCharacter": "with {{character}}",

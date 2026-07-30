@@ -194,9 +194,32 @@ export interface Page<T> {
   number: number
 }
 
+/**
+ * Código estável de uma recusa de regra (espelho de `dto/error/ErrorCode.java`).
+ *
+ * A frase de cada um vive em `errors.codes.<CODE>` nos **dois** idiomas — há teste varrendo
+ * esta união. Código que o backend manda e este site não conhece cai no `message`.
+ */
+export type ErrorCode =
+  | 'TEAM_FULL'
+  | 'WORLD_MISMATCH'
+  | 'FREE_ACCOUNT'
+  | 'BELOW_MINIMUM_LEVEL'
+  | 'CHARACTER_NOT_FOUND'
+  | 'VOCATION_WITHOUT_SLOT'
+  | 'ALREADY_MEMBER'
+  | 'PENDING_REQUEST_EXISTS'
+  | 'TEAM_NOT_ACCEPTING'
+  | 'ACTIVE_TEAM_LIMIT'
+
 export interface ApiErrorResponse {
   timestamp: string
   status: number
+  /** Frase em português — reserva de quando não há código traduzível (item T2). */
   message: string
+  /** Presente nas recusas já convertidas; nulo nas demais. */
+  code: ErrorCode | null
+  /** Valores da frase (`max`, `character`, `minimum`…). */
+  params: Record<string, string> | null
   fieldErrors: Record<string, string> | null
 }

@@ -11,7 +11,10 @@ export function ThemeToggle({ className = '' }: { className?: string }) {
     <button
       type="button"
       onClick={toggle}
-      aria-label={t('nav.theme')}
+      // O nome acessível diz **a ação**, não o estado: o botão muda de propósito a
+      // cada clique, e "Tema" não dizia para onde ele vai. As duas chaves existiam
+      // desde sempre e não eram usadas por ninguém (achadas pelo T13).
+      aria-label={t(theme === 'dark' ? 'nav.themeLight' : 'nav.themeDark')}
       className={`flex items-center justify-center border-[3px] border-ink bg-surface px-3 py-1 text-base leading-none text-ink ${className}`}
     >
       {theme === 'dark' ? '☀️' : '🌙'}

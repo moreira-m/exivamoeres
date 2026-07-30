@@ -79,8 +79,26 @@ jobs:
       - name: Instalar as dependências
         run: npm ci
 
-      # O script "build" é "tsc -b && vite build": cobre tipagem e bundle de
-      # produção — os níveis 1 e 3 de verificação do TESTS.md.
+      # T11: quem descobria vulnerabilidade de dependência era alguém lembrando de
+      # rodar `npm audit`. O esperado hoje é **zero** (o S10 fechou os quatro avisos),
+      # então dá para exigir zero sem manter allowlist — que é configuração invisível
+      # justamente sobre o que não se quer esquecer.
+      #
+      # `moderate` e não `high`: os dois avisos do react-router que o S10 tratou eram
+      # moderados, e `high` os deixaria passar. `low` fica de fora porque no
+      # ecossistema npm é ruído com frequência.
+      #
+      # ⚠️ O custo é real: falha publicada numa dependência transitiva reprova o PR de
+      # quem não a causou. É aceitável porque a correção é um upgrade, não uma
+      # investigação. Se atrapalhar, a resposta é `continue-on-error: true` (avisa sem
+      # travar) — nunca allowlist.
+      - name: Conferir vulnerabilidades das dependências
+        run: npm audit --audit-level=moderate
+
+      # O script "build" começa pelo `scripts/i18n-check.mjs` (T13): chave que existe
+      # em um idioma e falta no outro reprova aqui, antes de o deploy publicar uma tela
+      # com texto no idioma errado — ou com a chave crua à mostra. Depois vêm
+      # `tsc -b` e `vite build`, os níveis 1 e 3 de verificação do TESTS.md.
       - name: Compilar o build de produção
         run: npm run build
 

@@ -18,8 +18,8 @@
     "menu": "Menu",
     "language": "Language",
     "theme": "Theme",
-    "themeLight": "Light",
-    "themeDark": "Dark",
+    "themeLight": "Switch to the light theme",
+    "themeDark": "Switch to the dark theme",
     "notifications": "Notifications"
   },
   "home": {

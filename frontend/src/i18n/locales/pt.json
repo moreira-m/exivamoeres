@@ -18,8 +18,8 @@
     "menu": "Menu",
     "language": "Idioma",
     "theme": "Tema",
-    "themeLight": "Claro",
-    "themeDark": "Escuro",
+    "themeLight": "Mudar para o tema claro",
+    "themeDark": "Mudar para o tema escuro",
     "notifications": "Notificações"
   },
   "home": {
@@ -132,7 +132,6 @@
     "noPendingRequests": "Nenhum pedido pendente.",
     "approve": "Aceitar",
     "reject": "Recusar",
-    "suggestions": "Sugestões de próximos bosses",
     "renewInfo": "Este time está arquivado. Renove para reabrir a caçada (consome uma vaga do seu plano).",
     "renewButton": "Renovar time",
     "teamStatusInfo": "Time {{status}}",

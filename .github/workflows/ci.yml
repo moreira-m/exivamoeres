@@ -95,6 +95,13 @@ jobs:
       - name: Conferir vulnerabilidades das dependências
         run: npm audit --audit-level=moderate
 
+      # T5: testes de componente (Vitest + Testing Library). Rodam **antes** do
+      # build porque são o passo mais rápido que reprova por motivo de produto —
+      # validação de formulário, payload da criação, quem pode entrar num time.
+      # Não precisam de backend nem de banco: a camada de `services/` é mockada.
+      - name: Rodar os testes de componente
+        run: npm test
+
       # O script "build" começa pelo `scripts/i18n-check.mjs` (T13): chave que existe
       # em um idioma e falta no outro reprova aqui, antes de o deploy publicar uma tela
       # com texto no idioma errado — ou com a chave crua à mostra. Depois vêm

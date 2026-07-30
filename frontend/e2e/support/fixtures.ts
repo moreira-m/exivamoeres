@@ -1,5 +1,10 @@
 import { test as base, expect, type Page } from '@playwright/test'
-import { describeProblems, watchForProblems, type ProblemWatcher } from './pageProblems'
+import {
+  describeProblems,
+  findBrokenImages,
+  watchForProblems,
+  type ProblemWatcher,
+} from './pageProblems'
 import { API_BASE, ensureSession, type Session } from './session'
 
 /**
@@ -25,7 +30,12 @@ export const test = base.extend<Fixtures>({
       await page.addInitScript(() => localStorage.setItem('exivamoeres-lang', 'en'))
       await use(watcher)
 
-      const encontrados = watcher.list()
+      // Imagem quebrada não é evento: tem que ser **perguntado** à página no fim, e
+      // só faz sentido se alguma foi aberta (teste de unidade de rota não abre).
+      const imagensQuebradas = page.url().startsWith('http')
+        ? await findBrokenImages(page)
+        : []
+      const encontrados = [...watcher.list(), ...imagensQuebradas]
       expect(
         encontrados,
         `A página acusou ${encontrados.length} problema(s) que o usuário não vê:\n` +

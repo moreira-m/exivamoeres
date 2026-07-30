@@ -54,11 +54,11 @@ test('em ambiente local nao vem HSTS', async ({ page }) => {
 })
 
 test('a home carrega debaixo da CSP, e o sprite da TibiaData nao e bloqueado', async ({ page }) => {
-  // Requisição **tentada** é a prova certa para `img-src`: quando a CSP bloqueia,
-  // o navegador nem sai para a rede (e registra erro de console, que o fixture
-  // `problems` reprova). O que a TibiaData responde depois não é assunto da CSP —
-  // e hoje ela está atrás de um desafio da Cloudflare que nunca completa, ver
-  // NEXT_STEPS3 P27.
+  // Requisição **tentada** é a prova certa para `img-src`: quando a CSP bloqueia, o
+  // navegador nem sai para a rede (e registra erro de console, que o fixture
+  // `problems` reprova). O que a TibiaData responde depois não é assunto da CSP — e a
+  // resposta dela é 200 para navegador (a Cloudflare só barra cliente que não é
+  // navegador; ver `new-features/reserva-do-icone.md`).
   const tentativas: string[] = []
   page.on('request', (r) => {
     if (r.url().startsWith('https://static.tibia.com')) tentativas.push(r.url())

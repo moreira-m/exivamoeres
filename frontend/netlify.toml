@@ -13,6 +13,18 @@
 [build.environment]
   NODE_VERSION = "22"
 
+# ⚠️ Os cabeçalhos de segurança (CSP, X-Frame-Options, HSTS…) **não** estão aqui, e
+# isso é de propósito: a CSP precisa liberar a origem do backend em `connect-src`, e
+# essa origem é a variável VITE_API_URL — diferente entre local e produção. Fixá-la
+# neste arquivo seria repetir a URL num segundo lugar e descobrir a divergência
+# quando o chat parasse de conectar.
+#
+# Eles são gerados no build, em `dist/_headers`, a partir de
+# `frontend/src/security/headers.ts` — a mesma função que configura o `vite preview`,
+# o que permite à suíte de navegação rodar debaixo da política de verdade.
+# Se VITE_API_URL não estiver definida, **o build falha** em vez de publicar um site
+# com CSP quebrada.
+
 # SPA: qualquer rota cai no index.html (o React Router resolve no cliente).
 [[redirects]]
   from = "/*"

@@ -232,7 +232,8 @@
     "reload": "Reload the page",
     "goHome": "Go to the home page",
     "sectionFailed": "Couldn't show: {{section}}.",
-    "sectionFailedHelp": "The rest of the page still works. Reloading usually fixes this part."
+    "sectionFailedHelp": "The rest of the page still works. Reloading usually fixes this part.",
+    "requestId": "Code to report:"
   },
   "myRequests": {
     "withCharacter": "with {{character}}",

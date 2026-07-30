@@ -102,6 +102,11 @@ export function TeamDetailPage() {
       <Card className="mb-6 flex flex-wrap items-center gap-4 p-5">
         <CreatureIcon imageUrl={team.targetCreatureImageUrl} name={team.targetCreatureName} size={72} />
         <div className="min-w-0 flex-1">
+          {/* Rótulo do que o número grande significa: sem ele, "Demon" no topo pode
+              ser lido como o nome do time (que aparece logo abaixo). */}
+          <span className="text-xs font-extrabold uppercase tracking-wide text-ink/50">
+            {t('teamDetail.target')}
+          </span>
           <div className="flex flex-wrap items-center gap-2">
             {/* Criatura-alvo em destaque; nome do time abaixo, secundário. */}
             <h1 className="text-3xl text-ink">{team.targetCreatureName}</h1>
@@ -146,6 +151,14 @@ export function TeamDetailPage() {
           </Badge>
         </div>
       </Card>
+
+      {/* Time encerrado: a página abria sem botão de entrar e sem chat, **sem dizer por
+          quê** — e um link de time encerrado continua circulando (compartilhamento,
+          histórico). O `ARCHIVED` tinha o RenewCard para o dono; o `CLOSED` não tinha
+          nada, para ninguém. A frase existia traduzida e nenhuma tela a mostrava. */}
+      {team.status === 'CLOSED' && (
+        <Card className="mb-6 p-4 font-bold text-accent">{t('teamDetail.closedInfo')}</Card>
+      )}
 
       {isOwner && team.status === 'ARCHIVED' && <RenewCard listId={listId} />}
 

@@ -167,6 +167,12 @@ public class SecurityConfig {
         config.setAllowedOrigins(List.of(allowedOrigin));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        // Sem isto, o navegador **esconde** o X-Request-Id do JavaScript: cabeçalho de
+        // resposta em requisição de outra origem só chega ao código se estiver listado
+        // aqui (o frontend fica em outro domínio, sempre). O id existia desde o T6 e a
+        // tela não conseguia mostrá-lo — o que fazia o fluxo "deu erro, me manda o id"
+        // não fechar: quem reporta não tinha o que copiar.
+        config.setExposedHeaders(List.of(RequestIdFilter.HEADER));
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return source;

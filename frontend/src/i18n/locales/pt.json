@@ -232,7 +232,8 @@
     "reload": "Recarregar a página",
     "goHome": "Ir para a página inicial",
     "sectionFailed": "Não foi possível mostrar: {{section}}.",
-    "sectionFailedHelp": "O resto da página continua funcionando. Recarregar costuma resolver esta parte."
+    "sectionFailedHelp": "O resto da página continua funcionando. Recarregar costuma resolver esta parte.",
+    "requestId": "Código para reportar:"
   },
   "myRequests": {
     "withCharacter": "com {{character}}",

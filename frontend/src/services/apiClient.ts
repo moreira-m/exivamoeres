@@ -1,5 +1,6 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import { useAuthStore } from '../store/authStore'
+import { lembrarRequestId } from './requestId'
 
 // Client HTTP centralizado: toda chamada à API passa por aqui.
 export const apiClient = axios.create({
@@ -33,8 +34,14 @@ async function refreshAccessToken(): Promise<string> {
 }
 
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // O id de correlação de **toda** resposta, para a tela de erro de render poder
+    // mostrar o último que passou (o boundary não tem erro HTTP em mãos).
+    lembrarRequestId(response.headers['x-request-id'])
+    return response
+  },
   async (error: AxiosError) => {
+    lembrarRequestId(error.response?.headers?.['x-request-id'])
     const original = error.config as InternalAxiosRequestConfig & { _retried?: boolean }
     const isAuthCall = original?.url?.includes('/api/auth/')
 

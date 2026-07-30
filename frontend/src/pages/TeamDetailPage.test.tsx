@@ -155,6 +155,33 @@ describe('TeamDetailPage — pedir para entrar', () => {
     expect(screen.queryByRole('button', { name: /pedir para entrar/i })).not.toBeInTheDocument()
   })
 
+  it('time encerrado explica que foi encerrado, e nao oferece entrada', async () => {
+    vi.mocked(listsApi.get).mockResolvedValue(
+      detalheDeTime({ id: 7, status: 'CLOSED', hasOpenSlots: false }),
+    )
+    await abrirTime()
+
+    // A frase existia traduzida nos dois idiomas e **nenhuma tela a mostrava** (foi o
+    // verificador de i18n que a encontrou, como chave órfã). Sem ela, a página de um
+    // time encerrado abre sem botão de entrar e sem chat, sem dizer por quê.
+    expect(conteudo().getByText(/este time foi encerrado pelo dono/i)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /pedir para entrar/i })).not.toBeInTheDocument()
+  })
+
+  it('time ativo nao mostra o aviso de encerrado', async () => {
+    await abrirTime()
+
+    expect(conteudo().queryByText(/foi encerrado pelo dono/i)).not.toBeInTheDocument()
+  })
+
+  it('o topo rotula a criatura-alvo', async () => {
+    await abrirTime()
+
+    // Sem o rótulo, "Demon" no topo pode ser lido como o nome do time (que aparece
+    // logo abaixo). Era a outra chave órfã do i18n.
+    expect(conteudo().getByText(/^alvo$/i)).toBeInTheDocument()
+  })
+
   it('falha ao listar personagens nao vira "voce nao tem personagem neste world"', async () => {
     vi.mocked(charactersApi.mine).mockRejectedValue(new Error('rede caiu'))
     await abrirTime()

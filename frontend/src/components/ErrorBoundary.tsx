@@ -2,6 +2,8 @@ import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from './ui/Button'
 import { Card } from './ui/Card'
+import { RequestIdNote } from './ui/RequestIdNote'
+import { ultimoRequestId } from '../services/requestId'
 
 /**
  * Última linha de defesa contra **tela branca**.
@@ -82,6 +84,7 @@ function SectionFailure({ section }: { section: string }) {
     <Card className="mb-6 p-4">
       <p className="font-bold text-accent">{t('errors.sectionFailed', { section })}</p>
       <p className="mt-1 text-sm font-bold text-ink/60">{t('errors.sectionFailedHelp')}</p>
+      <RequestIdNote id={ultimoRequestId()} />
     </Card>
   )
 }
@@ -108,6 +111,10 @@ function CrashScreen() {
             <Button variant="neutral">{t('errors.goHome')}</Button>
           </a>
         </div>
+        {/* Aqui é o **último** id visto, não o do erro: erro de render não tem resposta
+            HTTP em mãos, e a última requisição é quase sempre a que trouxe o dado que
+            quebrou a tela. Quando não houve requisição nenhuma, nada aparece. */}
+        <RequestIdNote id={ultimoRequestId()} />
       </Card>
     </div>
   )

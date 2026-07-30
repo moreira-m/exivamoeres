@@ -28,6 +28,7 @@ export type NotificationType =
   | 'TEAM_MINIMUM_LEVEL_CHANGED'
   | 'JOIN_REQUEST_AT_RISK'
   | 'JOIN_REQUEST_COMPOSITION_MISMATCH'
+  | 'JOIN_REQUEST_FITS_AGAIN'
 
 export interface UserResponse {
   id: number

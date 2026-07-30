@@ -39,5 +39,14 @@ public enum NotificationType {
      * outra e é a frase que importa — "subiu o level mínimo" manda subir de level,
      * "não há vaga para a sua vocação" manda escolher outro personagem ou outro time.
      */
-    JOIN_REQUEST_COMPOSITION_MISMATCH
+    JOIN_REQUEST_COMPOSITION_MISMATCH,
+    /**
+     * O pedido <b>voltou a caber</b>: o dono baixou o level mínimo ou devolveu a vaga da
+     * vocação, e o que impedia a aprovação sumiu (notifica quem pediu).
+     *
+     * <p>É a única boa notícia desta família, e existe porque a má sozinha deixa quem
+     * pediu com uma informação desatualizada: a pessoa desistiu mentalmente do pedido —
+     * às vezes cancelou — sem saber que agora dava.</p>
+     */
+    JOIN_REQUEST_FITS_AGAIN
 }

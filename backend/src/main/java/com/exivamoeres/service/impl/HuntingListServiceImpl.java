@@ -42,6 +42,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -172,6 +173,7 @@ public class HuntingListServiceImpl implements HuntingListService {
         // Guardado ANTES da escrita: é o que decide quem precisa ser avisado.
         String horarioAnterior = list.getHuntSchedule();
         Integer levelAnterior = list.getMinimumLevel();
+        Map<Long, JoinRequestIssue> motivosAntes = motivosDosPedidosPendentes(list);
 
         // Título vazio volta a assumir o nome da criatura — mesma regra da criação.
         list.setName(trimToNull(request.name()) != null
@@ -183,7 +185,7 @@ public class HuntingListServiceImpl implements HuntingListService {
         list.setHuntSchedule(trimToNull(request.huntSchedule()));
         list.setContact(trimToNull(request.contact()));
 
-        notifyRelevantChanges(list, ownerId, horarioAnterior, levelAnterior);
+        notifyRelevantChanges(list, ownerId, horarioAnterior, levelAnterior, motivosAntes);
 
         log.info("list.updated listId={} ownerId={} minimumLevel={}",
                 listId, ownerId, list.getMinimumLevel());
@@ -200,14 +202,14 @@ public class HuntingListServiceImpl implements HuntingListService {
             throw new BusinessRuleException(
                     "Este time não aceita mais alterações; ele está " + list.getStatus());
         }
-        // A composição de antes, para saber **quem passou** a não caber. Sem isto só
-        // daria para avisar "quem não cabe", e quem já não cabia receberia o mesmo
-        // aviso a cada reconfiguração — o recorte de transição do P18.
-        List<Vocation> composicaoAnterior = slotAssigner.compositionOf(listId);
+        // Os motivos de antes, para saber **quem mudou de situação**. Sem isto só daria
+        // para avisar "quem não cabe agora", e quem já não cabia receberia o mesmo aviso
+        // a cada reconfiguração — o recorte de transição do P18.
+        Map<Long, JoinRequestIssue> motivosAntes = motivosDosPedidosPendentes(list);
         slotAssigner.replaceSlots(list, request.slots());
-        int avisados = notifyPendingRequestsWithoutSlot(list, composicaoAnterior);
-        log.info("list.slots.replaced listId={} ownerId={} slots={} pendingWithoutSlot={}",
-                listId, ownerId, request.slots().size(), avisados);
+        Transicoes avisados = notificarMudancaDeElegibilidade(list, motivosAntes);
+        log.info("list.slots.replaced listId={} ownerId={} slots={} pendingWithoutSlot={} pendingFitsAgain={}",
+                listId, ownerId, request.slots().size(), avisados.deixaramDeCaber(), avisados.voltaramACaber());
         return buildDetail(list, ownerId);
     }
 
@@ -679,7 +681,8 @@ public class HuntingListServiceImpl implements HuntingListService {
      * como mudança: um horário que apareceu ou desapareceu muda o combinado.
      */
     private void notifyRelevantChanges(HuntingList list, Long ownerId,
-                                       String horarioAnterior, Integer levelAnterior) {
+                                       String horarioAnterior, Integer levelAnterior,
+                                       Map<Long, JoinRequestIssue> motivosAntes) {
         boolean horarioMudou = !Objects.equals(horarioAnterior, list.getHuntSchedule());
         boolean levelMudou = !Objects.equals(levelAnterior, list.getMinimumLevel());
         if (!horarioMudou && !levelMudou) {
@@ -699,103 +702,115 @@ public class HuntingListServiceImpl implements HuntingListService {
                 notificationService.notifyTeamMinimumLevelChanged(uid, list);
             }
         });
-        int emRisco = levelMudou ? notifyPendingRequestsAtRisk(list, levelAnterior) : 0;
-        log.info("list.updated.notified listId={} scheduleChanged={} minimumLevelChanged={} members={} pendingAtRisk={}",
-                list.getId(), horarioMudou, levelMudou, destinatarios.size(), emRisco);
+        Transicoes pedidos = notificarMudancaDeElegibilidade(list, motivosAntes);
+        log.info("list.updated.notified listId={} scheduleChanged={} minimumLevelChanged={} members={} "
+                        + "pendingAtRisk={} pendingFitsAgain={}",
+                list.getId(), horarioMudou, levelMudou, destinatarios.size(),
+                pedidos.deixaramDeCaber(), pedidos.voltaramACaber());
     }
 
     /**
-     * Avisa quem tem pedido **pendente** que o pedido dele passou a não caber no
-     * requisito — o level mínimo subiu acima do personagem que ele usou.
+     * O motivo de cada pedido <b>pendente</b> não poder ser aprovado, agora — o mesmo
+     * que a aba "meus pedidos" mostra. Valor {@code null} = o pedido cabe.
      *
-     * <p>Três recortes que impedem isto de virar spam:</p>
-     * <ul>
-     *   <li><b>Só a transição.</b> Notifica quem <b>estava</b> dentro do requisito
-     *       e <b>passou</b> a estar fora. Quem já não cabia antes da edição não é
-     *       avisado de novo: subir de 300 para 400 não é notícia nova para quem
-     *       tem level 150 — ele já sabia que não cabia.</li>
-     *   <li><b>Só o level mínimo.</b> Mudança de horário não avisa pendente: quem
-     *       ainda não entrou provavelmente não se organizou em volta do horário.
-     *       (World não é editável, então não existe esse caso.)</li>
-     *   <li><b>Level desconhecido não avisa.</b> Sem o level sincronizado não há
-     *       violação a provar — o mesmo critério do aviso da tela "meus pedidos".</li>
-     * </ul>
-     *
-     * <p>A notificação aponta o time e diz que o pedido corre risco; <b>os números</b>
-     * (requisito atual × level do personagem) ficam na aba "meus pedidos", que já os
-     * calcula. Notificação empurra, tela explica.</p>
-     *
-     * @return quantos solicitantes foram avisados
+     * <p>Chamado <b>antes</b> da escrita para virar a foto do "antes", e de novo depois
+     * para comparar. Comparar motivos, e não campos, é o que faz uma regra só cobrir os
+     * dois gatilhos (level mínimo e composição) e as duas direções (piorou, melhorou).</p>
      */
-    private int notifyPendingRequestsAtRisk(HuntingList list, Integer levelAnterior) {
-        Integer levelAtual = list.getMinimumLevel();
-        if (levelAtual == null) {
-            return 0; // requisito removido: ninguém passou a ficar de fora
-        }
-        List<Long> avisados = membershipRepository
-                .findAllByListIdAndStatusAndActiveTrue(list.getId(), MembershipStatus.PENDING).stream()
-                .filter(m -> passouAFicarDeFora(m.getCharacter().getLevel(), levelAnterior, levelAtual))
-                .map(m -> m.getUser().getId())
-                .distinct()
-                .toList();
-        avisados.forEach(uid -> notificationService.notifyJoinRequestAtRisk(uid, list));
-        return avisados.size();
+    private Map<Long, JoinRequestIssue> motivosDosPedidosPendentes(HuntingList list) {
+        List<Vocation> composicao = slotAssigner.compositionOf(list.getId());
+        Map<Long, JoinRequestIssue> motivos = new HashMap<>();
+        membershipRepository
+                .findAllByListIdAndStatusAndActiveTrue(list.getId(), MembershipStatus.PENDING)
+                .forEach(m -> motivos.put(m.getId(), detectIssue(m, composicao)));
+        return motivos;
+    }
+
+    /** Quantos pedidos mudaram de situação numa edição — para o log dizer o efeito. */
+    private record Transicoes(int deixaramDeCaber, int voltaramACaber) {
     }
 
     /**
-     * Avisa quem tem pedido <b>pendente</b> que a composição nova do time não tem vaga
-     * para a vocação do personagem dele (P21).
+     * Avisa quem tem pedido <b>pendente</b> que a situação dele mudou — nas duas
+     * direções (itens P18, P21 e P19).
      *
-     * <p>Os mesmos recortes do irmão de level ({@link #notifyPendingRequestsAtRisk}),
-     * porque o problema é o mesmo:</p>
+     * <p><b>Só a transição.</b> Compara o motivo de antes com o de agora e avisa apenas
+     * quem <b>atravessou</b> a fronteira:</p>
+     *
+     * <table>
+     *   <tr><th>Antes</th><th>Agora</th><th>Aviso</th></tr>
+     *   <tr><td>cabia</td><td>não cabe</td><td>o da causa: level ou composição</td></tr>
+     *   <tr><td>não cabia</td><td>cabe</td><td><b>voltou a caber</b></td></tr>
+     *   <tr><td>não cabia</td><td>não cabe</td><td>nenhum — não é notícia nova</td></tr>
+     * </table>
+     *
+     * <p>Três consequências desta forma, e as três são o ponto:</p>
      * <ul>
-     *   <li><b>Só a transição.</b> Quem cabia e passou a não caber. Quem já não cabia
-     *       (pediu antes de o dono apertar a composição uma primeira vez) não é
-     *       avisado de novo a cada reordenação.</li>
-     *   <li><b>Composição removida não avisa.</b> Lista vazia = time sem composição =
-     *       todo mundo cabe: ninguém passou a ficar de fora.</li>
-     *   <li><b>Vaga ocupada não conta como falta de vaga.</b> A pergunta é se a
-     *       composição <b>prevê</b> a vocação — pedido para vaga ocupada é legítimo,
-     *       e tratá-lo como problema encheria de aviso todo time cheio.</li>
+     *   <li><b>"Voltou a caber" só quando cabe de verdade.</b> O critério é o motivo
+     *       sumir, não o campo melhorar: quem recuperou a vaga mas continua abaixo do
+     *       level mínimo <b>não</b> é avisado, e quem está fora por world transfer nunca
+     *       é — nenhuma edição do time conserta isso. Aviso de boa notícia para quem
+     *       segue inelegível é pior que o silêncio.</li>
+     *   <li><b>O motivo mais grave manda.</b> Como o {@code detectIssue} devolve um só,
+     *       quem já estava fora por vocação não recebe aviso de level: ele já sabia que
+     *       não cabia, e a conclusão não mudou.</li>
+     *   <li><b>Trocar de motivo não avisa</b> (de level para composição, por exemplo).
+     *       Ver NEXT_STEPS3 P28.</li>
      * </ul>
      *
-     * <p>A notificação diz o time e o motivo; <b>qual</b> vocação ficou sem vaga fica
-     * na aba "meus pedidos", que já recebe o {@code characterVocation}. Notificação
-     * empurra, tela explica — a mesma divisão do P18.</p>
-     *
-     * @return quantos solicitantes foram avisados
+     * <p>A notificação diz o time e a direção; <b>os números</b> ficam na aba "meus
+     * pedidos", que já os calcula. Notificação empurra, tela explica.</p>
      */
-    private int notifyPendingRequestsWithoutSlot(HuntingList list, List<Vocation> composicaoAnterior) {
-        List<Vocation> composicaoAtual = slotAssigner.compositionOf(list.getId());
-        if (composicaoAtual.isEmpty()) {
-            return 0; // composição removida: todo mundo volta a caber
+    private Transicoes notificarMudancaDeElegibilidade(HuntingList list,
+                                                       Map<Long, JoinRequestIssue> motivosAntes) {
+        List<Vocation> composicao = slotAssigner.compositionOf(list.getId());
+        int deixaramDeCaber = 0;
+        int voltaramACaber = 0;
+        for (ListMembership pedido : membershipRepository
+                .findAllByListIdAndStatusAndActiveTrue(list.getId(), MembershipStatus.PENDING)) {
+            // Ausente e "sem motivo" significam a mesma coisa aqui: os dois retratos são
+            // tirados sobre o mesmo conjunto de pedidos, na mesma transação.
+            JoinRequestIssue antes = motivosAntes.get(pedido.getId());
+            JoinRequestIssue agora = detectIssue(pedido, composicao);
+            Long quemPediu = pedido.getUser().getId();
+
+            if (antes == null && agora != null) {
+                deixaramDeCaber += avisarQueDeixouDeCaber(quemPediu, list, agora) ? 1 : 0;
+            } else if (antes != null && agora == null) {
+                notificationService.notifyJoinRequestFitsAgain(quemPediu, list);
+                voltaramACaber++;
+            }
         }
-        List<Long> avisados = membershipRepository
-                .findAllByListIdAndStatusAndActiveTrue(list.getId(), MembershipStatus.PENDING).stream()
-                .filter(m -> passouAFicarSemVaga(m.getCharacter(), composicaoAnterior, composicaoAtual))
-                .map(m -> m.getUser().getId())
-                .distinct()
-                .toList();
-        avisados.forEach(uid -> notificationService.notifyJoinRequestCompositionMismatch(uid, list));
-        return avisados.size();
+        return new Transicoes(deixaramDeCaber, voltaramACaber);
     }
 
-    private boolean passouAFicarSemVaga(Character character,
-                                        List<Vocation> composicaoAnterior,
-                                        List<Vocation> composicaoAtual) {
-        Vocation vocacao = Vocation.fromTibiaData(character.getVocation());
-        boolean cabiaAntes = TeamSlotAssigner.fitsComposition(composicaoAnterior, vocacao);
-        boolean cabeAgora = TeamSlotAssigner.fitsComposition(composicaoAtual, vocacao);
-        return cabiaAntes && !cabeAgora;
-    }
-
-    private boolean passouAFicarDeFora(Integer levelDoPersonagem, Integer minimoAnterior, Integer minimoAtual) {
-        if (levelDoPersonagem == null) {
-            return false;
+    /**
+     * O aviso de má notícia, escolhido pela <b>causa</b>: "subiu o level mínimo" manda
+     * subir de level, "não há vaga para a sua vocação" manda trocar de personagem. Frase
+     * errada é pior que aviso nenhum — leva a pessoa a consertar o que não está quebrado.
+     *
+     * @return se alguém foi avisado
+     */
+    private boolean avisarQueDeixouDeCaber(Long quemPediu, HuntingList list, JoinRequestIssue motivo) {
+        switch (motivo) {
+            case BELOW_MINIMUM_LEVEL -> notificationService.notifyJoinRequestAtRisk(quemPediu, list);
+            case VOCATION_NOT_IN_COMPOSITION ->
+                    notificationService.notifyJoinRequestCompositionMismatch(quemPediu, list);
+            // **Inalcançável por construção**, e é isso que o `log.warn` diz: world não
+            // é editável, então uma edição do time não pode *criar* este motivo — quem
+            // fez world transfer já aparecia com ele nos dois retratos, e cai no ramo de
+            // "não é notícia nova". Não há teste para esta linha porque não há caminho
+            // até ela (a mutação que a transforma em aviso **passa** na suíte, e isso
+            // está registrado em new-features/pedido-que-voltou-a-caber.md §5). Se o
+            // world virar editável algum dia, o aviso aparece no log em vez de a pessoa
+            // receber uma notificação acusando o dono de um transfer que ele não fez.
+            case WORLD_MISMATCH -> {
+                log.warn("list.pending.unexpected_world_mismatch listId={} requesterId={}",
+                        list.getId(), quemPediu);
+                return false;
+            }
         }
-        boolean estavaDeFora = minimoAnterior != null && levelDoPersonagem < minimoAnterior;
-        boolean estaDeFora = levelDoPersonagem < minimoAtual;
-        return estaDeFora && !estavaDeFora;
+        return true;
     }
 
     /**

@@ -47,6 +47,12 @@ public interface NotificationService {
      */
     void notifyJoinRequestCompositionMismatch(Long requesterId, HuntingList list);
 
+    /**
+     * Avisa quem pediu que o pedido <b>voltou a caber</b>: o motivo que impedia a
+     * aprovação sumiu (P19).
+     */
+    void notifyJoinRequestFitsAgain(Long requesterId, HuntingList list);
+
     Page<NotificationResponse> list(Long userId, Pageable pageable);
 
     long countUnread(Long userId);

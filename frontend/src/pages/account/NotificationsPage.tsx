@@ -6,7 +6,7 @@ import { Button } from '../../components/ui/Button'
 import { Spinner } from '../../components/ui/Spinner'
 import { QueryError } from '../../components/ui/QueryError'
 import { useNotifications, useMarkNotificationsRead } from '../../hooks/useNotifications'
-import type { NotificationResponse } from '../../types/api'
+import type { NotificationResponse, NotificationType } from '../../types/api'
 
 export function NotificationsPage() {
   const { t } = useTranslation()
@@ -49,6 +49,20 @@ export function NotificationsPage() {
   )
 }
 
+/**
+ * Os tipos que falam do **pedido de quem recebe**, e por isso levam para a aba "meus
+ * pedidos" em vez da página do time.
+ *
+ * ⚠️ Tipo novo desta família entra aqui também. O
+ * [`JOIN_REQUEST_COMPOSITION_MISMATCH`](../../../NEXT_STEPS.md) ficou de fora quando
+ * nasceu (P21) e caía na página do time — onde não há o motivo nem o botão de cancelar.
+ */
+const SOBRE_O_MEU_PEDIDO = new Set<NotificationType>([
+  'JOIN_REQUEST_AT_RISK',
+  'JOIN_REQUEST_COMPOSITION_MISMATCH',
+  'JOIN_REQUEST_FITS_AGAIN',
+])
+
 function NotificationRow({
   notification: n,
   onRead,
@@ -78,15 +92,14 @@ function NotificationRow({
       )}
     </Card>
   )
-  // Para onde o clique leva: o aviso de pedido em risco tem que cair na aba
-  // "meus pedidos", que é onde estão os números (requisito × level) e o botão de
-  // cancelar. As outras notificações levam para a página do time.
-  const destino =
-    n.type === 'JOIN_REQUEST_AT_RISK'
-      ? '/account/teams?tab=requests'
-      : n.listId != null
-        ? `/teams/${n.listId}`
-        : null
+  // Para onde o clique leva: aviso sobre **o seu pedido** cai na aba "meus pedidos",
+  // que é onde estão os números (requisito × level, vocação) e o botão de cancelar. As
+  // outras notificações levam para a página do time.
+  const destino = SOBRE_O_MEU_PEDIDO.has(n.type)
+    ? '/account/teams?tab=requests'
+    : n.listId != null
+      ? `/teams/${n.listId}`
+      : null
 
   return destino ? (
     <Link to={destino} onClick={onRead} className="block">

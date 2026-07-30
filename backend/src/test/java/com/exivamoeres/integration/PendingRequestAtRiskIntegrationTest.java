@@ -70,30 +70,32 @@ class PendingRequestAtRiskIntegrationTest extends TeamIntegrationTestBase {
     }
 
     @Test
-    void baixarOLevelMinimoNaoAvisa() {
+    void baixarOLevelMinimoAvisaQueOPedidoVoltouACaber() {
         // O pedido só existe se o personagem cabia no requisito na hora de pedir,
         // então "já em risco" se constrói em dois passos: pedir, depois subir.
         Ctx ctx = timeComPedido("LowerWorld", "Lower", 100, 150);
         subirMinimoPara(ctx, 300);
-        long antes = notificationService.countUnread(ctx.requesterId);
 
         subirMinimoPara(ctx, 100); // requisito afrouxou de novo
 
-        // Boa notícia não é avisada hoje (ver "o que ficou de fora" na entrega).
-        assertThat(notificationService.countUnread(ctx.requesterId)).isEqualTo(antes);
+        // ⚠️ Este teste dizia o contrário até 30/07/2026 ("boa notícia não é avisada
+        // hoje") — era a ausência do P19 registrada como comportamento. O P19 fechou a
+        // outra ponta: quem desistiu mentalmente do pedido precisa saber que voltou a
+        // dar. A cobertura de "não avisa" continua, com os casos em que a pessoa
+        // **continua** sem caber (ver PendingRequestFitsAgainIntegrationTest).
+        assertThat(tipos(ctx.requesterId)).contains(NotificationType.JOIN_REQUEST_FITS_AGAIN);
     }
 
     @Test
-    void removerOLevelMinimoNaoAvisa() {
+    void removerOLevelMinimoAvisaQueOPedidoVoltouACaber() {
         Ctx ctx = timeComPedido("NoMinWorld", "NoMin", 100, 150);
         subirMinimoPara(ctx, 300);
-        long antes = notificationService.countUnread(ctx.requesterId);
 
-        // Requisito removido: ninguém passou a ficar de fora.
+        // Requisito removido: todo pedido volta a caber pelo critério de level.
         listService.updateList(ctx.ownerId, ctx.listId,
                 new UpdateListRequest("NoMin Team", null, null, null, null, null));
 
-        assertThat(notificationService.countUnread(ctx.requesterId)).isEqualTo(antes);
+        assertThat(tipos(ctx.requesterId)).contains(NotificationType.JOIN_REQUEST_FITS_AGAIN);
     }
 
     @Test

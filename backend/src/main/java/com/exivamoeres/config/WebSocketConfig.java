@@ -1,5 +1,6 @@
 package com.exivamoeres.config;
 
+import com.exivamoeres.logging.StompMessageIdInterceptor;
 import com.exivamoeres.security.StompAuthChannelInterceptor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
@@ -25,11 +26,14 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final StompAuthChannelInterceptor authChannelInterceptor;
+    private final StompMessageIdInterceptor messageIdInterceptor;
     private final String allowedOrigin;
 
     public WebSocketConfig(StompAuthChannelInterceptor authChannelInterceptor,
+                           StompMessageIdInterceptor messageIdInterceptor,
                            @Value("${app.cors.allowed-origin}") String allowedOrigin) {
         this.authChannelInterceptor = authChannelInterceptor;
+        this.messageIdInterceptor = messageIdInterceptor;
         this.allowedOrigin = allowedOrigin;
     }
 
@@ -46,6 +50,8 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {
-        registration.interceptors(authChannelInterceptor);
+        // Ordem importa: o id vem **antes** da autenticação, para o CONNECT recusado por
+        // JWT inválido também sair marcado — é uma das linhas que mais se quer seguir.
+        registration.interceptors(messageIdInterceptor, authChannelInterceptor);
     }
 }

@@ -10,10 +10,12 @@ import io.github.resilience4j.retry.annotation.Retry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Component;
+import com.exivamoeres.logging.LogContext;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Implementação HTTP da TibiaData API (v4).
@@ -38,6 +40,11 @@ public class TibiaDataApiClient implements TibiaDataClient {
     @Retry(name = "tibiadata")
     @CircuitBreaker(name = "tibiadata")
     public Mono<TibiaCharacterSnapshot> fetchCharacter(String characterName) {
+        // O contexto de log **da thread que chamou** (a da requisição HTTP ou a do job).
+        // Os callbacks abaixo rodam em thread do Reactor, onde o MDC está vazio: sem
+        // levá-lo junto, a linha que diz quanto a TibiaData demorou sai sem correlação —
+        // justamente a que se quer cruzar com "a tela demorou". Ver NEXT_STEPS T15.
+        Map<String, String> contexto = LogContext.capture();
         // pathSegment aplica URL-encoding — nomes do Tibia contêm espaços
         // (ex.: "Kharsek The Great") e viram %20 na URL.
         return webClient.get()
@@ -53,12 +60,12 @@ public class TibiaDataApiClient implements TibiaDataClient {
                         e -> e.getStatusCode().is4xxClientError()
                                 ? Mono.just(TibiaCharacterSnapshot.notFound())
                                 : Mono.error(new ExternalServiceException("Falha ao consultar TibiaData", e)))
-                .doOnSuccess(snapshot -> log.info(
+                .doOnSuccess(snapshot -> LogContext.with(contexto, () -> log.info(
                         "tibiadata.fetch name='{}' found={} world={}",
-                        characterName, snapshot.found(), snapshot.world()))
-                .doOnError(error -> log.warn(
+                        characterName, snapshot.found(), snapshot.world())))
+                .doOnError(error -> LogContext.with(contexto, () -> log.warn(
                         "tibiadata.fetch.error name='{}' error={}",
-                        characterName, error.toString()));
+                        characterName, error.toString())));
     }
 
     private TibiaCharacterSnapshot toSnapshot(TibiaDataCharacterResponse response) {
@@ -74,6 +81,7 @@ public class TibiaDataApiClient implements TibiaDataClient {
     @Retry(name = "tibiadata")
     @CircuitBreaker(name = "tibiadata")
     public Mono<List<String>> fetchWorlds() {
+        Map<String, String> contexto = LogContext.capture();
         return webClient.get()
                 .uri(builder -> builder.pathSegment("v4", "worlds").build())
                 .retrieve()
@@ -82,13 +90,15 @@ public class TibiaDataApiClient implements TibiaDataClient {
                                 new ExternalServiceException("TibiaData respondeu " + response.statusCode(), e)))
                 .bodyToMono(TibiaDataWorldsResponse.class)
                 .map(TibiaDataWorldsResponse::names)
-                .doOnError(error -> log.warn("tibiadata.worlds.error error={}", error.toString()));
+                .doOnError(error -> LogContext.with(contexto, () ->
+                        log.warn("tibiadata.worlds.error error={}", error.toString())));
     }
 
     @Override
     @Retry(name = "tibiadata")
     @CircuitBreaker(name = "tibiadata")
     public Mono<TibiaCreatureSnapshot> fetchCreature(String race) {
+        Map<String, String> contexto = LogContext.capture();
         return webClient.get()
                 .uri(builder -> builder.pathSegment("v4", "creature", race).build())
                 .retrieve()
@@ -104,13 +114,15 @@ public class TibiaDataApiClient implements TibiaDataClient {
                         e -> e.getStatusCode().is4xxClientError()
                                 ? Mono.just(TibiaCreatureSnapshot.notFound())
                                 : Mono.error(new ExternalServiceException("Falha ao consultar TibiaData", e)))
-                .doOnError(error -> log.warn("tibiadata.creature.error race='{}' error={}", race, error.toString()));
+                .doOnError(error -> LogContext.with(contexto, () ->
+                        log.warn("tibiadata.creature.error race='{}' error={}", race, error.toString())));
     }
 
     @Override
     @Retry(name = "tibiadata")
     @CircuitBreaker(name = "tibiadata")
     public Mono<List<TibiaCreatureCatalogEntry>> fetchAllCreatures() {
+        Map<String, String> contexto = LogContext.capture();
         return webClient.get()
                 .uri(builder -> builder.pathSegment("v4", "creatures").build())
                 .retrieve()
@@ -127,7 +139,9 @@ public class TibiaDataApiClient implements TibiaDataClient {
                         e -> e.getStatusCode().is4xxClientError()
                                 ? Mono.just(List.<TibiaCreatureCatalogEntry>of())
                                 : Mono.error(new ExternalServiceException("Falha ao consultar TibiaData", e)))
-                .doOnSuccess(list -> log.info("tibiadata.creatures.fetched count={}", list.size()))
-                .doOnError(error -> log.warn("tibiadata.creatures.error error={}", error.toString()));
+                .doOnSuccess(list -> LogContext.with(contexto, () ->
+                        log.info("tibiadata.creatures.fetched count={}", list.size())))
+                .doOnError(error -> LogContext.with(contexto, () ->
+                        log.warn("tibiadata.creatures.error error={}", error.toString())));
     }
 }

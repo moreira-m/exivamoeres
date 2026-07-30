@@ -51,6 +51,9 @@ public class ChatServiceImpl implements ChatService {
         // Autorização: personagem próprio + membro ativo/aprovado do time.
         Character character = membershipGuard.requireActiveMemberForAction(userId, listId, characterId);
         if (!rateLimiter.tryConsume(userId)) {
+            // O chat não registrava **nada** até 30/07/2026 — nem a recusa. Quem dizia
+            // "mandei e não apareceu" não deixava rastro nenhum no servidor.
+            log.warn("chat.message.rate_limited listId={} userId={}", listId, userId);
             throw new BusinessRuleException("Você está enviando mensagens rápido demais; aguarde um pouco");
         }
 
@@ -68,6 +71,10 @@ public class ChatServiceImpl implements ChatService {
 
         ChatMessageResponse response = ChatMessageResponse.from(message);
         messagingTemplate.convertAndSend(TOPIC_TEMPLATE.formatted(listId), response);
+        // ⚠️ **Tamanho, nunca o conteúdo.** Mensagem de chat é conversa entre pessoas; o
+        // que o log precisa saber é que ela existiu, de quem e para qual time.
+        log.info("chat.message.sent listId={} userId={} characterId={} chars={}",
+                listId, userId, characterId, content.length());
         return response;
     }
 

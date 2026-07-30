@@ -2,6 +2,7 @@ package com.exivamoeres.security;
 
 import com.exivamoeres.domain.MembershipStatus;
 import com.exivamoeres.repository.ListMembershipRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.simp.stomp.StompCommand;
@@ -25,6 +26,7 @@ import java.util.regex.Pattern;
  *   ativo e aprovado do time (senão poderia ler o chat de qualquer time).
  */
 @Component
+@Slf4j
 public class StompAuthChannelInterceptor implements ChannelInterceptor {
 
     private static final String BEARER_PREFIX = "Bearer ";
@@ -59,9 +61,17 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
     private void authenticate(StompHeaderAccessor accessor) {
         AuthenticatedUser user = extractToken(accessor)
                 .flatMap(jwtService::parse)
-                .orElseThrow(() -> new IllegalArgumentException("Token JWT ausente ou inválido no CONNECT"));
+                .orElseThrow(() -> {
+                    // O socket recusado não deixava rastro nenhum: "o chat não conecta"
+                    // era um relato sem nada do lado do servidor para confirmar. A linha
+                    // sai marcada com o `msg-…` do StompMessageIdInterceptor, que roda
+                    // antes deste (ver WebSocketConfig).
+                    log.warn("chat.connect.rejected reason=invalid_or_missing_token");
+                    return new IllegalArgumentException("Token JWT ausente ou inválido no CONNECT");
+                });
         accessor.setUser(new UsernamePasswordAuthenticationToken(
                 user, null, List.of(new SimpleGrantedAuthority("ROLE_USER"))));
+        log.info("chat.connect userId={}", user.id());
     }
 
     private void authorizeSubscription(StompHeaderAccessor accessor) {

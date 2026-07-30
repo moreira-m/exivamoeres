@@ -175,11 +175,20 @@ logging:
   level:
     com.exivamoeres: INFO
   pattern:
-    # O `requestId` do RequestIdFilter em toda linha, logo depois do nível. Sem isto o
-    # MDC existe e ninguém vê: era o que faltava para saber **quais linhas são da mesma
-    # requisição** quando há tráfego concorrente.
+    # O id de correlação em toda linha, logo depois do nível. Sem isto o MDC existe e
+    # ninguém vê: era o que faltava para saber **quais linhas são da mesma coisa** quando
+    # há trabalho concorrente.
     #
-    # `%X{requestId:-}` (com o `:-`) imprime vazio quando não há id — é o caso de tudo
-    # que não nasce de requisição HTTP: boot, jobs @Scheduled e mensagens do chat pelo
-    # WebSocket. Sem o default, o padrão imprimiria a chave literal nessas linhas.
-    level: "%5p [%X{requestId:-}]"
+    # São **três chaves**, uma por origem, e nunca mais de uma ao mesmo tempo:
+    #
+    #   requestId  → requisição HTTP (RequestIdFilter)   ex.: 067c7820-…
+    #   jobRunId   → ciclo de job @Scheduled             ex.: job-3f9a1c22
+    #   msgId      → mensagem do chat pelo WebSocket     ex.: msg-8b21d004
+    #
+    # Chaves separadas porque `requestId` significa "requisição HTTP" e misturar origens
+    # nela faria o log mentir sobre o que é o quê (ver LogContext). O **prefixo** no valor
+    # deixa a origem legível sem precisar saber qual `%X` imprimiu.
+    #
+    # O `:-` imprime vazio quando não há id — o caso do boot e de qualquer coisa fora
+    # dessas três origens. Sem ele, o padrão imprimiria a chave literal nessas linhas.
+    level: "%5p [%X{requestId:-}%X{jobRunId:-}%X{msgId:-}]"

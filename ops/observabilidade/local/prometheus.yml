@@ -1,0 +1,43 @@
+# Prometheus do ensaio local. NÃO é a configuração de produção — essa é a referência
+# em `../scrape.yml`, que fica lá porque quem faz o scraping em produção é um coletor
+# hospedado (Grafana Cloud e afins).
+#
+# Este arquivo existe para uma coisa só: **ver os alertas e o dashboard funcionando de
+# verdade antes de mexer em Railway ou Grafana Cloud** — o mesmo raciocínio do ensaio
+# do job de CI (T8), que achou dois problemas que o YAML não mostrava.
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  # As MESMAS regras que vão para produção, sem cópia nem adaptação. Se elas só
+  # funcionassem numa versão "de teste", o ensaio não provaria nada.
+  - /rules/alertas.yml
+
+scrape_configs:
+  - job_name: exivamoeres
+    metrics_path: /actuator/prometheus
+    static_configs:
+      # O backend roda na máquina, fora do compose.
+      - targets: ['host.docker.internal:8080']
+    # O endpoint não aceita sessão de usuário: o segredo é este header (ver
+    # new-features/actuator-fechado.md). Valor fixo porque é um token **local**;
+    # em produção ele vem do mecanismo de segredo do coletor.
+    http_headers:
+      X-Actuator-Token:
+        values: ['observabilidade-local']
+
+    # ⚠️ O truque que faz o ensaio valer: as regras de alerta filtram
+    # `environment="prod"` (senão o dev de alguém acordaria alguém às 3h). O backend
+    # local roda como `dev`, então **sem isto nenhuma regra dispararia aqui** e o ensaio
+    # daria uma falsa sensação de segurança.
+    #
+    # Reescrever a label no scrape é melhor que subir o backend mentindo
+    # `APP_ENVIRONMENT=prod`: o app continua honesto, e as regras continuam exatamente
+    # as de produção.
+    metric_relabel_configs:
+      - source_labels: [environment]
+        regex: dev
+        target_label: environment
+        replacement: prod

@@ -1,0 +1,12 @@
+# Datasource provisionado: o Grafana do ensaio sobe já apontando para o Prometheus.
+# Zero clique — se ligar a observabilidade exigisse configurar na mão a cada vez,
+# ninguém repetiria o ensaio.
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    uid: prometheus-local
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true

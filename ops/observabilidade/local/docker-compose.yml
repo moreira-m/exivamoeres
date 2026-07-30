@@ -1,0 +1,59 @@
+# Stack de observabilidade local: Prometheus + Grafana, provisionados.
+#
+# Para que serve: **ensaiar** o que só existiria em painel de terceiro. O item T7 pedia
+# "importar as regras e ver um alerta disparar de propósito" — aqui isso acontece na sua
+# máquina, com as MESMAS regras e o MESMO dashboard que vão para produção.
+#
+# Uso:
+#   1. suba o backend com as métricas abertas e o token que o Prometheus espera:
+#
+#        cd backend && set -a && . ../.env && set +a
+#        ACTUATOR_ENDPOINTS=health,metrics,prometheus \
+#        ACTUATOR_TOKEN=observabilidade-local \
+#        JAVA_HOME=$(/usr/libexec/java_home -v 21) mvn spring-boot:run
+#
+#   2. suba a stack:  docker compose -f ops/observabilidade/local/docker-compose.yml up -d
+#   3. Prometheus em http://localhost:9090  ·  Grafana em http://localhost:3000 (anônimo, admin)
+#   4. para ver um alerta disparar: derrube o backend e espere ~5 min pelo BackendSemMetrica
+#   5. no fim:  docker compose -f ops/observabilidade/local/docker-compose.yml down -v
+#
+# ⚠️ Isto NÃO é produção. Produção é Railway (variáveis) + coletor hospedado; a
+# referência de scraping está em ../scrape.yml.
+name: exivamoeres-observabilidade
+
+services:
+  prometheus:
+    image: prom/prometheus:v3.13.1
+    container_name: exivamoeres-prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      # Sem persistência longa: é ensaio, não histórico.
+      - --storage.tsdb.retention.time=2h
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      # As regras vêm do diretório de cima, sem cópia: o ensaio usa o arquivo de verdade.
+      - ../alertas.yml:/rules/alertas.yml:ro
+    extra_hosts:
+      # O backend roda na máquina, não no compose. No Docker Desktop/OrbStack o
+      # host.docker.internal já resolve; no Linux esta linha é o que faz funcionar.
+      - "host.docker.internal:host-gateway"
+
+  grafana:
+    image: grafana/grafana:11.6.1
+    container_name: exivamoeres-grafana
+    depends_on:
+      - prometheus
+    ports:
+      - "3000:3000"
+    environment:
+      # Login desligado: é uma stack descartável na sua máquina, e pedir senha a cada
+      # ensaio é o tipo de atrito que faz ninguém ensaiar.
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+      GF_USERS_DEFAULT_THEME: dark
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ../dashboard.json:/dashboards/exivamoeres.json:ro

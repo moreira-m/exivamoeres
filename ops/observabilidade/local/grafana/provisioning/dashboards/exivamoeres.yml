@@ -1,0 +1,12 @@
+# Carrega o dashboard versionado (../../../dashboard.json) — o MESMO arquivo que se
+# importa no Grafana Cloud. Dashboard editado no painel e não versionado é dashboard
+# que desaparece com a conta.
+apiVersion: 1
+
+providers:
+  - name: exivamoeres
+    type: file
+    allowUiUpdates: false
+    options:
+      path: /dashboards
+      foldersFromFilesStructure: false

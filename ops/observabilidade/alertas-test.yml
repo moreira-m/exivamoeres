@@ -65,7 +65,6 @@ tests:
               application: exivamoeres
               environment: prod
               code_function: archiveExpiredTeams
-              outcome: SUCCESS
             exp_annotations:
               summary: "O job de expiração de times não roda há 3 horas"
               description: >-
@@ -89,10 +88,13 @@ tests:
       - eval_time: 1h
         alertname: JobDeExpiracaoDeTimesParou
         exp_alerts:
-          # ⚠️ O ramo `absent()` produz as labels do **seletor** — sem `outcome`, que
-          # o seletor não casa. O ramo `increase(...) == 0` produz as labels da
-          # **série**, com `outcome`. Mesmo alerta, conjuntos diferentes de label:
-          # quem rotear alerta por label precisa saber disto.
+          # ⚠️ Os dois ramos produzem **o mesmo** conjunto de label — e isso é
+          # deliberado. Antes o `increase(...) == 0` carregava as labels da série
+          # (com `outcome`) e o `absent()` as do seletor (sem), então o `or` não
+          # deduplicava e **o mesmo job virava dois alertas** — visto acontecendo no
+          # ensaio local. O `sum by (application, environment, code_function)` no
+          # primeiro ramo é o que uniformiza. Se alguém tirar o agrupamento, este
+          # teste reprova com `outcome` sobrando no "got".
           - exp_labels:
               severity: warning
               application: exivamoeres
@@ -150,6 +152,33 @@ tests:
               summary: "O job de refresh de level não roda há 3 horas"
               description: >-
                 O level exibido congela, e o **level mínimo do time passa a ser cobrado sobre dado velho**: alguém que subiu de nível continua sendo recusado, e alguém que caiu continua aceito. Silencioso do mesmo jeito.
+
+  # -------------------------------------------------------------------------
+  # 4b. O job parado dispara **UMA** vez, não duas.
+  #
+  #     Com a série presente e congelada, os dois ramos da expressão (`increase == 0`
+  #     e `absent`) podiam casar ao mesmo tempo com conjuntos de label diferentes — e
+  #     `or` só deduplica quando os labels são iguais. O resultado era notificação em
+  #     dobro, que é como um alerta legítimo acaba silenciado.
+  # -------------------------------------------------------------------------
+  - interval: 5m
+    name: job parado dispara uma vez so
+    input_series:
+      - series: 'tasks_scheduled_execution_seconds_count{application="exivamoeres",environment="prod",code_function="archiveExpiredTeams",outcome="SUCCESS"}'
+        values: '0+1x12 12x60'
+    alert_rule_test:
+      - eval_time: 5h
+        alertname: JobDeExpiracaoDeTimesParou
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              application: exivamoeres
+              environment: prod
+              code_function: archiveExpiredTeams
+            exp_annotations:
+              summary: "O job de expiração de times não roda há 3 horas"
+              description: >-
+                Time vencido **continua aparecendo na busca**: o anúncio mente sobre estar ativo, e quem pede para entrar num time morto não recebe resposta de ninguém. Nenhum usuário reporta isto — não há erro para ele ver.
 
   # -------------------------------------------------------------------------
   # 5. Ciclo que falha dispara `JobFalhandoTodoCiclo` — a regra que só passou a

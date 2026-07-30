@@ -34,5 +34,14 @@ scrape_configs:
 #   4. curl -s -o /dev/null -w '%{http_code}' <API>/actuator/prometheus            → 401
 #   5. curl -s -o /dev/null -w '%{http_code}' -H "X-Actuator-Token: $TOKEN" ...    → 200
 #   6. up{job="exivamoeres"} == 1 no coletor
-#   7. Importar ops/observabilidade/alertas.yml e disparar um alerta de propósito
-#      (o mais fácil: derrubar o backend por 5 min e esperar o BackendSemMetrica)
+#   7. Importar ops/observabilidade/alertas.yml em Alerting
+#   8. Importar ops/observabilidade/dashboard.json em Dashboards (escolhendo o datasource
+#      na importação: o arquivo não fixa o uid, de propósito)
+#   9. **Ligar um canal de notificação** (email, Discord, Telegram). Regra sem canal é a
+#      forma mais comum de achar que existe monitoramento
+#  10. Disparar um alerta de propósito: derrubar o backend por 5 min e esperar o
+#      BackendSemMetrica — e conferir que ele **se resolve** quando o backend volta
+#
+# Tudo dos passos 7 a 10 já foi ensaiado localmente (ver
+# ../observabilidade/local/docker-compose.yml e new-features/observabilidade-ensaiada.md),
+# então aqui é só repetir contra o coletor de verdade.

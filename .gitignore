@@ -22,8 +22,8 @@ frontend/.vite/
 # ===== Testes de navegação (Playwright) =====
 # Sessão de teste em cache (token real de uma conta anônima de dev)
 frontend/e2e/.auth/
-frontend/test-results/
-frontend/playwright-report/
+test-results/
+playwright-report/
 frontend/blob-report/
 frontend/*.tsbuildinfo
 npm-debug.log*

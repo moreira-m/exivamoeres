@@ -126,6 +126,12 @@ groups:
       # A janela de cada um é **três ciclos perdidos**, e o `for: 10m` cobre a janela
       # normal de boot (os jobs têm initialDelay de 1–2 min).
       #
+      # ⚠️ O `sum by (application, environment, code_function)` no primeiro ramo não é
+      # enfeite: sem ele os dois ramos produzem **conjuntos de label diferentes** (a
+      # série tem `outcome`, o `absent()` não), o `or` não deduplica e o mesmo job vira
+      # **dois alertas** — visto acontecendo no ensaio local. Alerta que notifica em
+      # dobro é alerta que alguém silencia.
+      #
       # ⚠️ As janelas assumem os intervalos padrão. Se alguém subir
       # CLAIM_POLL_INTERVAL, TEAM_EXPIRATION_CHECK_INTERVAL ou
       # CHARACTER_LEVEL_REFRESH_INTERVAL **acima** da janela da regra, o alerta passa
@@ -138,8 +144,8 @@ groups:
         # alerta fica em silêncio justamente no pior cenário. O `for: 10m` cobre a
         # janela normal de boot (o job tem initialDelay de 1 min).
         expr: |
-          increase(
-            tasks_scheduled_execution_seconds_count{application="exivamoeres",environment="prod",code_function="verifyPendingClaims"}[45m]
+          sum by (application, environment, code_function) (
+            increase(tasks_scheduled_execution_seconds_count{application="exivamoeres",environment="prod",code_function="verifyPendingClaims"}[45m])
           ) == 0
           or absent(
             tasks_scheduled_execution_seconds_count{application="exivamoeres",environment="prod",code_function="verifyPendingClaims"}
@@ -156,8 +162,8 @@ groups:
       # Roda a cada 1h (TEAM_EXPIRATION_CHECK_INTERVAL) → janela de 3h.
       - alert: JobDeExpiracaoDeTimesParou
         expr: |
-          increase(
-            tasks_scheduled_execution_seconds_count{application="exivamoeres",environment="prod",code_function="archiveExpiredTeams"}[3h]
+          sum by (application, environment, code_function) (
+            increase(tasks_scheduled_execution_seconds_count{application="exivamoeres",environment="prod",code_function="archiveExpiredTeams"}[3h])
           ) == 0
           or absent(
             tasks_scheduled_execution_seconds_count{application="exivamoeres",environment="prod",code_function="archiveExpiredTeams"}
@@ -175,8 +181,8 @@ groups:
       # Roda a cada 1h (CHARACTER_LEVEL_REFRESH_INTERVAL) → janela de 3h.
       - alert: JobDeRefreshDeLevelParou
         expr: |
-          increase(
-            tasks_scheduled_execution_seconds_count{application="exivamoeres",environment="prod",code_function="refreshStaleTeamCharacters"}[3h]
+          sum by (application, environment, code_function) (
+            increase(tasks_scheduled_execution_seconds_count{application="exivamoeres",environment="prod",code_function="refreshStaleTeamCharacters"}[3h])
           ) == 0
           or absent(
             tasks_scheduled_execution_seconds_count{application="exivamoeres",environment="prod",code_function="refreshStaleTeamCharacters"}

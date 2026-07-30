@@ -16,6 +16,13 @@ beforeEach(async () => {
   await i18n.changeLanguage('pt')
 })
 
+/**
+ * `scrollIntoView` não existe no jsdom (é da camada de layout, que ele não implementa).
+ * Componentes que rolam a tela — o `ChatPanel` ao chegar mensagem — chamariam `undefined`.
+ * Stub no lugar de mudar o produto: rolar não é comportamento que este nível testa.
+ */
+Element.prototype.scrollIntoView = () => {}
+
 afterEach(() => {
   cleanup()
   // O authStore é persistido em localStorage: sessão de um teste sobreviveria

@@ -78,6 +78,11 @@ public class NotificationServiceImpl implements NotificationService {
         create(requesterId, NotificationType.JOIN_REQUEST_AT_RISK, list);
     }
 
+    @Override
+    public void notifyJoinRequestCompositionMismatch(Long requesterId, HuntingList list) {
+        create(requesterId, NotificationType.JOIN_REQUEST_COMPOSITION_MISMATCH, list);
+    }
+
     private void create(Long recipientId, NotificationType type, HuntingList list) {
         Notification notification = new Notification();
         // getReferenceById evita carregar o usuário só para setar a FK.

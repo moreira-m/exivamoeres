@@ -30,5 +30,14 @@ public enum NotificationType {
      * destinatário é outro: para o membro a notícia é "o time mudou"; para quem
      * pediu é "**seu pedido** pode não ser aprovado".
      */
-    JOIN_REQUEST_AT_RISK
+    JOIN_REQUEST_AT_RISK,
+    /**
+     * O dono reconfigurou a <b>composição por vocação</b> e a vocação de um pedido
+     * pendente deixou de ter vaga: o pedido virou inaprovável (notifica quem pediu).
+     *
+     * Tipo próprio, e não reuso do {@link #JOIN_REQUEST_AT_RISK}, porque a frase é
+     * outra e é a frase que importa — "subiu o level mínimo" manda subir de level,
+     * "não há vaga para a sua vocação" manda escolher outro personagem ou outro time.
+     */
+    JOIN_REQUEST_COMPOSITION_MISMATCH
 }

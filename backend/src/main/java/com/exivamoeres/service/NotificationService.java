@@ -41,6 +41,12 @@ public interface NotificationService {
      */
     void notifyJoinRequestAtRisk(Long requesterId, HuntingList list);
 
+    /**
+     * Avisa quem pediu que a composição nova do time não tem vaga para a vocação do
+     * personagem do pedido (P21).
+     */
+    void notifyJoinRequestCompositionMismatch(Long requesterId, HuntingList list);
+
     Page<NotificationResponse> list(Long userId, Pageable pageable);
 
     long countUnread(Long userId);

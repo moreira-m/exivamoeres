@@ -219,7 +219,8 @@
       "MEMBER_LEFT": "Um membro saiu do time {{team}}",
       "TEAM_SCHEDULE_CHANGED": "O horário do time {{team}} mudou",
       "TEAM_MINIMUM_LEVEL_CHANGED": "O level mínimo do time {{team}} mudou",
-      "JOIN_REQUEST_AT_RISK": "Seu pedido em {{team}} pode não ser aprovado: o time subiu o level mínimo"
+      "JOIN_REQUEST_AT_RISK": "Seu pedido em {{team}} pode não ser aprovado: o time subiu o level mínimo",
+      "JOIN_REQUEST_COMPOSITION_MISMATCH": "Seu pedido em {{team}} pode não ser aprovado: a composição mudou e não tem vaga para a sua vocação"
     }
   },
   "errors": {
@@ -240,7 +241,9 @@
     "cancelConfirm": "Cancelar este pedido de entrada?",
     "mayNotBeApproved": "Talvez não seja aprovado:",
     "issueBelowMinimumLevel": "o time agora exige level {{minimum}} e seu personagem tem {{level}}.",
-    "issueWorldMismatch": "seu personagem não é mais do world {{world}}."
+    "issueWorldMismatch": "seu personagem não é mais do world {{world}}.",
+    "issueVocationNotInComposition": "a composição do time não tem mais vaga para {{vocation}} — use outro personagem ou procure outro time.",
+    "issueVocationNotInCompositionUnknown": "a composição do time não tem mais vaga para a vocação do seu personagem."
   },
   "slots": {
     "title": "Composição do time",

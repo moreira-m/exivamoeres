@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import type { TFunction } from 'i18next'
 import { Link, useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { Layout } from '../../components/Layout'
@@ -141,6 +142,39 @@ function MyRequestsTab({ query }: { query: ReturnType<typeof useMyJoinRequests> 
   )
 }
 
+/**
+ * A frase do motivo, no idioma do usuário. O backend manda **código**
+ * (`JoinRequestIssue`) e os números; a frase é montada aqui — é a direção do T2, e o
+ * motivo de o P4 ter nascido com enum em vez de texto pronto.
+ *
+ * O `switch` é exaustivo de propósito: código novo no backend quebra o `tsc` aqui, em
+ * vez de a tela mostrar um aviso vazio.
+ */
+function issueText(
+  t: TFunction,
+  request: MyJoinRequestResponse,
+): string {
+  switch (request.issue) {
+    case 'BELOW_MINIMUM_LEVEL':
+      return t('myRequests.issueBelowMinimumLevel', {
+        minimum: request.minimumLevel,
+        level: request.characterLevel ?? '?',
+      })
+    case 'WORLD_MISMATCH':
+      return t('myRequests.issueWorldMismatch', { world: request.world })
+    case 'VOCATION_NOT_IN_COMPOSITION':
+      // Sem a vocação (personagem sem dado sincronizado), a frase genérica: dizer
+      // "não há vaga para undefined" é pior que não dizer qual.
+      return request.characterVocation && request.characterVocation !== 'NONE'
+        ? t('myRequests.issueVocationNotInComposition', {
+            vocation: t(`enums.vocation.${request.characterVocation}`),
+          })
+        : t('myRequests.issueVocationNotInCompositionUnknown')
+    case null:
+      return ''
+  }
+}
+
 function JoinRequestCard({ request }: { request: MyJoinRequestResponse }) {
   const { t, i18n } = useTranslation()
   const cancel = useCancelMyJoinRequest()
@@ -188,12 +222,7 @@ function JoinRequestCard({ request }: { request: MyJoinRequestResponse }) {
       {request.issue && (
         <p className="mt-3 text-sm font-bold text-accent">
           {t('myRequests.mayNotBeApproved')}{' '}
-          {request.issue === 'BELOW_MINIMUM_LEVEL'
-            ? t('myRequests.issueBelowMinimumLevel', {
-                minimum: request.minimumLevel,
-                level: request.characterLevel ?? '?',
-              })
-            : t('myRequests.issueWorldMismatch', { world: request.world })}
+          {issueText(t, request)}
         </p>
       )}
 

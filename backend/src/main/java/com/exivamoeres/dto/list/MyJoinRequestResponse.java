@@ -4,6 +4,7 @@ import com.exivamoeres.domain.HuntingList;
 import com.exivamoeres.domain.ListMembership;
 import com.exivamoeres.domain.MembershipStatus;
 import com.exivamoeres.domain.TeamStatus;
+import com.exivamoeres.domain.Vocation;
 
 import java.time.Instant;
 
@@ -35,6 +36,12 @@ public record MyJoinRequestResponse(
         Long characterId,
         String characterName,
         Integer characterLevel,
+        /**
+         * Vocação **local** (sincronizada) do personagem do pedido. Vem para a tela
+         * poder dizer *qual* vocação ficou sem vaga — "não há vaga para Druid" é
+         * acionável; "sua vocação não cabe" faz a pessoa ir conferir.
+         */
+        Vocation characterVocation,
         MembershipStatus status,
         /** Nulo quando não há problema aparente — ver {@link JoinRequestIssue}. */
         JoinRequestIssue issue,
@@ -54,6 +61,7 @@ public record MyJoinRequestResponse(
                 membership.getCharacter().getId(),
                 membership.getCharacter().getName(),
                 membership.getCharacter().getLevel(),
+                Vocation.fromTibiaData(membership.getCharacter().getVocation()),
                 membership.getStatus(),
                 issue,
                 membership.getJoinedAt());

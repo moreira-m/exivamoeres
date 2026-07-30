@@ -43,6 +43,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 @Service
@@ -199,9 +200,14 @@ public class HuntingListServiceImpl implements HuntingListService {
             throw new BusinessRuleException(
                     "Este time não aceita mais alterações; ele está " + list.getStatus());
         }
+        // A composição de antes, para saber **quem passou** a não caber. Sem isto só
+        // daria para avisar "quem não cabe", e quem já não cabia receberia o mesmo
+        // aviso a cada reconfiguração — o recorte de transição do P18.
+        List<Vocation> composicaoAnterior = slotAssigner.compositionOf(listId);
         slotAssigner.replaceSlots(list, request.slots());
-        log.info("list.slots.replaced listId={} ownerId={} slots={}",
-                listId, ownerId, request.slots().size());
+        int avisados = notifyPendingRequestsWithoutSlot(list, composicaoAnterior);
+        log.info("list.slots.replaced listId={} ownerId={} slots={} pendingWithoutSlot={}",
+                listId, ownerId, request.slots().size(), avisados);
         return buildDetail(list, ownerId);
     }
 
@@ -420,11 +426,16 @@ public class HuntingListServiceImpl implements HuntingListService {
     public List<MyJoinRequestResponse> listMyJoinRequests(Long userId) {
         // APPROVED fica de fora: aprovado não é "pedido", é time — e aparece em
         // "meus times". CANCELLED também não: quem cancelou sabe que cancelou.
-        return membershipRepository
+        List<ListMembership> pedidos = membershipRepository
                 .findAllByUserIdAndStatusInOrderByJoinedAtDesc(
-                        userId, List.of(MembershipStatus.PENDING, MembershipStatus.REJECTED))
-                .stream()
-                .map(m -> MyJoinRequestResponse.from(m, detectIssue(m)))
+                        userId, List.of(MembershipStatus.PENDING, MembershipStatus.REJECTED));
+        // A composição de todos os times de uma vez: sem isto, cada pedido da lista
+        // custaria uma consulta de vagas (N+1 numa tela que já é uma lista).
+        Map<Long, List<Vocation>> composicoes = slotAssigner.compositionsOf(
+                pedidos.stream().map(m -> m.getList().getId()).distinct().toList());
+        return pedidos.stream()
+                .map(m -> MyJoinRequestResponse.from(
+                        m, detectIssue(m, composicoes.getOrDefault(m.getList().getId(), List.of()))))
                 .toList();
     }
 
@@ -458,7 +469,20 @@ public class HuntingListServiceImpl implements HuntingListService {
      * pedido, ou o personagem trocou de world. Perda de Premium **não** aparece
      * aqui (não é dado local), então nulo não é promessa de aprovação.
      */
-    private JoinRequestIssue detectIssue(ListMembership membership) {
+    /**
+     * O motivo pelo qual este pedido pendente <b>provavelmente</b> não será aprovado,
+     * ou {@code null} quando não há nada aparente.
+     *
+     * <p>A ordem é a precedência do {@link JoinRequestIssue}: o que a pessoa
+     * <b>não pode consertar</b> primeiro. World e vocação são definitivos (a ação é
+     * usar outro personagem); level é temporário (a ação é jogar). Mostrar o motivo
+     * consertável quando existe um definitivo manda a pessoa gastar tempo no lugar
+     * errado.</p>
+     *
+     * @param composicao vocações exigidas por vaga do time — lista <b>vazia</b> é time
+     *                   sem composição, que aceita qualquer vocação
+     */
+    private JoinRequestIssue detectIssue(ListMembership membership, List<Vocation> composicao) {
         if (membership.getStatus() != MembershipStatus.PENDING) {
             return null;
         }
@@ -467,12 +491,30 @@ public class HuntingListServiceImpl implements HuntingListService {
         if (!list.getWorld().equalsIgnoreCase(character.getWorld())) {
             return JoinRequestIssue.WORLD_MISMATCH;
         }
+        if (!cabeNaComposicao(composicao, character)) {
+            return JoinRequestIssue.VOCATION_NOT_IN_COMPOSITION;
+        }
         Integer minimum = list.getMinimumLevel();
         Integer level = character.getLevel();
         if (minimum != null && level != null && level < minimum) {
             return JoinRequestIssue.BELOW_MINIMUM_LEVEL;
         }
         return null;
+    }
+
+    /**
+     * Existe <b>alguma</b> vaga na composição que aceite a vocação deste personagem?
+     *
+     * <p>"Alguma", e não "alguma livre", de propósito: pedido para vaga ocupada é
+     * legítimo — quem está nela pode sair, e é assim que time cheio com aprovação
+     * manual funciona. O que torna o pedido inaprovável é a composição não
+     * <b>prever</b> a vocação (mesma regra do
+     * {@code TeamSlotAssigner.assertVocationHasSlot}, aplicada ao pedido que já
+     * existia).</p>
+     */
+    private boolean cabeNaComposicao(List<Vocation> composicao, Character character) {
+        return TeamSlotAssigner.fitsComposition(
+                composicao, Vocation.fromTibiaData(character.getVocation()));
     }
 
     // ----- Helpers -----
@@ -698,6 +740,53 @@ public class HuntingListServiceImpl implements HuntingListService {
                 .toList();
         avisados.forEach(uid -> notificationService.notifyJoinRequestAtRisk(uid, list));
         return avisados.size();
+    }
+
+    /**
+     * Avisa quem tem pedido <b>pendente</b> que a composição nova do time não tem vaga
+     * para a vocação do personagem dele (P21).
+     *
+     * <p>Os mesmos recortes do irmão de level ({@link #notifyPendingRequestsAtRisk}),
+     * porque o problema é o mesmo:</p>
+     * <ul>
+     *   <li><b>Só a transição.</b> Quem cabia e passou a não caber. Quem já não cabia
+     *       (pediu antes de o dono apertar a composição uma primeira vez) não é
+     *       avisado de novo a cada reordenação.</li>
+     *   <li><b>Composição removida não avisa.</b> Lista vazia = time sem composição =
+     *       todo mundo cabe: ninguém passou a ficar de fora.</li>
+     *   <li><b>Vaga ocupada não conta como falta de vaga.</b> A pergunta é se a
+     *       composição <b>prevê</b> a vocação — pedido para vaga ocupada é legítimo,
+     *       e tratá-lo como problema encheria de aviso todo time cheio.</li>
+     * </ul>
+     *
+     * <p>A notificação diz o time e o motivo; <b>qual</b> vocação ficou sem vaga fica
+     * na aba "meus pedidos", que já recebe o {@code characterVocation}. Notificação
+     * empurra, tela explica — a mesma divisão do P18.</p>
+     *
+     * @return quantos solicitantes foram avisados
+     */
+    private int notifyPendingRequestsWithoutSlot(HuntingList list, List<Vocation> composicaoAnterior) {
+        List<Vocation> composicaoAtual = slotAssigner.compositionOf(list.getId());
+        if (composicaoAtual.isEmpty()) {
+            return 0; // composição removida: todo mundo volta a caber
+        }
+        List<Long> avisados = membershipRepository
+                .findAllByListIdAndStatusAndActiveTrue(list.getId(), MembershipStatus.PENDING).stream()
+                .filter(m -> passouAFicarSemVaga(m.getCharacter(), composicaoAnterior, composicaoAtual))
+                .map(m -> m.getUser().getId())
+                .distinct()
+                .toList();
+        avisados.forEach(uid -> notificationService.notifyJoinRequestCompositionMismatch(uid, list));
+        return avisados.size();
+    }
+
+    private boolean passouAFicarSemVaga(Character character,
+                                        List<Vocation> composicaoAnterior,
+                                        List<Vocation> composicaoAtual) {
+        Vocation vocacao = Vocation.fromTibiaData(character.getVocation());
+        boolean cabiaAntes = TeamSlotAssigner.fitsComposition(composicaoAnterior, vocacao);
+        boolean cabeAgora = TeamSlotAssigner.fitsComposition(composicaoAtual, vocacao);
+        return cabiaAntes && !cabeAgora;
     }
 
     private boolean passouAFicarDeFora(Integer levelDoPersonagem, Integer minimoAnterior, Integer minimoAtual) {

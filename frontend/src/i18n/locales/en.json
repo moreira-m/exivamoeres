@@ -219,7 +219,8 @@
       "MEMBER_LEFT": "A member left the team {{team}}",
       "TEAM_SCHEDULE_CHANGED": "The schedule of {{team}} has changed",
       "TEAM_MINIMUM_LEVEL_CHANGED": "The minimum level of {{team}} has changed",
-      "JOIN_REQUEST_AT_RISK": "Your request to {{team}} may not be approved: the team raised its minimum level"
+      "JOIN_REQUEST_AT_RISK": "Your request to {{team}} may not be approved: the team raised its minimum level",
+      "JOIN_REQUEST_COMPOSITION_MISMATCH": "Your request to {{team}} may not be approved: the composition changed and has no slot for your vocation"
     }
   },
   "errors": {
@@ -240,7 +241,9 @@
     "cancelConfirm": "Cancel this join request?",
     "mayNotBeApproved": "May not be approved:",
     "issueBelowMinimumLevel": "the team now requires level {{minimum}} and your character is {{level}}.",
-    "issueWorldMismatch": "your character is no longer in {{world}}."
+    "issueWorldMismatch": "your character is no longer in {{world}}.",
+    "issueVocationNotInComposition": "the team's composition no longer has a slot for {{vocation}} — use another character or look for another team.",
+    "issueVocationNotInCompositionUnknown": "the team's composition no longer has a slot for your character's vocation."
   },
   "slots": {
     "title": "Team composition",

@@ -12,6 +12,7 @@ import com.exivamoeres.repository.TeamSlotRepository;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -237,6 +238,37 @@ public class TeamSlotAssigner {
 
     public List<TeamSlot> slotsOf(Long listId) {
         return slotRepository.findAllByListIdOrderByPosition(listId);
+    }
+
+    /** As vocações exigidas por vaga, na ordem — vazio quando o time não tem composição. */
+    public List<Vocation> compositionOf(Long listId) {
+        return slotsOf(listId).stream().map(TeamSlot::getVocation).toList();
+    }
+
+    /**
+     * A composição de vários times numa consulta só, para telas que listam pedidos de
+     * times diferentes (o "meus pedidos"). Time sem vaga não aparece no mapa — quem
+     * chama trata ausência como "sem composição".
+     */
+    public Map<Long, List<Vocation>> compositionsOf(Collection<Long> listIds) {
+        if (listIds.isEmpty()) {
+            return Map.of();
+        }
+        return slotRepository.findAllByListIdIn(listIds).stream()
+                .sorted(java.util.Comparator.comparingInt(TeamSlot::getPosition))
+                .collect(java.util.stream.Collectors.groupingBy(
+                        s -> s.getList().getId(),
+                        java.util.stream.Collectors.mapping(TeamSlot::getVocation, java.util.stream.Collectors.toList())));
+    }
+
+    /**
+     * Esta vocação tem lugar nesta composição? Vazio = time sem composição = cabe.
+     *
+     * <p><b>Lugar</b>, não <b>vaga livre</b>: é a pergunta do pedido pendente (ver
+     * {@link #assertVocationHasSlot}), não a da aprovação.</p>
+     */
+    public static boolean fitsComposition(List<Vocation> composicao, Vocation vocacao) {
+        return composicao.isEmpty() || composicao.stream().anyMatch(exigida -> vocacao != null && vocacao.fits(exigida));
     }
 
     /** Memberships ativas e aprovadas que ocupam vaga, por id de vaga. */

@@ -9,7 +9,12 @@ export type JoinPolicy = 'MANUAL_APPROVAL' | 'AUTO_ACCEPT'
 export type Vocation = 'KNIGHT' | 'PALADIN' | 'SORCERER' | 'DRUID' | 'MONK' | 'NONE'
 export type MembershipStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED'
 /** Motivo (código, não frase) de um pedido provavelmente não ser aprovado. */
-export type JoinRequestIssue = 'BELOW_MINIMUM_LEVEL' | 'WORLD_MISMATCH'
+export type JoinRequestIssue =
+  | 'BELOW_MINIMUM_LEVEL'
+  | 'WORLD_MISMATCH'
+  // A composição do time não tem vaga para a vocação do personagem: o dono
+  // reconfigurou as vagas depois do pedido, e a aprovação nunca vai poder acontecer.
+  | 'VOCATION_NOT_IN_COMPOSITION'
 export type Plan = 'FREE' | 'PREMIUM'
 export type TeamStatus = 'ACTIVE' | 'COMPLETED' | 'ARCHIVED' | 'CLOSED'
 export type NotificationType =
@@ -22,6 +27,7 @@ export type NotificationType =
   | 'TEAM_SCHEDULE_CHANGED'
   | 'TEAM_MINIMUM_LEVEL_CHANGED'
   | 'JOIN_REQUEST_AT_RISK'
+  | 'JOIN_REQUEST_COMPOSITION_MISMATCH'
 
 export interface UserResponse {
   id: number
@@ -126,6 +132,8 @@ export interface MyJoinRequestResponse {
   characterId: number
   characterName: string
   characterLevel: number | null
+  // Vocação local do personagem: é o que permite dizer *qual* vocação ficou sem vaga.
+  characterVocation: Vocation | null
   status: MembershipStatus
   // Nulo quando não há problema aparente — e ausência não garante aprovação
   // (perda de Premium, por exemplo, não é detectável com dado local).

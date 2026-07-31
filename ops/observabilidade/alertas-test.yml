@@ -181,6 +181,50 @@ tests:
                 Time vencido **continua aparecendo na busca**: o anúncio mente sobre estar ativo, e quem pede para entrar num time morto não recebe resposta de ninguém. Nenhum usuário reporta isto — não há erro para ele ver.
 
   # -------------------------------------------------------------------------
+  # 4c. O job DIÁRIO (limpeza, S8) rodando uma vez por dia NÃO dispara.
+  #
+  #     É o teste que justifica a janela de 3 dias em vez de "três ciclos" como nos
+  #     outros. Um contador que sobe 1 a cada 288 amostras de 5 min parece parado em
+  #     qualquer janela curta — e o job é justamente o que ninguém sente parar.
+  # -------------------------------------------------------------------------
+  - interval: 5m
+    name: job diario de limpeza rodando nao dispara
+    input_series:
+      # Uma execução por dia: o valor muda a cada 288 amostras de 5 min.
+      - series: 'tasks_scheduled_execution_seconds_count{application="exivamoeres",environment="prod",code_function="purgeExpiredData",outcome="SUCCESS"}'
+        values: '0x287 1x287 2x287 3x287'
+    alert_rule_test:
+      - eval_time: 3d
+        alertname: JobDeLimpezaParou
+        exp_alerts: []
+
+  # -------------------------------------------------------------------------
+  # 4d. O mesmo job depois de PARAR dispara.
+  # -------------------------------------------------------------------------
+  - interval: 5m
+    name: job diario de limpeza que travou dispara
+    input_series:
+      # Dois dias rodando e depois congelado.
+      - series: 'tasks_scheduled_execution_seconds_count{application="exivamoeres",environment="prod",code_function="purgeExpiredData",outcome="SUCCESS"}'
+        values: '0x287 1x287 2x1000'
+    alert_rule_test:
+      # 121h, e não 5d cravados: a última subida do contador foi em ~48h, então a
+      # condição só passa a valer em 48h+3d = 120h. Em 5d o alerta está **pending**, e
+      # é o `for: 10m` que ainda não venceu — a hora extra é o que o torna firing.
+      - eval_time: 121h
+        alertname: JobDeLimpezaParou
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              application: exivamoeres
+              environment: prod
+              code_function: purgeExpiredData
+            exp_annotations:
+              summary: "O job de limpeza de tabelas não roda há 3 dias"
+              description: >-
+                refresh_tokens e notifications voltam a crescer sem teto — o plano do Postgres é pago por armazenamento, e a conta chega antes do sintoma. Nenhum usuário percebe isto: não há tela, erro nem lentidão para ele ver.
+
+  # -------------------------------------------------------------------------
   # 5. Ciclo que falha dispara `JobFalhandoTodoCiclo` — a regra que só passou a
   #    funcionar quando os schedulers deixaram de engolir a exceção (T7).
   # -------------------------------------------------------------------------

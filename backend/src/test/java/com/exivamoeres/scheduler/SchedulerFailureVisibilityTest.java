@@ -6,6 +6,7 @@ import ch.qos.logback.core.read.ListAppender;
 import com.exivamoeres.logging.LogContext;
 import com.exivamoeres.service.CharacterLevelRefreshService;
 import com.exivamoeres.service.ClaimVerificationService;
+import com.exivamoeres.service.RetentionService;
 import com.exivamoeres.service.TeamLifecycleService;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
@@ -23,7 +24,7 @@ import static org.mockito.Mockito.mock;
 /**
  * Um ciclo de job que falha tem que <b>falhar visivelmente</b>.
  *
- * Os três schedulers engoliam a exceção ({@code catch → log.error}, sem relançar)
+ * Os schedulers engoliam a exceção ({@code catch → log.error}, sem relançar)
  * com a intenção de "o scheduler nunca pode morrer". O efeito colateral era o
  * pior possível para quem opera: a observação automática do Spring
  * ({@code tasks.scheduled.execution}) marcava {@code outcome=SUCCESS} num ciclo
@@ -65,6 +66,17 @@ class SchedulerFailureVisibilityTest {
         doThrow(FALHA).when(servico).refreshStaleTeamCharacters();
 
         assertThatThrownBy(() -> new CharacterLevelRefreshScheduler(servico).refreshLevels())
+                .isSameAs(FALHA);
+    }
+
+    @Test
+    void falhaAoLimparTabelasPropaga() {
+        // O job mais silencioso dos quatro (S8): ninguém abre chamado porque uma tabela
+        // está grande, então a métrica é o único aviso que existe.
+        RetentionService servico = mock(RetentionService.class);
+        doThrow(FALHA).when(servico).purgeExpiredRefreshTokens();
+
+        assertThatThrownBy(() -> new RetentionScheduler(servico).purgeExpiredData())
                 .isSameAs(FALHA);
     }
 

@@ -104,6 +104,17 @@ app:
   chat:
     # Rate limit de mensagens por usuário (mensagens por minuto).
     messages-per-minute: ${CHAT_MESSAGES_PER_MINUTE:20}
+  retention:
+    # Limpeza das duas tabelas que cresciam sem teto (S8). Diário basta: o volume
+    # de um dia é pequeno, e o job só apaga o que já passou da janela.
+    interval: ${RETENTION_INTERVAL:24h}
+    # Carência DEPOIS do vencimento do refresh token (que vive refresh-token-days).
+    # Não é zero de propósito: token revogado é o sinal de reuso (S7) — enquanto o
+    # registro existe, a tentativa é recusada com `reason=revoked userId=N`; sem
+    # ele, vira `unknown_token`, sem dono.
+    expired-refresh-token-days: ${RETENTION_REFRESH_TOKEN_DAYS:30}
+    # Só notificações LIDAS. Não-lida nunca é apagada: é algo que a pessoa não viu.
+    read-notification-days: ${RETENTION_READ_NOTIFICATION_DAYS:90}
   rate-limit:
     # Por IP (RateLimitFilter): login/registro e criação de conta anônima.
     # Conta anônima é ação rara para um humano e cara para o produto (cada uma

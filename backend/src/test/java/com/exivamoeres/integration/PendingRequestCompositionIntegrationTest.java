@@ -70,7 +70,12 @@ class PendingRequestCompositionIntegrationTest extends TeamIntegrationTestBase {
 
     @Test
     void reordenarSemTirarAVagaNaoAvisa() {
-        Ctx ctx = timeComPedidoDeKnight("ReorderWorld", "Reorder", Vocation.KNIGHT, Vocation.DRUID);
+        // ⚠️ Prefixo "CompoReorder", não "Reorder": o TeamSlotIntegrationTest também
+        // monta um "Reorder Dono", e o índice único de nome de personagem é do
+        // **banco compartilhado** por toda a suíte. Com os dois iguais, quem rodasse
+        // por último estourava — e qual dos dois é "o último" muda quando uma classe
+        // nova entra na pasta (foi assim que apareceu).
+        Ctx ctx = timeComPedidoDeKnight("CompoReorderWorld", "CompoReorder", Vocation.KNIGHT, Vocation.DRUID);
         long antes = notificationService.countUnread(ctx.requesterId);
 
         // A vaga de Knight mudou de posição, mas continua existindo.

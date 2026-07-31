@@ -117,14 +117,15 @@ groups:
       # sem execução, não há série com `outcome=ERROR` para disparar o alerta
       # acima — o gráfico fica reto e parece saudável.
       #
-      # São **três regras quase iguais**, uma por job, e não uma com regex. O motivo
+      # São **quatro regras quase iguais**, uma por job, e não uma com regex. O motivo
       # é o `absent()`: com um seletor que casa vários jobs, ele só devolve 1 quando
       # **todas** as séries faltam — então o job que nunca rodou passaria batido
       # enquanto os outros dois estivessem de pé. Um `absent()` por job é o preço de
       # cobrir o pior cenário. (Há teste para isso: `alertas-test.yml`.)
       #
       # A janela de cada um é **três ciclos perdidos**, e o `for: 10m` cobre a janela
-      # normal de boot (os jobs têm initialDelay de 1–2 min).
+      # normal de boot (os jobs têm initialDelay de 1–5 min). A exceção é o de limpeza,
+      # diário: lá a janela é de três dias e o porquê está na própria regra.
       #
       # ⚠️ O `sum by (application, environment, code_function)` no primeiro ramo não é
       # enfeite: sem ele os dois ramos produzem **conjuntos de label diferentes** (a
@@ -133,9 +134,9 @@ groups:
       # dobro é alerta que alguém silencia.
       #
       # ⚠️ As janelas assumem os intervalos padrão. Se alguém subir
-      # CLAIM_POLL_INTERVAL, TEAM_EXPIRATION_CHECK_INTERVAL ou
-      # CHARACTER_LEVEL_REFRESH_INTERVAL **acima** da janela da regra, o alerta passa
-      # a disparar para sempre — mude os dois juntos.
+      # CLAIM_POLL_INTERVAL, TEAM_EXPIRATION_CHECK_INTERVAL,
+      # CHARACTER_LEVEL_REFRESH_INTERVAL ou RETENTION_INTERVAL **acima** da janela da
+      # regra, o alerta passa a disparar para sempre — mude os dois juntos.
       # ---------------------------------------------------------------------
       - alert: JobDeClaimParou
         # As duas metades importam: `increase == 0` pega o job que travou depois de
@@ -196,6 +197,31 @@ groups:
             O level exibido congela, e o **level mínimo do time passa a ser cobrado
             sobre dado velho**: alguém que subiu de nível continua sendo recusado, e
             alguém que caiu continua aceito. Silencioso do mesmo jeito.
+
+      # Roda a cada 24h (RETENTION_INTERVAL) → janela de 3 dias.
+      #
+      # ⚠️ Este é o único dos quatro cuja janela é **maior que dois ciclos**, e é de
+      # propósito: com fixedDelay de 24h, um deploy no meio do dia reinicia a contagem
+      # (o job roda 5 min depois do boot e o próximo só em +24h). Uma janela de 48h
+      # dispararia por deploy, não por defeito — e alerta que dispara sem motivo é
+      # alerta desligado.
+      - alert: JobDeLimpezaParou
+        expr: |
+          sum by (application, environment, code_function) (
+            increase(tasks_scheduled_execution_seconds_count{application="exivamoeres",environment="prod",code_function="purgeExpiredData"}[3d])
+          ) == 0
+          or absent(
+            tasks_scheduled_execution_seconds_count{application="exivamoeres",environment="prod",code_function="purgeExpiredData"}
+          )
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "O job de limpeza de tabelas não roda há 3 dias"
+          description: >-
+            refresh_tokens e notifications voltam a crescer sem teto — o plano do
+            Postgres é pago por armazenamento, e a conta chega antes do sintoma.
+            Nenhum usuário percebe isto: não há tela, erro nem lentidão para ele ver.
 
   - name: exivamoeres-abuso
     interval: 5m

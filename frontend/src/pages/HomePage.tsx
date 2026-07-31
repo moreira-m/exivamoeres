@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Layout } from '../components/Layout'
 import { TeamCard } from '../components/TeamCard'
@@ -10,6 +10,7 @@ import { QueryError } from '../components/ui/QueryError'
 import { SELECTABLE_VOCATIONS } from '../components/SlotComposer'
 import { useSearchLists } from '../hooks/useLists'
 import { useWorlds, useCreatures } from '../hooks/useCatalog'
+import { useSearchFilters } from '../hooks/useSearchFilters'
 import type { Vocation } from '../types/api'
 
 /**
@@ -19,10 +20,10 @@ import type { Vocation } from '../types/api'
  */
 export function HomePage() {
   const { t } = useTranslation()
-  const [world, setWorld] = useState('')
-  const [creatureId, setCreatureId] = useState('')
-  const [onlyOpen, setOnlyOpen] = useState('')
-  const [vocation, setVocation] = useState('')
+  // Os filtros vivem na **URL** (item P22): assim a busca é compartilhável, o botão voltar
+  // devolve o que estava filtrado, e recarregar não zera nada.
+  const { filters, setFilter } = useSearchFilters()
+  const { world, creatureId, vocation, onlyOpen } = filters
 
   const worlds = useWorlds()
   const creatures = useCreatures()
@@ -65,7 +66,7 @@ export function HomePage() {
         <Combobox
           label={t('home.world')}
           value={world}
-          onChange={setWorld}
+          onChange={(valor) => setFilter('world', valor)}
           options={worldOptions}
           allLabel={t('common.all')}
           placeholder={t('home.searchPlaceholder')}
@@ -73,7 +74,7 @@ export function HomePage() {
         <Combobox
           label={t('home.creature')}
           value={creatureId}
-          onChange={setCreatureId}
+          onChange={(valor) => setFilter('creatureId', valor)}
           options={creatureOptions}
           allLabel={t('common.allF')}
           placeholder={t('home.searchPlaceholder')}
@@ -81,7 +82,7 @@ export function HomePage() {
         <Combobox
           label={t('home.vocation')}
           value={vocation}
-          onChange={setVocation}
+          onChange={(valor) => setFilter('vocation', valor)}
           options={vocationOptions}
           allLabel={t('home.anyVocation')}
           searchable={false}
@@ -89,7 +90,7 @@ export function HomePage() {
         <Combobox
           label={t('home.slots')}
           value={onlyOpen}
-          onChange={setOnlyOpen}
+          onChange={(valor) => setFilter('onlyOpen', valor)}
           options={[{ value: 'open', label: t('home.openOnly') }]}
           allLabel={t('common.all')}
           searchable={false}

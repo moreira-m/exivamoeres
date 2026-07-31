@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { MemoryRouter } from 'react-router'
+import { MemoryRouter, useLocation } from 'react-router'
 import { render, screen, within } from '@testing-library/react'
 import { useAuthStore } from '../store/authStore'
 import type { CharacterSummaryResponse, ListDetailResponse, UserResponse } from '../types/api'
@@ -26,6 +26,23 @@ export function renderizar(ui: ReactNode, { rota = '/' }: { rota?: string } = {}
       <MemoryRouter initialEntries={[rota]}>{ui}</MemoryRouter>
     </QueryClientProvider>,
   )
+}
+
+/**
+ * Espelha a URL do roteador num elemento, para os testes afirmarem sobre ela.
+ *
+ * Necessário porque o `renderizar` usa `MemoryRouter`: a navegação acontece na memória e
+ * **não** toca em `window.location` — afirmar sobre `window.location.search` daria sempre
+ * vazio, que é um teste que nunca falha pelo motivo certo.
+ */
+export function SondaDaUrl() {
+  const location = useLocation()
+  return <output data-testid="url">{location.pathname + location.search}</output>
+}
+
+/** A URL atual do roteador (precisa da {@link SondaDaUrl} renderizada junto). */
+export function urlAtual(): string {
+  return screen.getByTestId('url').textContent ?? ''
 }
 
 /**

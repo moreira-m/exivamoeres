@@ -134,18 +134,54 @@ app:
 resilience4j:
   retry:
     instances:
+      # UMA instância para todos os fluxos, de propósito: retry não guarda estado
+      # entre chamadas, então não existe contaminação de um fluxo no outro (que é o
+      # que motivou separar os circuitos abaixo). Cada chamada tem o seu orçamento.
       tibiadata:
         max-attempts: 3
         wait-duration: 2s
         enable-exponential-backoff: true
         exponential-backoff-multiplier: 2
+        # ⚠️ Sem isto, o @Retry (que fica POR FORA do @CircuitBreaker) reexecuta o
+        # fail-fast: com o circuito aberto, UMA chamada lógica virava **3** recusas
+        # e o usuário esperava 2s + 4s de backoff para receber um erro que o
+        # circuito já sabia dar na hora — ou seja, o "fail fast" custava 6 segundos.
+        ignore-exceptions:
+          - io.github.resilience4j.circuitbreaker.CallNotPermittedException
   circuitbreaker:
-    instances:
+    configs:
       tibiadata:
         sliding-window-size: 10
+        # Explícito porque o padrão do resilience4j é 100 e confunde quem lê: numa
+        # janela COUNT_BASED o mínimo é limitado ao tamanho da janela, então o 100
+        # do padrão já valia 10 na prática. Escrito para o yml não mentir.
+        minimum-number-of-calls: 10
         failure-rate-threshold: 50
         wait-duration-in-open-state: 60s
         permitted-number-of-calls-in-half-open-state: 3
+    instances:
+      # Três circuitos, um por fluxo (S3). Eram um só, e abrir por qualquer motivo
+      # derrubava todo o resto — medido: 12 falhas em /v4/character bloqueavam
+      # /v4/worlds com CallNotPermittedException.
+      #
+      # Mesmos limiares nos três: o que este item entrega é **isolamento**, não
+      # calibragem. Ajustar cada um exige tráfego real (mesmo argumento do
+      # ops/observabilidade/alertas.yml).
+
+      # Alguém está esperando na tela: criar claim e entrar em time.
+      # Abrir aqui é proteção — 503 na hora em vez de 20s de espera.
+      tibiadata-interactive:
+        base-config: tibiadata
+      # Jobs e o import do catálogo no boot. É o maior gerador de falhas (o refresh
+      # de level faz até 15 chamadas por ciclo) e o que menos pode derrubar os
+      # outros: falha aqui é rotina, e o próximo ciclo tenta de novo.
+      tibiadata-background:
+        base-config: tibiadata
+      # Filtro de mundos da home. Tem chão no banco (S13), então abrir aqui degrada
+      # para "a lista de ontem" — barato. Separado para não gastar o orçamento de
+      # falhas de quem está verificando personagem.
+      tibiadata-worlds:
+        base-config: tibiadata
 
 management:
   endpoints:

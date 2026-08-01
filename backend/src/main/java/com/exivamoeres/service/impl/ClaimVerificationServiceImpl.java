@@ -84,7 +84,9 @@ public class ClaimVerificationServiceImpl implements ClaimVerificationService {
             // circuit breaker reativos), mas a transição de estado é JPA e
             // transação JPA é presa à thread — o bloqueio aqui é a fronteira
             // entre os dois mundos.
-            snapshot = tibiaDataClient.fetchCharacter(claim.getCharacter().getName())
+            // InBackground: ninguém está esperando esta resposta numa tela. O circuito é o dos
+            // jobs, então uma instabilidade aqui não bloqueia quem está entrando num time (S3).
+            snapshot = tibiaDataClient.fetchCharacterInBackground(claim.getCharacter().getName())
                     .block(FETCH_TIMEOUT);
         } catch (Exception e) {
             log.warn("claim.verify.unreachable claimId={} character='{}' error={}",

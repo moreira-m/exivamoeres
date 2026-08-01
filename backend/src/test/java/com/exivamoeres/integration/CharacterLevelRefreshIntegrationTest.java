@@ -64,6 +64,7 @@ class CharacterLevelRefreshIntegrationTest extends IntegrationTestBase {
     }
 
     @Autowired CharacterLevelRefreshService refreshService;
+    @Autowired io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry circuitos;
     @Autowired CharacterRepository characterRepository;
     @Autowired UserRepository userRepository;
     @Autowired HuntingListRepository huntingListRepository;
@@ -74,6 +75,9 @@ class CharacterLevelRefreshIntegrationTest extends IntegrationTestBase {
     @BeforeEach
     void cleanUp() {
         TIBIADATA.resetAll();
+        // O estado do circuito é do contexto, não do teste: sem o reset, o teste que abre
+        // um circuito reprovaria os seguintes.
+        circuitos.getAllCircuitBreakers().forEach(io.github.resilience4j.circuitbreaker.CircuitBreaker::reset);
         membershipRepository.deleteAll();
         huntingListRepository.deleteAll();
         characterRepository.deleteAll();
@@ -124,6 +128,28 @@ class CharacterLevelRefreshIntegrationTest extends IntegrationTestBase {
         Character reloaded = characterRepository.findById(character.getId()).orElseThrow();
         assertThat(reloaded.getLevel()).isEqualTo(100);
         TIBIADATA.verify(0, getRequestedFor(urlEqualTo(ENCODED_PATH)));
+    }
+
+    @Test
+    void oJobContinuaRodandoComOCircuitoDaTelaAberto() {
+        // ⚠️ Este teste guarda a **fiação**, não o cliente: que o job chama
+        // `fetchCharacterInBackground` e não `fetchCharacter`. Sem ele, alguém troca uma
+        // chamada pela outra num refactor e o isolamento do S3 vira decoração — os testes
+        // do cliente continuariam verdes, porque lá as duas funcionam.
+        //
+        // A leitura de produto: um pico de gente verificando personagem na tela não pode
+        // congelar o level exibido de quem já está em time.
+        User owner = newUser("dono@teste.com");
+        Character character = newCharacter(owner, 100);
+        activeMembership(owner, character);
+        makeStale(character);
+        stubCharacterWithLevel(250);
+        circuitos.circuitBreaker("tibiadata-interactive").transitionToOpenState();
+
+        refreshService.refreshStaleTeamCharacters();
+
+        Character reloaded = characterRepository.findById(character.getId()).orElseThrow();
+        assertThat(reloaded.getLevel()).isEqualTo(250);
     }
 
     // ----- Helpers -----

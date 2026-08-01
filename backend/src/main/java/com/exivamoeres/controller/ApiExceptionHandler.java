@@ -7,6 +7,7 @@ import com.exivamoeres.domain.exception.InvalidCredentialsException;
 import com.exivamoeres.domain.exception.ResourceNotFoundException;
 import com.exivamoeres.domain.exception.TooManyRequestsException;
 import com.exivamoeres.dto.error.ApiErrorResponse;
+import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -78,6 +79,32 @@ public class ApiExceptionHandler {
     public ApiErrorResponse handleExternalService(ExternalServiceException e) {
         log.warn("api.external_service_error error={}", e.toString());
         return ApiErrorResponse.of(503, e.getMessage());
+    }
+
+    /**
+     * Circuito aberto = a TibiaData está fora e a chamada nem foi tentada.
+     *
+     * ⚠️ Sem este handler a exceção caía no galho genérico e virava <b>500</b> — medido no
+     * item S3. Três coisas erradas nisso, e a terceira é a pior: a tela dizia "erro
+     * inesperado" quando o certo era "indisponível, tente daqui a pouco"; o
+     * {@code Retry-After} não existia; e o 500 <b>envenenava o alerta de taxa de 5xx</b>,
+     * que é o único crítico que significa "o site está quebrado por um bug". Uma queda da
+     * TibiaData acordava alguém com o diagnóstico errado.
+     *
+     * É a mesma regra do S11 e do S13: falha de terceiro é 503, não 500.
+     */
+    @ExceptionHandler(CallNotPermittedException.class)
+    public ResponseEntity<ApiErrorResponse> handleCircuitOpen(CallNotPermittedException e) {
+        // `getCausingCircuitBreakerName` diz **qual** fluxo está fora (interactive,
+        // background, worlds) — é o que separa "o produto travou" de "um job degradou".
+        log.warn("api.circuit_open circuit={}", e.getCausingCircuitBreakerName());
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                // Retry-After em segundos, casado com wait-duration-in-open-state: em vez
+                // de o cliente tentar de novo na hora (e tomar 503 igual), ele sabe quanto
+                // esperar. É o cabeçalho padrão para 503.
+                .header(HttpHeaders.RETRY_AFTER, "60")
+                .body(ApiErrorResponse.of(503,
+                        "Serviço temporariamente indisponível. Tente novamente em alguns minutos."));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

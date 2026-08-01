@@ -59,6 +59,7 @@ class ClaimVerificationIntegrationTest extends IntegrationTestBase {
     }
 
     @Autowired ClaimVerificationService verificationService;
+    @Autowired io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry circuitos;
     @Autowired CharacterClaimRepository claimRepository;
     @Autowired CharacterRepository characterRepository;
     @Autowired UserRepository userRepository;
@@ -70,11 +71,31 @@ class ClaimVerificationIntegrationTest extends IntegrationTestBase {
     @BeforeEach
     void cleanUp() {
         TIBIADATA.resetAll();
+        // O estado do circuito é do contexto, não do teste.
+        circuitos.getAllCircuitBreakers().forEach(io.github.resilience4j.circuitbreaker.CircuitBreaker::reset);
         membershipRepository.deleteAll();
         huntingListRepository.deleteAll();
         claimRepository.deleteAll();
         characterRepository.deleteAll();
         userRepository.deleteAll();
+    }
+
+    @Test
+    void oJobDeClaimContinuaRodandoComOCircuitoDaTelaAberto() {
+        // ⚠️ Guarda a **fiação** do S3: que este job chama `fetchCharacterInBackground`.
+        // Trocar por `fetchCharacter` num refactor não reprovaria nenhum teste do cliente
+        // (as duas funcionam lá) e o isolamento viraria decoração.
+        //
+        // A leitura de produto: se a verificação de personagem da tela cair, quem já colou
+        // o código no comment **continua sendo aprovado** — é o fluxo que destrava todo
+        // mundo que está esperando.
+        CharacterClaim claim = pendingClaim();
+        stubCharacterWithComment(CODE);
+        circuitos.circuitBreaker("tibiadata-interactive").transitionToOpenState();
+
+        VerificationOutcome outcome = verificationService.verifyClaim(claim.getId());
+
+        assertThat(outcome).isEqualTo(VerificationOutcome.APPROVED);
     }
 
     // ----- Casos obrigatórios de matching do comment -----

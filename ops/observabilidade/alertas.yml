@@ -59,21 +59,55 @@ groups:
     interval: 1m
     rules:
       # ---------------------------------------------------------------------
-      # Circuit breaker da TibiaData aberto = ninguém consegue verificar
-      # personagem nem entrar em time. Hoje o breaker é compartilhado por todos
-      # os fluxos (NEXT_STEPS S3), então aberto significa "o produto travou".
+      # Circuit breaker da TibiaData aberto. São **três instâncias** desde o S3
+      # (eram uma só, e qualquer fluxo abrindo derrubava os outros), e a
+      # severidade não pode ser a mesma nas três: só uma delas significa "o
+      # produto travou". Uma regra por instância é o que permite dizer isso.
+      #
+      # ⚠️ Regra nova de circuito? Copie o par expr/severity e mude só o `name`.
+      # Um seletor com regex juntaria as três num alerta só e devolveria a
+      # severidade errada para duas delas.
       # ---------------------------------------------------------------------
-      - alert: CircuitBreakerTibiaDataAberto
-        expr: resilience4j_circuitbreaker_state{application="exivamoeres",environment="prod",state="open"} == 1
+      - alert: CircuitBreakerDaTelaAberto
+        expr: resilience4j_circuitbreaker_state{application="exivamoeres",environment="prod",name="tibiadata-interactive",state="open"} == 1
         for: 2m
         labels:
           severity: critical
         annotations:
-          summary: "Circuit breaker da TibiaData aberto há 2 minutos"
+          summary: "Circuito da TibiaData da TELA aberto há 2 minutos"
           description: >-
-            Claim, entrada em time e refresh de level param enquanto ele estiver
-            aberto. Confira se a TibiaData está fora (https://api.tibiadata.com)
-            antes de mexer em qualquer coisa aqui.
+            Ninguém consegue verificar personagem nem entrar em time — é o único
+            dos três que significa "o produto travou". A resposta é 503 com
+            Retry-After (não 500, desde o S3), então o alerta de taxa de 5xx
+            **não** vai disparar junto: este aqui é o sinal. Confira se a
+            TibiaData está fora (https://api.tibiadata.com) antes de mexer.
+
+      - alert: CircuitBreakerDosJobsAberto
+        expr: resilience4j_circuitbreaker_state{application="exivamoeres",environment="prod",name="tibiadata-background",state="open"} == 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Circuito da TibiaData dos JOBS aberto há 5 minutos"
+          description: >-
+            Claim deixa de ser verificado e o level exibido congela — e **a tela
+            continua funcionando** (é o ponto do S3). Ninguém reporta isto: não há
+            erro para o usuário ver, só uma aprovação que não chega. `for` maior
+            que o da tela de propósito: job abre e fecha circuito por natureza, e
+            aqui isso não machuca ninguém.
+
+      - alert: CircuitBreakerDeMundosAberto
+        expr: resilience4j_circuitbreaker_state{application="exivamoeres",environment="prod",name="tibiadata-worlds",state="open"} == 1
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Circuito da lista de mundos aberto há 15 minutos"
+          description: >-
+            O filtro da home passa a mostrar a última lista salva no banco (S13) —
+            degradação prevista e barata. Só vira problema se ficar assim por dias
+            (mundo novo do Tibia não aparece). `for` de 15 min porque a lista tem
+            cache de 24h: aberto por minutos não muda nada para ninguém.
 
       # Pool saturado aparece como espera para *pegar* conexão. É o sintoma que
       # antecede o timeout, e dá tempo de agir antes de o usuário ver erro.

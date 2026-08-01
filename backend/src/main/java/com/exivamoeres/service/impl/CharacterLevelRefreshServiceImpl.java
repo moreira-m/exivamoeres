@@ -87,7 +87,10 @@ public class CharacterLevelRefreshServiceImpl implements CharacterLevelRefreshSe
     }
 
     private boolean refreshOne(Character character) {
-        TibiaCharacterSnapshot snapshot = tibiaDataClient.fetchCharacter(character.getName()).block(FETCH_TIMEOUT);
+        // InBackground: este job é o maior gerador de falhas (até 15 chamadas por ciclo) —
+        // no circuito único, era ele quem derrubava a verificação de personagem da tela (S3).
+        TibiaCharacterSnapshot snapshot =
+                tibiaDataClient.fetchCharacterInBackground(character.getName()).block(FETCH_TIMEOUT);
         // Personagem sumiu (deletado/renomeado) ou TibiaData indisponível: não
         // toca no retrato local; será tentado de novo no próximo ciclo.
         if (snapshot == null || !snapshot.found()) {

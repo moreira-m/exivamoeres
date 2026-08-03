@@ -184,6 +184,80 @@ class PendingRequestCompositionIntegrationTest extends TeamIntegrationTestBase {
         assertThat(pedidoDe(ctx).issue()).isNull();
     }
 
+    // ------------------------------------------------------------------------
+    // P28 — trocar de motivo, continuando de fora.
+    //
+    // A regra de transição avisa quem **atravessa** a fronteira do "cabe". Ficar do lado
+    // de fora com outro motivo não avisava — e há um caso em que isso perde informação
+    // que muda a ação da pessoa: sair de "abaixo do level" (**consertável**: jogue) para
+    // "sem vaga para a vocação" (**definitivo**: use outro personagem).
+    //
+    // ⚠️ Só nesse sentido. Os outros dois não avisam, e isso é o assunto de metade dos
+    // testes daqui: cada aviso a mais nesta família aproxima o ponto em que a pessoa
+    // silencia todos.
+    // ------------------------------------------------------------------------
+
+    @Test
+    void trocarLevelPorComposicaoAvisaQueOMotivoVirouDefinitivo() {
+        Ctx ctx = timeComPedidoDeKnightLevel150("P28aWorld", "P28a", Vocation.KNIGHT, Vocation.DRUID);
+        subirLevelMinimo(ctx, 300);
+        // Agora ele está fora por level (consertável) — e foi avisado disso (P18).
+        assertThat(pedidoDe(ctx).issue()).isEqualTo(JoinRequestIssue.BELOW_MINIMUM_LEVEL);
+
+        trocarComposicao(ctx, Vocation.DRUID, Vocation.DRUID);
+
+        // O motivo virou definitivo: subir de level não resolve mais nada.
+        assertThat(pedidoDe(ctx).issue()).isEqualTo(JoinRequestIssue.VOCATION_NOT_IN_COMPOSITION);
+        assertThat(tipos(ctx.requesterId))
+                .as("um aviso de cada, na ordem em que os motivos mudaram")
+                .containsExactly(NotificationType.JOIN_REQUEST_COMPOSITION_MISMATCH,
+                        NotificationType.JOIN_REQUEST_AT_RISK);
+    }
+
+    @Test
+    void trocarComposicaoPorLevelNaoAvisa() {
+        // O sentido inverso: de definitivo para consertável. É boa notícia **parcial** — a
+        // pessoa continua sem poder ser aprovada —, e a aba "meus pedidos" já mostra o
+        // motivo novo para quem abrir a tela.
+        Ctx ctx = timeComPedidoDeKnightLevel150("P28bWorld", "P28b", Vocation.KNIGHT, Vocation.DRUID);
+        subirLevelMinimo(ctx, 300);
+        trocarComposicao(ctx, Vocation.DRUID, Vocation.DRUID);
+        int antes = tipos(ctx.requesterId).size();
+
+        // A vaga de Knight volta: o motivo cai para "abaixo do level".
+        trocarComposicao(ctx, Vocation.KNIGHT, Vocation.DRUID);
+
+        assertThat(pedidoDe(ctx).issue()).isEqualTo(JoinRequestIssue.BELOW_MINIMUM_LEVEL);
+        assertThat(tipos(ctx.requesterId)).hasSize(antes);
+    }
+
+    @Test
+    void reconfigurarDeNovoComOMesmoMotivoDefinitivoNaoAvisaDeNovo() {
+        // O recorte continua sendo **transição**: quem já estava fora por composição não
+        // recebe o mesmo aviso a cada reconfiguração.
+        Ctx ctx = timeComPedidoDeKnightLevel150("P28cWorld", "P28c", Vocation.KNIGHT, Vocation.DRUID);
+        subirLevelMinimo(ctx, 300);
+        trocarComposicao(ctx, Vocation.DRUID, Vocation.DRUID);
+        int antes = tipos(ctx.requesterId).size();
+
+        trocarComposicao(ctx, Vocation.DRUID, Vocation.PALADIN);
+
+        assertThat(pedidoDe(ctx).issue()).isEqualTo(JoinRequestIssue.VOCATION_NOT_IN_COMPOSITION);
+        assertThat(tipos(ctx.requesterId)).hasSize(antes);
+    }
+
+    @Test
+    void quemCabiaEDeixouDeCaberContinuaRecebendoUmAvisoSo() {
+        // Guarda-corpo do caminho antigo: o ramo novo do P28 não pode fazer quem
+        // atravessou a fronteira receber dois avisos.
+        Ctx ctx = timeComPedidoDeKnightLevel150("P28dWorld", "P28d", Vocation.KNIGHT, Vocation.DRUID);
+
+        trocarComposicao(ctx, Vocation.DRUID, Vocation.DRUID);
+
+        assertThat(tipos(ctx.requesterId))
+                .containsExactly(NotificationType.JOIN_REQUEST_COMPOSITION_MISMATCH);
+    }
+
     // ----- Helpers -----
 
     private record Ctx(Long listId, Long ownerId, Long requesterId, Long requesterCharacterId,
@@ -218,6 +292,41 @@ class PendingRequestCompositionIntegrationTest extends TeamIntegrationTestBase {
 
         return new Ctx(time.summary().id(), dono.getId(), quemPediu.getId(), knight.getId(),
                 membershipId, time.summary().shareCode(), time.summary().name());
+    }
+
+    /**
+     * Como o {@link #timeComPedidoDeKnight}, mas o Knight é <b>level 150</b> — abaixo do
+     * que os testes do P28 vão exigir depois.
+     *
+     * ⚠️ O time nasce **sem** level mínimo de propósito: com o mínimo já acima de 150, o
+     * pedido seria recusado no `join` e não haveria pendente para observar. O caminho real
+     * é o mesmo: primeiro o dono sobe o requisito (P18), depois mexe na composição.
+     */
+    private Ctx timeComPedidoDeKnightLevel150(String world, String prefixo, Vocation... composicao) {
+        User dono = createUser(prefixo.toLowerCase() + "-p28-dono@teste.com");
+        Character donoChar = createCharacter(prefixo + " Dono", world, dono);
+        stubPremium(prefixo + " Dono", world, 500, "Elder Druid");
+        ListDetailResponse time = listService.createList(dono.getId(), new CreateListRequest(
+                prefixo + " Team", world, creature("Demon").getId(), JoinPolicy.MANUAL_APPROVAL,
+                donoChar.getId(), null, null, null, null, null,
+                composicao.length == 0 ? null : Arrays.asList(composicao)));
+
+        User quemPediu = createUser(prefixo.toLowerCase() + "-p28-pediu@teste.com");
+        Character knight = createCharacter(prefixo + " Knight", world, quemPediu);
+        stubPremium(prefixo + " Knight", world, 150, "Elite Knight");
+        ListDetailResponse comPedido = listService.joinByShareCode(
+                quemPediu.getId(), time.summary().shareCode(), new JoinListRequest(knight.getId()));
+        Long membershipId = comPedido.members().stream()
+                .filter(m -> m.status() == MembershipStatus.PENDING && m.userId().equals(quemPediu.getId()))
+                .findFirst().orElseThrow().id();
+
+        return new Ctx(time.summary().id(), dono.getId(), quemPediu.getId(), knight.getId(),
+                membershipId, time.summary().shareCode(), time.summary().name());
+    }
+
+    private void subirLevelMinimo(Ctx ctx, int minimo) {
+        listService.updateList(ctx.ownerId, ctx.listId,
+                new UpdateListRequest(ctx.teamName, minimo, null, null, null, null));
     }
 
     /** Reconfigura a composição, como o `PUT /api/lists/{id}/slots` da tela do dono. */

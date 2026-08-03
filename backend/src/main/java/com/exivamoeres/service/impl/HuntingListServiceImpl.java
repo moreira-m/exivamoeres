@@ -748,7 +748,9 @@ public class HuntingListServiceImpl implements HuntingListService {
      *   <tr><th>Antes</th><th>Agora</th><th>Aviso</th></tr>
      *   <tr><td>cabia</td><td>não cabe</td><td>o da causa: level ou composição</td></tr>
      *   <tr><td>não cabia</td><td>cabe</td><td><b>voltou a caber</b></td></tr>
-     *   <tr><td>não cabia</td><td>não cabe</td><td>nenhum — não é notícia nova</td></tr>
+     *   <tr><td>não cabia</td><td>não cabe (<b>mesmo</b> motivo)</td><td>nenhum — não é notícia nova</td></tr>
+     *   <tr><td>não cabia (consertável)</td><td>não cabe (<b>definitivo</b>)</td><td>o da causa nova (P28)</td></tr>
+     *   <tr><td>não cabia (definitivo)</td><td>não cabe (consertável)</td><td>nenhum — boa notícia parcial</td></tr>
      * </table>
      *
      * <p>Três consequências desta forma, e as três são o ponto:</p>
@@ -761,8 +763,9 @@ public class HuntingListServiceImpl implements HuntingListService {
      *   <li><b>O motivo mais grave manda.</b> Como o {@code detectIssue} devolve um só,
      *       quem já estava fora por vocação não recebe aviso de level: ele já sabia que
      *       não cabia, e a conclusão não mudou.</li>
-     *   <li><b>Trocar de motivo não avisa</b> (de level para composição, por exemplo).
-     *       Ver NEXT_STEPS3 P28.</li>
+     *   <li><b>Trocar de motivo avisa só quando o novo é definitivo</b> (item P28): o que
+     *       muda ali não é a situação, é <b>a ação</b> — de "jogue mais" para "use outro
+     *       personagem". A regra mora no próprio {@code JoinRequestIssue.actionChanged}.</li>
      * </ul>
      *
      * <p>A notificação diz o time e a direção; <b>os números</b> ficam na aba "meus
@@ -786,6 +789,9 @@ public class HuntingListServiceImpl implements HuntingListService {
             } else if (antes != null && agora == null) {
                 notificationService.notifyJoinRequestFitsAgain(quemPediu, list);
                 voltaramACaber++;
+            } else if (JoinRequestIssue.actionChanged(antes, agora)) {
+                // P28: continua de fora, mas o que a pessoa deve fazer mudou.
+                deixaramDeCaber += avisarQueDeixouDeCaber(quemPediu, list, agora) ? 1 : 0;
             }
         }
         return new Transicoes(deixaramDeCaber, voltaramACaber);

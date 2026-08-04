@@ -52,6 +52,24 @@ test('personagens: resposta sem a lista não derruba a tela', async ({ loggedPag
   await expect(loggedPage.getByText(/Couldn't load this/i)).toHaveCount(0)
 })
 
+test('meus times: envelope sem `content` não derruba a tela', async ({ loggedPage }) => {
+  // `/api/lists/mine` passou a ser um envelope `Page<T>` (item P12), então entrou na mesma
+  // família de risco das notificações — e ganhou a mesma proteção central
+  // (`pageOrEmpty`), não um `?? []` espalhado pela tela.
+  //
+  // ⚠️ A tela pede **duas** abas, então o `?*` do padrão importa: sem ele a rota com
+  // `?scope=ACTIVE&page=0` não casa e o teste passaria sem interceptar nada.
+  await servirSemLista(loggedPage, '**/api/lists/mine?*', () => ({}))
+
+  await visit(loggedPage, '/account/teams')
+
+  await expect(loggedPage.locator('main')).toContainText(/My teams/i)
+  // Sem os números do envelope, os contadores das abas viram `NaN` — e o aviso do plano
+  // free passa a mentir sobre quantos times ativos a pessoa tem.
+  await expect(loggedPage.locator('main')).not.toContainText(/NaN/)
+  await expect(loggedPage.getByText(/Couldn't load this/i)).toHaveCount(0)
+})
+
 test('notificações: envelope sem `content` não derruba a tela', async ({ loggedPage }) => {
   // Aqui o campo que falta está **dentro** do envelope `Page<T>` do Spring — e os
   // números também: sem eles, "carregar mais" e as contagens viram `NaN`.

@@ -5,6 +5,7 @@ import com.exivamoeres.dto.list.CreateListRequest;
 import com.exivamoeres.dto.list.JoinListRequest;
 import com.exivamoeres.dto.list.ListDetailResponse;
 import com.exivamoeres.dto.list.ListSummaryResponse;
+import com.exivamoeres.dto.list.MyTeamsScope;
 import com.exivamoeres.dto.list.MembershipResponse;
 import com.exivamoeres.dto.list.MyJoinRequestResponse;
 import com.exivamoeres.dto.list.UpdateListRequest;
@@ -67,8 +68,16 @@ public interface HuntingListService {
      */
     void deleteTeam(Long ownerId, Long listId);
 
-    /** Times em que o usuário é dono ou membro ativo aprovado. */
-    List<ListSummaryResponse> listMyLists(Long userId);
+    /**
+     * Times em que o usuário é dono ou membro ativo aprovado, <b>paginados</b> e recortados
+     * por {@link MyTeamsScope} (item P12).
+     *
+     * <p>Devolvia {@code List} com todos os status: a resposta crescia para sempre, porque o
+     * limite do plano free é de times <b>ativos</b> — criar, deixar expirar e criar de novo
+     * acumula histórico sem teto. O {@code totalElements} de cada página é o que a tela usa
+     * para os contadores das abas e para o aviso do limite do plano.</p>
+     */
+    Page<ListSummaryResponse> listMyLists(Long userId, MyTeamsScope scope, Pageable pageable);
 
     /**
      * Detalhe público (sem autenticação) — usado pela busca e pela tela do time.

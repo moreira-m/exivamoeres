@@ -12,6 +12,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -131,4 +132,52 @@ public interface HuntingListRepository extends JpaRepository<HuntingList, Long> 
                              @Param("vocation") Vocation vocation,
                              @Param("maxMembers") int maxMembers,
                              Pageable pageable);
+    /**
+     * "Meus times": onde o usuário é <b>dono</b> ou <b>membro ativo aprovado</b> (item P12).
+     *
+     * <p>A união era feita em memória, sobre {@code findAllByOwnerId} + todas as
+     * participações — sem página e sem teto. <b>Medido</b> numa conta com 12 times: 28
+     * consultas, e <b>9 dos 12 itens eram histórico</b> que a tela nem mostra ao abrir (ela
+     * abre na aba de ativos). Trazer a união do banco é o que faz a resposta caber tanto no
+     * payload quanto no <b>número de consultas</b>: paginar em memória continuaria
+     * carregando tudo antes de cortar.</p>
+     *
+     * <p>O {@code exists} em vez de {@code join} nas participações não é estilo: com
+     * {@code join}, quem é dono <b>e</b> membro do mesmo time apareceria duas vezes — era o
+     * que a de-duplicação em Java existia para resolver.</p>
+     *
+     * <p>⚠️ <b>Ordenação total</b> ({@code createdAt desc, id desc}), pelo mesmo motivo da
+     * busca pública: sem desempate, dois times criados no mesmo instante trocam de lugar
+     * entre uma página e a seguinte, e o "carregar mais" repete um e esconde o outro.</p>
+     */
+    @Query(value = """
+            select l from HuntingList l
+            join fetch l.owner
+            join fetch l.targetCreature
+            where l.status in :statuses
+              and (l.owner.id = :userId
+                   or exists (
+                        select m from ListMembership m
+                        where m.list = l
+                          and m.user.id = :userId
+                          and m.active = true
+                          and m.status = com.exivamoeres.domain.MembershipStatus.APPROVED
+                      ))
+            order by l.createdAt desc, l.id desc
+            """,
+            countQuery = """
+            select count(l) from HuntingList l
+            where l.status in :statuses
+              and (l.owner.id = :userId
+                   or exists (
+                        select m from ListMembership m
+                        where m.list = l
+                          and m.user.id = :userId
+                          and m.active = true
+                          and m.status = com.exivamoeres.domain.MembershipStatus.APPROVED
+                      ))
+            """)
+    Page<HuntingList> findMine(@Param("userId") Long userId,
+                               @Param("statuses") Collection<TeamStatus> statuses,
+                               Pageable pageable);
 }

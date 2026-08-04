@@ -4,8 +4,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { MyTeamsPage } from './MyTeamsPage'
 import { listsApi } from '../../services/listsApi'
 import { notificationsApi } from '../../services/notificationsApi'
-import { conteudo, logarComo, renderizar } from '../../test/renderizar'
-import type { JoinRequestIssue, MyJoinRequestResponse, Vocation } from '../../types/api'
+import { conteudo, detalheDeTime, logarComo, pagina, renderizar } from '../../test/renderizar'
+import type {
+  JoinRequestIssue,
+  ListSummaryResponse,
+  MyJoinRequestResponse,
+  Vocation,
+} from '../../types/api'
 
 vi.mock('../../services/listsApi')
 vi.mock('../../services/notificationsApi')
@@ -34,6 +39,103 @@ function pedido(campos: Partial<MyJoinRequestResponse> = {}): MyJoinRequestRespo
 }
 
 /**
+ * As abas de times vêm **paginadas e recortadas pelo servidor** (item P12).
+ *
+ * Antes `/api/lists/mine` devolvia um array com todos os status e a tela filtrava. Numa conta
+ * antiga isso é histórico que ela nem mostra ao abrir: medido no backend, 9 de 12 itens.
+ *
+ * ⚠️ O ponto frágil é o **contador**: os rótulos das abas e o aviso do limite do plano free
+ * usam o total da aba, não o tamanho do que já foi carregado. Um contador que conte a página
+ * faz o aviso do plano mentir sobre quantos times ativos a pessoa tem.
+ */
+describe('MyTeamsPage — abas paginadas', () => {
+  const time = (id: number, status: ListSummaryResponse['status'] = 'ACTIVE') =>
+    detalheDeTime({ id, name: `Time ${id}`, status }).summary
+
+  /** Os cartões de time: o `TeamCard` é um link para `/teams/:id`. */
+  const cartoes = () =>
+    conteudo()
+      .getAllByRole('link')
+      .filter((a) => a.getAttribute('href')?.startsWith('/teams/'))
+
+  beforeEach(() => {
+    logarComo()
+    vi.mocked(listsApi.myRequests).mockResolvedValue([])
+    vi.mocked(notificationsApi.unreadCount).mockResolvedValue(0)
+  })
+
+  /** Responde por aba, que é como o backend passou a atender. */
+  function servidorCom(ativos: ListSummaryResponse[], historico: ListSummaryResponse[],
+                       totais?: { ativos?: number; historico?: number }) {
+    vi.mocked(listsApi.mine).mockImplementation((params = {}) =>
+      Promise.resolve(
+        params.scope === 'HISTORY'
+          ? pagina(historico, totais?.historico)
+          : pagina(ativos, totais?.ativos),
+      ),
+    )
+  }
+
+  it('pede as duas abas ao servidor, uma por escopo', async () => {
+    servidorCom([time(1)], [time(2, 'ARCHIVED')])
+    renderizar(<MyTeamsPage />, { rota: '/account/teams' })
+
+    await waitFor(() => expect(listsApi.mine).toHaveBeenCalledTimes(2))
+    const escopos = vi.mocked(listsApi.mine).mock.calls.map(([p]) => p?.scope)
+    // As duas de uma vez porque os dois rótulos mostram contagem — e cada uma é um
+    // pedido limitado, que é o que a entrega troca por uma resposta sem teto.
+    expect(escopos).toEqual(expect.arrayContaining(['ACTIVE', 'HISTORY']))
+  })
+
+  it('o contador da aba vem do total, nao do que ja foi carregado', async () => {
+    // 2 ativos nesta página, 7 no total: é o caso que só existe quando há paginação, e
+    // exatamente o que faria o aviso do plano free dizer "2/3" para quem tem 7.
+    servidorCom([time(1), time(2)], [], { ativos: 7 })
+    renderizar(<MyTeamsPage />, { rota: '/account/teams' })
+
+    expect(await conteudo().findByRole('button', { name: /ativos \(7\)/i })).toBeInTheDocument()
+  })
+
+  it('a tela nao filtra por status: o que vem na aba de ativos e mostrado', async () => {
+    // O recorte é do servidor agora. Se a tela voltasse a filtrar, ela esconderia o que o
+    // servidor mandou — e as duas verdades divergiriam sem ninguém notar.
+    servidorCom([time(1), time(2)], [])
+    renderizar(<MyTeamsPage />, { rota: '/account/teams' })
+
+    await waitFor(() => expect(cartoes()).toHaveLength(2))
+  })
+
+  it('"carregar mais" aparece quando ha mais paginas e traz a proxima', async () => {
+    servidorCom([time(1)], [], { ativos: 2 })
+    renderizar(<MyTeamsPage />, { rota: '/account/teams' })
+    await conteudo().findByRole('button', { name: /carregar mais/i })
+
+    await userEvent.click(conteudo().getByRole('button', { name: /carregar mais/i }))
+
+    await waitFor(() =>
+      expect(vi.mocked(listsApi.mine).mock.calls.some(([p]) => p?.page === 1)).toBe(true),
+    )
+  })
+
+  it('sem mais paginas, nao oferece "carregar mais"', async () => {
+    servidorCom([time(1)], [])
+    renderizar(<MyTeamsPage />, { rota: '/account/teams' })
+    await waitFor(() => expect(cartoes()).toHaveLength(1))
+
+    expect(conteudo().queryByRole('button', { name: /carregar mais/i })).not.toBeInTheDocument()
+  })
+
+  it('falha numa aba mostra "tentar de novo", nao "voce nao tem times"', async () => {
+    // "Você não tem times" seria mentira cruel para quem tem: o dono acharia que perdeu os
+    // times dele.
+    vi.mocked(listsApi.mine).mockRejectedValue(new Error('rede caiu'))
+    renderizar(<MyTeamsPage />, { rota: '/account/teams' })
+
+    expect(await conteudo().findByRole('button', { name: /tentar de novo/i })).toBeInTheDocument()
+  })
+})
+
+/**
  * A aba **"meus pedidos"** — a tela que existe para o pedido pendente não virar
  * limbo. O que ela mostra é o `JoinRequestIssue` que o backend calcula com dado
  * local; a frase é montada aqui, no idioma do usuário (direção do T2).
@@ -41,7 +143,7 @@ function pedido(campos: Partial<MyJoinRequestResponse> = {}): MyJoinRequestRespo
 describe('MyTeamsPage — aba "meus pedidos"', () => {
   beforeEach(() => {
     logarComo()
-    vi.mocked(listsApi.mine).mockResolvedValue([])
+    vi.mocked(listsApi.mine).mockResolvedValue(pagina([]))
     vi.mocked(listsApi.myRequests).mockResolvedValue([pedido()])
     vi.mocked(notificationsApi.unreadCount).mockResolvedValue(0)
   })
@@ -154,7 +256,7 @@ describe('todo JoinRequestIssue tem frase', () => {
 
   beforeEach(() => {
     logarComo()
-    vi.mocked(listsApi.mine).mockResolvedValue([])
+    vi.mocked(listsApi.mine).mockResolvedValue(pagina([]))
     vi.mocked(notificationsApi.unreadCount).mockResolvedValue(0)
   })
 

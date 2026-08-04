@@ -5,6 +5,7 @@ import com.exivamoeres.dto.list.CreateListRequest;
 import com.exivamoeres.dto.list.JoinListRequest;
 import com.exivamoeres.dto.list.ListDetailResponse;
 import com.exivamoeres.dto.list.ListSummaryResponse;
+import com.exivamoeres.dto.list.MyTeamsScope;
 import com.exivamoeres.dto.list.MembershipResponse;
 import com.exivamoeres.dto.list.MyJoinRequestResponse;
 import com.exivamoeres.dto.list.UpdateListRequest;
@@ -70,9 +71,23 @@ public class ListController {
         return listService.createList(user.id(), request);
     }
 
+    /**
+     * "Meus times", paginado e recortado por aba (item P12).
+     *
+     * <p>Devolvia um array com <b>todos</b> os status e sem teto. O padrão é
+     * {@code ACTIVE} porque é a aba que a tela abre — e a que não paga pelo histórico, que
+     * numa conta antiga é a maior parte da resposta.</p>
+     *
+     * <p>⚠️ Trocou de <b>forma</b> (array → página): é o único endpoint desta entrega que
+     * quebra o contrato, e o frontend é o único cliente. Um cliente antigo receberia um
+     * objeto onde esperava lista — ver o teste de navegação `resposta-de-api-antiga`.</p>
+     */
     @GetMapping("/mine")
-    public List<ListSummaryResponse> myLists(@AuthenticationPrincipal AuthenticatedUser user) {
-        return listService.listMyLists(user.id());
+    public Page<ListSummaryResponse> myLists(@AuthenticationPrincipal AuthenticatedUser user,
+                                             @RequestParam(defaultValue = "ACTIVE") MyTeamsScope scope,
+                                             @RequestParam(defaultValue = "0") int page,
+                                             @RequestParam(defaultValue = "20") int size) {
+        return listService.listMyLists(user.id(), scope, PageRequest.of(page, Math.min(size, 50)));
     }
 
     /**

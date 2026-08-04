@@ -11,6 +11,7 @@ import {
   conteudo,
   detalheDeTime,
   logarComo,
+  pagina,
   personagem,
   renderizar,
 } from '../../test/renderizar'
@@ -51,7 +52,7 @@ describe('CreateTeamPage', () => {
     vi.mocked(creaturesApi.list).mockResolvedValue([
       { id: 1, name: 'Demon', imageUrl: null, difficulty: 4 },
     ])
-    vi.mocked(listsApi.mine).mockResolvedValue([])
+    vi.mocked(listsApi.mine).mockResolvedValue(pagina([]))
     vi.mocked(listsApi.create).mockResolvedValue(detalheDeTime())
     // A NavBar acompanha toda página: sem isto, o sino de notificações quebra a
     // query e polui a saída de todos os testes.
@@ -212,7 +213,7 @@ describe('CreateTeamPage', () => {
     const ativo = (id: number) => detalheDeTime({ id }).summary
 
     it('no limite, o botao fica desabilitado e a tela explica', async () => {
-      vi.mocked(listsApi.mine).mockResolvedValue([ativo(1), ativo(2), ativo(3)])
+      vi.mocked(listsApi.mine).mockResolvedValue(pagina([ativo(1), ativo(2), ativo(3)]))
       const botao = await abrirFormulario()
 
       await waitFor(() => expect(botao).toBeDisabled())
@@ -221,11 +222,12 @@ describe('CreateTeamPage', () => {
     })
 
     it('time encerrado nao conta para o limite', async () => {
-      vi.mocked(listsApi.mine).mockResolvedValue([
-        ativo(1),
-        ativo(2),
-        detalheDeTime({ id: 3, status: 'CLOSED' }).summary,
-      ])
+      // ⚠️ Desde o P12 o recorte por status é do **servidor**: esta tela pede
+      // `scope=ACTIVE` e usa o `totalElements`. O time encerrado nem chega aqui — a regra
+      // "CLOSED não conta" passou a ser garantida no backend
+      // (`MyTeamsPaginationIntegrationTest`), e o que sobra para a tela é não inventar
+      // contagem própria.
+      vi.mocked(listsApi.mine).mockResolvedValue(pagina([ativo(1), ativo(2)]))
       const botao = await abrirFormulario()
 
       // Encerrar um time é o caminho que o próprio aviso de limite sugere: se
@@ -234,9 +236,22 @@ describe('CreateTeamPage', () => {
       expect(botao).toBeEnabled()
     })
 
+    it('o contador vem do total do servidor, nao do que veio na pagina', async () => {
+      // ⚠️ Uma mutação sobreviveu até este teste existir: trocar o `totalElements` por
+      // `content.length` passava, porque em todos os outros testes os dois são iguais.
+      // Hoje o limite é 3 e a página tem 20, então a diferença não é alcançável pela tela —
+      // mas o que a tela **quer dizer** é "quantos ativos existem", e é isso que fica
+      // preso aqui. Mudar o tamanho da página não pode reintroduzir o defeito.
+      vi.mocked(listsApi.mine).mockResolvedValue(pagina([ativo(1), ativo(2)], 3))
+      const botao = await abrirFormulario()
+
+      await waitFor(() => expect(botao).toBeDisabled())
+      expect(conteudo().getByText(/plano free: 3\/3/i)).toBeInTheDocument()
+    })
+
     it('conta premium nao ve o aviso de limite', async () => {
       logarComo({ plan: 'PREMIUM' })
-      vi.mocked(listsApi.mine).mockResolvedValue([ativo(1), ativo(2), ativo(3), ativo(4)])
+      vi.mocked(listsApi.mine).mockResolvedValue(pagina([ativo(1), ativo(2), ativo(3), ativo(4)]))
       const botao = await abrirFormulario()
 
       expect(botao).toBeEnabled()

@@ -83,6 +83,18 @@ export function personagem(
  * leem precisam de valor "de verdade"; o resto é preenchimento — e existir é o
  * que importa, porque campo faltando na fábrica esconde `undefined` no teste.
  */
+/**
+ * Uma página do backend, como o Spring a devolve (item P12).
+ *
+ * ⚠️ `totalElements` **separado do tamanho da lista**, de propósito: é assim que se testa o
+ * contador de uma aba que já tem mais de uma página. Passar só a lista faria todo teste
+ * assumir "uma página só", que é justamente o caso que a paginação existe para não assumir.
+ */
+export function pagina<T>(content: T[], totalElements = content.length, number = 0) {
+  const totalPages = Math.max(1, Math.ceil(totalElements / Math.max(content.length, 1)))
+  return { content, totalElements, totalPages, number }
+}
+
 export function detalheDeTime(
   campos: Partial<ListDetailResponse['summary']> = {},
   extras: Partial<Omit<ListDetailResponse, 'summary'>> = {},

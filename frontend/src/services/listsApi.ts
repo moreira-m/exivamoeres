@@ -1,7 +1,6 @@
 import { apiClient } from './apiClient'
 import {
   normalizeDetail,
-  normalizeSummaries,
   normalizeSummaryPage,
 } from './listsNormalizer'
 import type {
@@ -14,6 +13,13 @@ import type {
   Page,
   SuggestionResponse,
 } from '../types/api'
+
+/** Parâmetros de `/api/lists/mine` — uma aba por vez (item P12). */
+export interface MyListsParams {
+  scope?: 'ACTIVE' | 'HISTORY'
+  page?: number
+  size?: number
+}
 
 export interface CreateListRequest {
   world: string
@@ -73,10 +79,19 @@ export const listsApi = {
   create: (body: CreateListRequest) =>
     apiClient.post<ListDetailResponse>('/api/lists', body).then((r) => normalizeDetail(r.data)),
 
-  mine: () =>
+  /**
+   * "Meus times" de uma aba, paginado (item P12).
+   *
+   * ⚠️ Era um array com **todos** os status e sem teto — numa conta antiga, a maior parte
+   * dele é histórico que a tela nem mostra ao abrir. O `totalElements` da página é o que
+   * alimenta os contadores das abas e o aviso do limite do plano; sem ele, o contador
+   * passaria a dizer "quantos vieram nesta página", e o aviso do plano free mentiria sobre
+   * quantos times ativos a pessoa tem.
+   */
+  mine: (params: MyListsParams = {}) =>
     apiClient
-      .get<ListSummaryResponse[]>('/api/lists/mine')
-      .then((r) => normalizeSummaries(r.data)),
+      .get<Page<ListSummaryResponse>>('/api/lists/mine', { params })
+      .then((r) => normalizeSummaryPage(r.data)),
 
   /** Pedidos de entrada do próprio usuário (pendentes e recusados). */
   myRequests: () =>

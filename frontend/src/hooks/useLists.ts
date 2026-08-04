@@ -7,6 +7,7 @@ import {
 import {
   listsApi,
   type CreateListRequest,
+  type MyListsParams,
   type SearchListsParams,
   type UpdateListRequest,
 } from '../services/listsApi'
@@ -40,8 +41,22 @@ export function useListDetail(id: number, enabled = true) {
   })
 }
 
-export function useMyLists() {
-  return useQuery({ queryKey: ['lists', 'mine'], queryFn: listsApi.mine })
+/**
+ * "Meus times" de uma aba, com "carregar mais" (item P12).
+ *
+ * ⚠️ A tela pede as **duas** abas de uma vez, e é de propósito: os rótulos mostram a
+ * contagem de cada uma, e o aviso do plano free compara os ativos com o limite de 3. Cada
+ * uma vem paginada e traz o próprio `totalElements`, então as contagens continuam sendo do
+ * total — e não "do que veio nesta página", que é como um contador vira mentira.
+ */
+export function useMyLists(scope: MyListsParams['scope']) {
+  return useInfiniteQuery({
+    queryKey: ['lists', 'mine', scope],
+    queryFn: ({ pageParam }) => listsApi.mine({ scope, page: pageParam }),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) =>
+      lastPage.number + 1 < lastPage.totalPages ? lastPage.number + 1 : undefined,
+  })
 }
 
 /** "Meus pedidos": o lado de quem pediu para entrar e ficava sem informação. */

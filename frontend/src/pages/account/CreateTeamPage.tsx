@@ -22,7 +22,7 @@ export function CreateTeamPage() {
   const creatures = useCreatures()
   const characters = useMyCharacters()
   const createList = useCreateList()
-  const myLists = useMyLists()
+  const ativos = useMyLists('ACTIVE')
   const { user } = useAuth()
 
   const [characterId, setCharacterId] = useState('')
@@ -74,7 +74,11 @@ export function CreateTeamPage() {
   const noCharacters = characters.data && characters.data.length === 0
 
   // Vagas do plano free (o backend é quem garante o limite; aqui é só UX).
-  const activeCount = (myLists.data ?? []).filter((t) => t.status === 'ACTIVE').length
+  //
+  // ⚠️ `totalElements` do servidor, e não um `filter` sobre a lista inteira (item P12):
+  // antes esta tela baixava **todos** os times de todos os status só para contar os ativos —
+  // numa conta antiga, a maior parte do que ela carregava era histórico que ela descartava.
+  const activeCount = ativos.data?.pages[0]?.totalElements ?? 0
   const isFree = user?.plan === 'FREE'
   const atLimit = isFree && activeCount >= FREE_ACTIVE_LIMIT
 

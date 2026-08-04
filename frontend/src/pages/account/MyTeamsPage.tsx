@@ -26,7 +26,12 @@ const FREE_ACTIVE_LIMIT = 3
 
 export function MyTeamsPage() {
   const { t } = useTranslation()
-  const myLists = useMyLists()
+  // ⚠️ As **duas** abas de uma vez, e não só a aberta: os rótulos mostram a contagem de
+  // cada uma, e o aviso do plano free compara os ativos com o limite. Cada uma vem
+  // paginada, então as duas são pedidos limitados — o que era uma resposta sem teto
+  // virou duas com teto (item P12).
+  const ativos = useMyLists('ACTIVE')
+  const historico = useMyLists('HISTORY')
   // "Meus pedidos": um pedido pendente não aparecia em lugar nenhum, e a pessoa
   // não sabia se tinha sido ignorada ou recusada.
   const myRequests = useMyJoinRequests()
@@ -38,15 +43,24 @@ export function MyTeamsPage() {
     searchParams.get('tab') === 'requests' ? 'requests' : 'active',
   )
 
-  const { active, inactive } = useMemo(() => {
-    const all = myLists.data ?? []
-    return {
-      active: all.filter((t) => t.status === 'ACTIVE'),
-      inactive: all.filter((t) => t.status !== 'ACTIVE'),
-    }
-  }, [myLists.data])
+  // O recorte por status é do **servidor** agora: cada aba é uma consulta própria. Antes
+  // vinha tudo junto e a tela filtrava — o que obrigava a resposta a carregar o histórico
+  // inteiro para mostrar três times ativos.
+  const active = useMemo(
+    () => (ativos.data?.pages ?? []).flatMap((p) => p.content),
+    [ativos.data],
+  )
+  const inactive = useMemo(
+    () => (historico.data?.pages ?? []).flatMap((p) => p.content),
+    [historico.data],
+  )
+  // Do `totalElements`, não do `length`: o contador é o total da aba, não o que já foi
+  // carregado. É o que mantém o aviso do plano free honesto.
+  const totalAtivos = ativos.data?.pages[0]?.totalElements ?? 0
+  const totalHistorico = historico.data?.pages[0]?.totalElements ?? 0
 
   const isFree = user?.plan === 'FREE'
+  const aba = tab === 'active' ? ativos : historico
   const shown = tab === 'active' ? active : inactive
 
   return (
@@ -61,7 +75,7 @@ export function MyTeamsPage() {
       {isFree && (
         <Card className="mb-6 flex items-center justify-between p-4">
           <span className="font-bold text-ink">
-            {t('myTeams.freePlan', { count: active.length, limit: FREE_ACTIVE_LIMIT })}
+            {t('myTeams.freePlan', { count: totalAtivos, limit: FREE_ACTIVE_LIMIT })}
           </span>
           <Link to="/account/billing">
             <Button variant="primary">{t('myTeams.subscribePremium')}</Button>
@@ -71,10 +85,10 @@ export function MyTeamsPage() {
 
       <div className="mb-5 flex gap-2">
         <Button variant={tab === 'active' ? 'primary' : 'neutral'} onClick={() => setTab('active')}>
-          {t('myTeams.tabActive', { count: active.length })}
+          {t('myTeams.tabActive', { count: totalAtivos })}
         </Button>
         <Button variant={tab === 'inactive' ? 'primary' : 'neutral'} onClick={() => setTab('inactive')}>
-          {t('myTeams.tabInactive', { count: inactive.length })}
+          {t('myTeams.tabInactive', { count: totalHistorico })}
         </Button>
         <Button
           variant={tab === 'requests' ? 'primary' : 'neutral'}
@@ -86,26 +100,39 @@ export function MyTeamsPage() {
 
       {tab === 'requests' ? (
         <MyRequestsTab query={myRequests} />
-      ) : myLists.isLoading ? (
+      ) : aba.isLoading ? (
         <Spinner />
-      ) : myLists.isError ? (
+      ) : aba.isError ? (
         /* "Você não tem times" seria mentira cruel para quem tem: o dono acharia
            que perdeu os times dele. */
         <QueryError
-          error={myLists.error}
-          onRetry={() => void myLists.refetch()}
-          retrying={myLists.isFetching}
+          error={aba.error}
+          onRetry={() => void aba.refetch()}
+          retrying={aba.isFetching}
         />
       ) : shown.length > 0 ? (
-        <div className="grid gap-4 md:grid-cols-2">
-          {shown.map((team) =>
-            tab === 'inactive' ? (
-              <InactiveTeamCard key={team.id} team={team} ownerId={user?.id} />
-            ) : (
-              <TeamCard key={team.id} team={team} />
-            ),
+        <>
+          <div className="grid gap-4 md:grid-cols-2">
+            {shown.map((team) =>
+              tab === 'inactive' ? (
+                <InactiveTeamCard key={team.id} team={team} ownerId={user?.id} />
+              ) : (
+                <TeamCard key={team.id} team={team} />
+              ),
+            )}
+          </div>
+          {aba.hasNextPage && (
+            <div className="mt-6 flex justify-center">
+              <Button
+                variant="neutral"
+                onClick={() => void aba.fetchNextPage()}
+                disabled={aba.isFetchingNextPage}
+              >
+                {aba.isFetchingNextPage ? t('common.loading') : t('home.loadMore')}
+              </Button>
+            </div>
           )}
-        </div>
+        </>
       ) : (
         <Card className="p-6 text-center font-bold">
           {tab === 'active' ? t('myTeams.emptyActive') : t('myTeams.emptyInactive')}

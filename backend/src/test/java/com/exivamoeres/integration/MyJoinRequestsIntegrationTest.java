@@ -73,7 +73,9 @@ class MyJoinRequestsIntegrationTest extends TeamIntegrationTestBase {
 
         // Aprovado não é pedido: o time passa a aparecer em "meus times".
         assertThat(listService.listMyJoinRequests(ctx.joinerId)).isEmpty();
-        assertThat(listService.listMyLists(ctx.joinerId))
+        assertThat(listService.listMyLists(ctx.joinerId,
+                com.exivamoeres.dto.list.MyTeamsScope.ACTIVE,
+                org.springframework.data.domain.PageRequest.of(0, 20)).getContent())
                 .extracting(s -> s.id())
                 .contains(ctx.listId);
     }

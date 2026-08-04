@@ -20,6 +20,7 @@ import com.exivamoeres.dto.list.JoinListRequest;
 import com.exivamoeres.dto.list.JoinRequestIssue;
 import com.exivamoeres.dto.list.ListDetailResponse;
 import com.exivamoeres.dto.list.ListSummaryResponse;
+import com.exivamoeres.dto.list.MyTeamsScope;
 import com.exivamoeres.dto.list.MembershipResponse;
 import com.exivamoeres.dto.list.MyJoinRequestResponse;
 import com.exivamoeres.dto.list.TeamSlotResponse;
@@ -387,19 +388,12 @@ public class HuntingListServiceImpl implements HuntingListService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ListSummaryResponse> listMyLists(Long userId) {
-        // Times onde é dono OU membro ativo aprovado — sem duplicar.
-        List<HuntingList> owned = listRepository.findAllByOwnerId(userId);
-        List<HuntingList> joined = membershipRepository.findAllByUserIdAndActiveTrue(userId).stream()
-                .filter(m -> m.getStatus() == MembershipStatus.APPROVED)
-                .map(ListMembership::getList)
-                .toList();
-
-        List<HuntingList> all = new ArrayList<>(owned);
-        joined.stream()
-                .filter(l -> owned.stream().noneMatch(o -> o.getId().equals(l.getId())))
-                .forEach(all::add);
-        return all.stream().map(this::toSummary).toList();
+    public Page<ListSummaryResponse> listMyLists(Long userId, MyTeamsScope scope, Pageable pageable) {
+        // A união (dono OU membro aprovado) e a de-duplicação eram feitas **em memória**,
+        // sobre todos os times de todos os status. Agora são do banco, com página — ver
+        // `HuntingListRepository.findMine`. Paginar em memória não resolveria: o custo é
+        // carregar tudo, não devolver tudo.
+        return listRepository.findMine(userId, scope.statuses(), pageable).map(this::toSummary);
     }
 
     @Override

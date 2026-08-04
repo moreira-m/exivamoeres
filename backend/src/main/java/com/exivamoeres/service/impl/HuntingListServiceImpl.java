@@ -166,8 +166,9 @@ public class HuntingListServiceImpl implements HuntingListService {
             // Mesma regra do chat e do soulcore: time não-ativo é só leitura. Um
             // time arquivado que continuasse editável seria um anúncio invisível
             // sendo maquiado.
-            throw new BusinessRuleException(
-                    "Este time não aceita mais alterações; ele está " + list.getStatus());
+            throw new BusinessRuleException(ErrorCode.TEAM_LOCKED,
+                    "Este time não aceita mais alterações; ele está " + list.getStatus())
+                    .with("status", list.getStatus());
         }
         assertOwnerStillMeetsMinimumLevel(list, ownerId, request.minimumLevel());
 
@@ -200,8 +201,9 @@ public class HuntingListServiceImpl implements HuntingListService {
         userRateLimiter.checkTeamUpdate(ownerId);
         HuntingList list = loadOwnedList(listId, ownerId); // 403 se não for o dono
         if (!list.allowsWrites()) {
-            throw new BusinessRuleException(
-                    "Este time não aceita mais alterações; ele está " + list.getStatus());
+            throw new BusinessRuleException(ErrorCode.TEAM_LOCKED,
+                    "Este time não aceita mais alterações; ele está " + list.getStatus())
+                    .with("status", list.getStatus());
         }
         // Os motivos de antes, para saber **quem mudou de situação**. Sem isto só daria
         // para avisar "quem não cabe agora", e quem já não cabia receberia o mesmo aviso
@@ -314,10 +316,10 @@ public class HuntingListServiceImpl implements HuntingListService {
                 .filter(m -> m.getList().getId().equals(listId))
                 .toList();
         if (memberships.isEmpty()) {
-            throw new BusinessRuleException("Você não participa deste time");
+            throw new BusinessRuleException(ErrorCode.NOT_A_MEMBER, "Você não participa deste time");
         }
         if (list.getOwner().getId().equals(userId)) {
-            throw new BusinessRuleException(
+            throw new BusinessRuleException(ErrorCode.OWNER_CANNOT_LEAVE,
                     "O dono não pode sair do próprio time; transfira ou exclua o time");
         }
         // Sair nunca deleta histórico — só desativa (regra herdada da sessão 1).
@@ -332,7 +334,8 @@ public class HuntingListServiceImpl implements HuntingListService {
     public ListDetailResponse renewTeam(Long ownerId, Long listId) {
         HuntingList list = loadOwnedListForUpdate(listId, ownerId);
         if (list.getStatus() != TeamStatus.ARCHIVED) {
-            throw new BusinessRuleException("Só é possível renovar um time arquivado");
+            throw new BusinessRuleException(ErrorCode.RENEW_REQUIRES_ARCHIVED,
+                    "Só é possível renovar um time arquivado").with("status", list.getStatus());
         }
         // Renovar consome uma vaga do plano, igual criar.
         assertWithinActiveTeamLimit(list.getOwner());
@@ -352,7 +355,8 @@ public class HuntingListServiceImpl implements HuntingListService {
             throw new ResourceNotFoundException("Membro não pertence a este time");
         }
         if (membership.getUser().getId().equals(ownerId)) {
-            throw new BusinessRuleException("O dono não pode expulsar a si mesmo");
+            throw new BusinessRuleException(ErrorCode.OWNER_CANNOT_KICK_SELF,
+                    "O dono não pode expulsar a si mesmo");
         }
         // Nunca deleta: desativa e preserva o histórico (mensagens de chat ficam).
         membership.setActive(false);
@@ -367,7 +371,7 @@ public class HuntingListServiceImpl implements HuntingListService {
     public void deleteTeam(Long ownerId, Long listId) {
         HuntingList list = loadOwnedList(listId, ownerId); // 403 se não for o dono
         if (list.getStatus() == TeamStatus.CLOSED) {
-            throw new BusinessRuleException("Este time já foi encerrado");
+            throw new BusinessRuleException(ErrorCode.TEAM_ALREADY_CLOSED, "Este time já foi encerrado");
         }
         // Exclusão lógica: preserva o histórico (padrão do projeto). Some da
         // busca e vira só leitura; membros continuam vendo em "meus times".
@@ -456,7 +460,8 @@ public class HuntingListServiceImpl implements HuntingListService {
             throw new ResourceNotFoundException("Pedido não encontrado");
         }
         if (membership.getStatus() != MembershipStatus.PENDING || !membership.isActive()) {
-            throw new BusinessRuleException("Este pedido não está mais pendente");
+            throw new BusinessRuleException(ErrorCode.REQUEST_NOT_PENDING,
+                    "Este pedido não está mais pendente");
         }
         // Status próprio: quem desistiu foi o solicitante, não o dono (que seria
         // REJECTED). Nada é deletado — o histórico é preservado.
@@ -537,7 +542,7 @@ public class HuntingListServiceImpl implements HuntingListService {
         Character character = characterRepository.findById(characterId)
                 .orElseThrow(() -> new ResourceNotFoundException("Personagem não encontrado"));
         if (character.getOwner() == null || !character.getOwner().getId().equals(userId)) {
-            throw new BusinessRuleException(
+            throw new BusinessRuleException(ErrorCode.CHARACTER_NOT_VERIFIED,
                     "Você só pode usar personagens que já verificou (claim aprovado)");
         }
         return character;
@@ -570,7 +575,8 @@ public class HuntingListServiceImpl implements HuntingListService {
             throw new ResourceNotFoundException("Pedido não pertence a este time");
         }
         if (membership.getStatus() != MembershipStatus.PENDING || !membership.isActive()) {
-            throw new BusinessRuleException("Este pedido não está mais pendente");
+            throw new BusinessRuleException(ErrorCode.REQUEST_NOT_PENDING,
+                    "Este pedido não está mais pendente");
         }
         return membership;
     }
@@ -600,10 +606,37 @@ public class HuntingListServiceImpl implements HuntingListService {
         } catch (BusinessRuleException e) {
             // Reembrulha para deixar claro para o DONO (que é quem lê) que a
             // recusa é do candidato e que nada foi alterado.
-            throw new BusinessRuleException(
-                    "Não é possível aprovar este pedido agora: " + e.getMessage()
-                            + ". O pedido continua pendente.");
+            //
+            // ⚠️ O reembrulho **descartava o código** do motivo interno (T18): o dono
+            // recebia a concatenação de duas frases em português — a mensagem mais longa do
+            // produto — e o `code` vinha nulo mesmo quando o motivo tinha um. Agora o motivo
+            // vai **aninhado** em `params.reason`, e a tela monta "não foi possível aprovar
+            // porque ⟨motivo⟩" traduzindo os dois.
+            throw comMotivoAninhado(e);
         }
+    }
+
+    /**
+     * A recusa da aprovação carregando o motivo do candidato dentro dela.
+     *
+     * <p>Os params do motivo vão junto porque são os da <b>frase do motivo</b> (o level
+     * exigido, o nome do personagem) — sem eles a parte aninhada sairia com
+     * {@code {{minimum}}} na tela.</p>
+     *
+     * <p>Motivo sem código mantém o reembrulho antigo: `message` em português e `code`
+     * nulo. É a mesma reserva incremental do T2 — hoje todos os motivos de elegibilidade
+     * têm código, então este caminho é a rede para o próximo que nascer sem.</p>
+     */
+    private BusinessRuleException comMotivoAninhado(BusinessRuleException motivo) {
+        String frase = "Não é possível aprovar este pedido agora: " + motivo.getMessage()
+                + ". O pedido continua pendente.";
+        if (motivo.getCode() == null) {
+            return new BusinessRuleException(frase);
+        }
+        BusinessRuleException recusa = new BusinessRuleException(ErrorCode.APPROVAL_BLOCKED, frase)
+                .with("reason", motivo.getCode());
+        motivo.getParams().forEach(recusa::with);
+        return recusa;
     }
 
     private void assertWithinActiveTeamLimit(User owner) {
@@ -635,7 +668,12 @@ public class HuntingListServiceImpl implements HuntingListService {
                 return code;
             }
         }
-        throw new BusinessRuleException("Não foi possível gerar um código de convite; tente novamente");
+        // ⚠️ **Não** é BusinessRuleException (era, e virava 422 — ver T18). 422 quer dizer
+        // "corrija o payload", e não há nada no payload para corrigir: cinco códigos
+        // aleatórios colidindo é anomalia do servidor. Como 5xx, ela entra no alerta de
+        // taxa de erro, que é exatamente onde este sintoma precisa aparecer.
+        throw new IllegalStateException(
+                "Não foi possível gerar um código de convite único em 5 tentativas");
     }
 
     private ListDetailResponse buildDetail(HuntingList list, Long viewerId) {
@@ -865,9 +903,11 @@ public class HuntingListServiceImpl implements HuntingListService {
                     .mapToInt(Integer::intValue)
                     .max()
                     .orElseThrow();
-            throw new BusinessRuleException(
+            throw new BusinessRuleException(ErrorCode.OWNER_BELOW_OWN_MINIMUM,
                     "Você não pode exigir level " + minimumLevel
-                            + ": seu personagem no time tem level " + maiorLevel);
+                            + ": seu personagem no time tem level " + maiorLevel)
+                    .with("minimum", minimumLevel)
+                    .with("ownerLevel", maiorLevel);
         }
     }
 

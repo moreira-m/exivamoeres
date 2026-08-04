@@ -175,8 +175,11 @@ public class TeamSlotAssigner {
                     .sorted((a, b) -> Boolean.compare(a.getVocation() == null, b.getVocation() == null))
                     .findFirst()
                     .orElseThrow(() -> new BusinessRuleException(
+                            ErrorCode.COMPOSITION_EXCLUDES_MEMBER,
                             "A composição não tem vaga para " + descrever(vocacao)
-                                    + " (" + membro.getCharacter().getName() + "), que já está no time."));
+                                    + " (" + membro.getCharacter().getName() + "), que já está no time.")
+                            .with("vocation", nomeDaVocacao(vocacao))
+                            .with("character", membro.getCharacter().getName()));
             ocupadas.add(escolhida.getPosition());
             assentos.put(membro.getId(), escolhida);
         }
@@ -212,8 +215,9 @@ public class TeamSlotAssigner {
                 .sorted((a, b) -> Boolean.compare(a.getVocation() == null, b.getVocation() == null))
                 .findFirst()
                 .map(Optional::of)
-                .orElseThrow(() -> new BusinessRuleException(
-                        "Não há vaga livre para " + descrever(vocation) + " neste time."));
+                .orElseThrow(() -> new BusinessRuleException(ErrorCode.NO_FREE_SLOT_FOR_VOCATION,
+                        "Não há vaga livre para " + descrever(vocation) + " neste time.")
+                        .with("vocation", nomeDaVocacao(vocation)));
     }
 
     /**
@@ -297,8 +301,9 @@ public class TeamSlotAssigner {
             return List.of();
         }
         if (requested.size() > maxMembers) {
-            throw new BusinessRuleException(
-                    "A composição não pode ter mais de " + maxMembers + " vagas.");
+            throw new BusinessRuleException(ErrorCode.COMPOSITION_TOO_LARGE,
+                    "A composição não pode ter mais de " + maxMembers + " vagas.")
+                    .with("max", maxMembers);
         }
         if (requested.stream().allMatch(java.util.Objects::isNull)) {
             return List.of();
@@ -308,5 +313,17 @@ public class TeamSlotAssigner {
 
     private String descrever(Vocation vocation) {
         return vocation == null || vocation == Vocation.NONE ? "personagem sem vocação" : vocation.name();
+    }
+
+    /**
+     * O <b>valor do enum</b> para os params da recusa — não o rótulo em português do
+     * {@link #descrever}.
+     *
+     * ⚠️ A tela traduz `NONE` como "sem vocação" (`enums.vocation.NONE`), então mandar o
+     * texto pronto daqui faria a frase em inglês receber uma palavra em português no meio.
+     * Nulo e `NONE` são a mesma coisa para quem lê, e o enum já tem o valor para isso.
+     */
+    private String nomeDaVocacao(Vocation vocation) {
+        return vocation == null ? Vocation.NONE.name() : vocation.name();
     }
 }

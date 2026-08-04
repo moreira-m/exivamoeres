@@ -32,10 +32,12 @@ class UserRateLimitIntegrationTest extends TeamIntegrationTestBase {
         registry.add("app.rate-limit.team-creation-per-hour", () -> 2);
         registry.add("app.rate-limit.tibiadata-per-hour", () -> 2);
         registry.add("app.rate-limit.team-update-per-hour", () -> 2);
+        registry.add("app.chat.messages-per-minute", () -> 2);
     }
 
     @Autowired HuntingListService listService;
     @Autowired CharacterClaimService claimService;
+    @Autowired com.exivamoeres.service.ChatService chatService;
 
     @Test
     void criarTimesAcimaDoLimitePorHoraRetorna429() {
@@ -48,6 +50,32 @@ class UserRateLimitIntegrationTest extends TeamIntegrationTestBase {
         assertThatThrownBy(() -> criarTime(owner, "Rate Char 3", "Rate Team 3"))
                 .isInstanceOf(TooManyRequestsException.class)
                 .hasMessageContaining("muitos times");
+    }
+
+    @Test
+    void chatAcimaDoLimitePorMinutoRetorna429ENao422() {
+        // ⚠️ Era **422** até 01/08/2026, e o chat era o único limite do produto falando isso
+        // (T18). Duas coisas erradas, e a segunda ninguém veria:
+        //
+        //   1. 422 significa "corrija o payload", e não há nada a corrigir — é só esperar;
+        //   2. o alerta `MuitosBloqueiosDeRateLimit` conta `status="429"`, então uma enxurrada
+        //      no chat era **invisível** para ele. O limite existe justamente para isso.
+        //
+        // Este limite também não tinha teste nenhum, que é como o status errado durou.
+        User dono = createUser("rate-chat-dono@teste.com");
+        Character personagem = createCharacter("Rate Chat Char", "RateChatWorld", dono);
+        stubPremium("Rate Chat Char", "RateChatWorld", 500, "Elder Druid");
+        var time = listService.createList(dono.getId(), new CreateListRequest(
+                "Rate Chat Team", "RateChatWorld", creature("Demon").getId(),
+                JoinPolicy.AUTO_ACCEPT, personagem.getId(), null, null, null, null, null, null));
+
+        chatService.sendMessage(dono.getId(), time.summary().id(), personagem.getId(), "oi");
+        chatService.sendMessage(dono.getId(), time.summary().id(), personagem.getId(), "oi de novo");
+
+        assertThatThrownBy(() -> chatService.sendMessage(
+                dono.getId(), time.summary().id(), personagem.getId(), "a terceira"))
+                .isInstanceOf(TooManyRequestsException.class)
+                .hasMessageContaining("rápido demais");
     }
 
     @Test

@@ -15,8 +15,17 @@ package com.exivamoeres.dto.error;
  * cada entrega converte o que toca.</p>
  *
  * <p><b>Quem adiciona um valor aqui adiciona a tradução nos dois idiomas</b> (chave
- * `errors.codes.<CODE>` em `pt.json` e `en.json`). Há teste de componente varrendo este
- * enum: código sem frase reprova, em vez de aparecer como chave crua na tela.</p>
+ * `errors.codes.<CODE>` em `pt.json` e `en.json`) <b>e o valor na união
+ * `ErrorCode` do `types/api.ts`</b>. Não é disciplina: o
+ * `frontend/scripts/error-codes-check.mjs` lê este arquivo e <b>reprova o build</b> se
+ * faltar qualquer um dos três. Antes dele, a lista do frontend era um espelho copiado à
+ * mão — código novo passava sem frase e ninguém sabia até alguém em inglês tomar a
+ * recusa.</p>
+
+ * <p>⚠️ <b>Não é todo `BusinessRuleException` que merece código aqui.</b> Se a recusa não
+ * é regra de negócio, o problema é o status, não a tradução: rate limit é <b>429</b>
+ * ({@code TooManyRequestsException}) e falha interna é <b>5xx</b>. Dar código a essas
+ * cimentaria o status errado — ver T18.</p>
  */
 public enum ErrorCode {
 
@@ -42,5 +51,68 @@ public enum ErrorCode {
 
     // ---- limites de plano ----
     /** Limite de times ativos do plano. Params: `limit`. */
-    ACTIVE_TEAM_LIMIT
+    ACTIVE_TEAM_LIMIT,
+
+    // ---------------------------------------------------------------------------
+    // Segunda fase (T18): as recusas que sobraram. Agrupadas por **quem lê** — é o
+    // que decide o tom da frase, e o que separa "corrija" de "não é possível".
+    // ---------------------------------------------------------------------------
+
+    // ---- o dono mexendo no próprio time ----
+    /** O time não aceita mais escrita (não está ACTIVE). Params: `status`. */
+    TEAM_LOCKED,
+    /** Renovar só vale para time arquivado. Params: `status`. */
+    RENEW_REQUIRES_ARCHIVED,
+    /** O time já foi encerrado. */
+    TEAM_ALREADY_CLOSED,
+    /** O dono não pode sair do próprio time. */
+    OWNER_CANNOT_LEAVE,
+    /** O dono não pode expulsar a si mesmo. */
+    OWNER_CANNOT_KICK_SELF,
+    /**
+     * O level mínimo pedido é maior que o do personagem do próprio dono no time.
+     * Params: `minimum`, `ownerLevel`.
+     */
+    OWNER_BELOW_OWN_MINIMUM,
+
+    // ---- composição ----
+    /** A composição nova deixaria de fora um membro que já está no time. Params: `vocation`, `character`. */
+    COMPOSITION_EXCLUDES_MEMBER,
+    /** Não há vaga **livre** compatível com a vocação. Params: `vocation`. */
+    NO_FREE_SLOT_FOR_VOCATION,
+    /** A composição tem mais vagas que o tamanho do time. Params: `max`. */
+    COMPOSITION_TOO_LARGE,
+
+    // ---- pedido de entrada, do lado do dono ----
+    /**
+     * A aprovação foi bloqueada pela elegibilidade do candidato.
+     *
+     * <p>⚠️ <b>Params: `reason`</b> — o {@link ErrorCode} do motivo real
+     * ({@code BELOW_MINIMUM_LEVEL}, {@code FREE_ACCOUNT}…), <b>mais os params dele</b>. É
+     * um código que carrega outro código: a tela monta "não foi possível aprovar porque
+     * ⟨motivo⟩" traduzindo os dois. Antes disso, a frase do dono era a concatenação de
+     * duas em português — a mensagem mais longa do produto — e o código do motivo era
+     * <b>descartado</b> no reembrulho.</p>
+     */
+    APPROVAL_BLOCKED,
+    /** O pedido já foi decidido (aprovado, recusado ou cancelado). */
+    REQUEST_NOT_PENDING,
+
+    // ---- participação e personagem ----
+    /** Quem chamou não participa deste time. */
+    NOT_A_MEMBER,
+    /** O personagem não é do usuário. */
+    CHARACTER_NOT_YOURS,
+    /** O personagem não é membro ativo deste time. */
+    CHARACTER_NOT_ACTIVE_MEMBER,
+    /** O personagem ainda não teve o claim aprovado. */
+    CHARACTER_NOT_VERIFIED,
+    /** O usuário já é o dono deste personagem. */
+    ALREADY_CHARACTER_OWNER,
+    /** Já existe claim pendente deste usuário para este personagem. */
+    CLAIM_ALREADY_PENDING,
+
+    // ---- conta ----
+    /** Já existe conta com este email. */
+    EMAIL_ALREADY_REGISTERED
 }

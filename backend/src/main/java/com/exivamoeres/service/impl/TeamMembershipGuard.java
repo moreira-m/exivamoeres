@@ -5,6 +5,7 @@ import com.exivamoeres.domain.HuntingList;
 import com.exivamoeres.domain.ListMembership;
 import com.exivamoeres.domain.MembershipStatus;
 import com.exivamoeres.domain.exception.BusinessRuleException;
+import com.exivamoeres.dto.error.ErrorCode;
 import com.exivamoeres.domain.exception.ResourceNotFoundException;
 import com.exivamoeres.repository.CharacterRepository;
 import com.exivamoeres.repository.HuntingListRepository;
@@ -49,7 +50,7 @@ public class TeamMembershipGuard {
         boolean member = membershipRepository
                 .existsByListIdAndUserIdAndActiveTrueAndStatus(listId, userId, MembershipStatus.APPROVED);
         if (!member) {
-            throw new BusinessRuleException("Você não participa deste time");
+            throw new BusinessRuleException(ErrorCode.NOT_A_MEMBER, "Você não participa deste time");
         }
     }
 
@@ -57,11 +58,11 @@ public class TeamMembershipGuard {
         Character character = characterRepository.findById(characterId)
                 .orElseThrow(() -> new ResourceNotFoundException("Personagem não encontrado"));
         if (character.getOwner() == null || !character.getOwner().getId().equals(userId)) {
-            throw new BusinessRuleException("Este personagem não é seu");
+            throw new BusinessRuleException(ErrorCode.CHARACTER_NOT_YOURS, "Este personagem não é seu");
         }
         ListMembership membership = membershipRepository
                 .findByListIdAndCharacterIdAndActiveTrueAndStatus(listId, characterId, MembershipStatus.APPROVED)
-                .orElseThrow(() -> new BusinessRuleException(
+                .orElseThrow(() -> new BusinessRuleException(ErrorCode.CHARACTER_NOT_ACTIVE_MEMBER,
                         "Este personagem não é membro ativo deste time"));
         return membership.getCharacter();
     }
@@ -70,8 +71,9 @@ public class TeamMembershipGuard {
         HuntingList list = listRepository.findById(listId)
                 .orElseThrow(() -> new ResourceNotFoundException("Time não encontrado"));
         if (!list.allowsWrites()) {
-            throw new BusinessRuleException(
-                    "Este time está " + statusLabel(list) + " e não aceita mais alterações");
+            throw new BusinessRuleException(ErrorCode.TEAM_LOCKED,
+                    "Este time está " + statusLabel(list) + " e não aceita mais alterações")
+                    .with("status", list.getStatus());
         }
     }
 

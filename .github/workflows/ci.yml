@@ -102,10 +102,16 @@ jobs:
       - name: Rodar os testes de componente
         run: npm test
 
-      # O script "build" começa pelo `scripts/i18n-check.mjs` (T13): chave que existe
-      # em um idioma e falta no outro reprova aqui, antes de o deploy publicar uma tela
-      # com texto no idioma errado — ou com a chave crua à mostra. Depois vêm
-      # `tsc -b` e `vite build`, os níveis 1 e 3 de verificação do TESTS.md.
+      # O script "build" começa por **dois** verificadores, e os dois reprovam:
+      #
+      #   - `scripts/i18n-check.mjs` (T13): chave que existe em um idioma e falta no
+      #     outro publicaria tela com texto no idioma errado — ou com a chave crua;
+      #   - `scripts/error-codes-check.mjs` (T18): confere o espelho dos códigos de
+      #     erro (`ErrorCode.java` → união do TS → frase nos dois idiomas). ⚠️ Este é o
+      #     único passo do job que **lê o backend**, e por isso depende do checkout do
+      #     repositório inteiro; sem o arquivo Java ele avisa e confere só o frontend.
+      #
+      # Depois vêm `tsc -b` e `vite build`, os níveis 1 e 3 de verificação do TESTS.md.
       - name: Compilar o build de produção
         run: npm run build
 

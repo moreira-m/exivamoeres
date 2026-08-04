@@ -8,14 +8,15 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "node scripts/i18n-check.mjs && tsc -b && vite build",
+    "build": "node scripts/i18n-check.mjs && node scripts/error-codes-check.mjs && tsc -b && vite build",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "typecheck:e2e": "tsc -p e2e/tsconfig.json",
-    "check:i18n": "node scripts/i18n-check.mjs"
+    "check:i18n": "node scripts/i18n-check.mjs",
+    "check:codes": "node scripts/error-codes-check.mjs"
   },
   "dependencies": {
     "@stomp/stompjs": "^7.0.0",

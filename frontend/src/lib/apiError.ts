@@ -64,5 +64,32 @@ function traduzirCodigo(data: ApiErrorResponse | undefined): string | null {
   if (!i18n.exists(chave)) {
     return null
   }
-  return i18n.t(chave, { ...data.params })
+  const params = { ...data.params }
+  if (params.reason !== undefined) {
+    const motivo = traduzirMotivoAninhado(params.reason, params)
+    if (motivo === null) {
+      // Mesma regra do `i18n.exists` acima, um nível abaixo: sem a frase do motivo, a
+      // do dono sairia com a **chave crua** no meio ("...porque errors.codes.ALGO_NOVO").
+      // Cair no `message` em português é pior no idioma e melhor na tela.
+      return null
+    }
+    params.reason = motivo
+  }
+  return i18n.t(chave, params)
+}
+
+/**
+ * Um código dentro de outro (`APPROVAL_BLOCKED` carrega `reason`, item T18).
+ *
+ * ⚠️ Traduzido **aqui** em vez de com o `$t()` do i18next dentro da frase: o `$t()` com
+ * chave interpolada funciona, mas não tem como perguntar antes se a chave existe — e código
+ * desconhecido viraria chave crua na tela. O `reason` recebe os **mesmos params**, porque
+ * eles são os da frase de dentro (o level exigido, o nome do personagem).
+ */
+function traduzirMotivoAninhado(
+  reason: string,
+  params: Record<string, string>,
+): string | null {
+  const chave = `errors.codes.${reason}`
+  return i18n.exists(chave) ? i18n.t(chave, params) : null
 }

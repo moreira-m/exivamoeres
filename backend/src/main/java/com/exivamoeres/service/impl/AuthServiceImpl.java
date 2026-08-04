@@ -3,6 +3,7 @@ package com.exivamoeres.service.impl;
 import com.exivamoeres.domain.AuthProvider;
 import com.exivamoeres.domain.User;
 import com.exivamoeres.domain.exception.BusinessRuleException;
+import com.exivamoeres.dto.error.ErrorCode;
 import com.exivamoeres.domain.exception.InvalidCredentialsException;
 import com.exivamoeres.dto.auth.AuthResponse;
 import com.exivamoeres.dto.auth.LoginRequest;
@@ -38,7 +39,8 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public AuthResponse register(RegisterRequest request) {
         if (userRepository.existsByEmailIgnoreCase(request.email())) {
-            throw new BusinessRuleException("Já existe uma conta com este email");
+            throw new BusinessRuleException(ErrorCode.EMAIL_ALREADY_REGISTERED,
+                    "Já existe uma conta com este email");
         }
         User user = new User();
         user.setEmail(request.email());

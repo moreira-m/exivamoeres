@@ -3,20 +3,17 @@ import { describe, expect, it } from 'vitest'
 import i18n from '../i18n'
 import { getApiErrorMessage, isNotFound } from './apiError'
 import type { ErrorCode } from '../types/api'
+import pt from '../i18n/locales/pt.json'
 
-/** Códigos que o backend pode mandar (espelho de `ErrorCode.java`). */
-const CODIGOS: ErrorCode[] = [
-  'TEAM_FULL',
-  'WORLD_MISMATCH',
-  'FREE_ACCOUNT',
-  'BELOW_MINIMUM_LEVEL',
-  'CHARACTER_NOT_FOUND',
-  'VOCATION_WITHOUT_SLOT',
-  'ALREADY_MEMBER',
-  'PENDING_REQUEST_EXISTS',
-  'TEAM_NOT_ACCEPTING',
-  'ACTIVE_TEAM_LIMIT',
-]
+/**
+ * Todos os códigos, lidos das **próprias traduções** em vez de copiados aqui.
+ *
+ * ⚠️ Antes esta lista era um terceiro espelho do `ErrorCode.java`, escrito à mão — e um
+ * código que nunca chegasse aqui também nunca era conferido, que é justamente o furo que
+ * este teste existia para fechar. Quem garante que a lista está completa é o
+ * `scripts/error-codes-check.mjs` (Java → união → dois idiomas), que reprova o build.
+ */
+const CODIGOS = Object.keys(pt.errors.codes) as ErrorCode[]
 
 /** Erro HTTP como o axios entrega, com o envelope do backend no corpo. */
 function erro(status: number, data: unknown) {
@@ -152,8 +149,12 @@ describe('getApiErrorMessage — código traduzido', () => {
       const texto = getApiErrorMessage(erro(422, {
         status: 422,
         code,
+        // Todos os params de todos os códigos juntos: o teste não sabe (nem precisa
+        // saber) qual frase usa qual. `reason` é o do APPROVAL_BLOCKED, e vale um
+        // código de verdade porque ele é traduzido antes de entrar na frase.
         params: { max: '5', limit: '3', minimum: '400', level: '150', character: 'X',
-                  characterWorld: 'A', teamWorld: 'B', vocation: 'KNIGHT', status: 'CLOSED' },
+                  characterWorld: 'A', teamWorld: 'B', vocation: 'KNIGHT', status: 'CLOSED',
+                  ownerLevel: '120', reason: 'FREE_ACCOUNT' },
         message: 'reserva em português',
       }))
 
@@ -162,7 +163,49 @@ describe('getApiErrorMessage — código traduzido', () => {
       expect(texto, `${code} em ${idioma}`).not.toBe('reserva em português')
       expect(texto).not.toContain('errors.codes.')
       expect(texto).not.toContain('{{')
+      // Aninhamento do i18next (`$t(enums.vocation.{{vocation}})`) que não resolveu
+      // apareceria cru na tela — o mesmo estrago da chave crua, com outra cara.
+      expect(texto, `${code} em ${idioma}`).not.toContain('$t(')
+      expect(texto).not.toContain('enums.')
     }
+  })
+
+  it('a recusa da aprovacao traz o motivo traduzido dentro dela', async () => {
+    // Item T18: o reembrulho **descartava** o código do motivo, então o dono recebia duas
+    // frases em português concatenadas. Agora o motivo vem em `params.reason` e as duas
+    // partes são traduzidas.
+    await i18n.changeLanguage('en')
+
+    const texto = getApiErrorMessage(erro(422, {
+      status: 422,
+      code: 'APPROVAL_BLOCKED',
+      params: { reason: 'BELOW_MINIMUM_LEVEL', minimum: '400', level: '150', character: 'Sir Exiva' },
+      message: 'reserva em português',
+    }))
+
+    // A frase de fora e a de dentro, as duas em inglês e com os números do motivo.
+    expect(texto).toContain('Could not approve')
+    expect(texto).toContain('requires level 400')
+    expect(texto).toContain('Sir Exiva')
+    expect(texto).not.toContain('BELOW_MINIMUM_LEVEL')
+  })
+
+  it('motivo aninhado desconhecido cai na reserva, nao na chave crua', async () => {
+    // Site mais antigo que a API: `APPROVAL_BLOCKED` é conhecido, o motivo não. Sem esta
+    // guarda a tela mostraria "...porque errors.codes.MOTIVO_NOVO" no meio da frase.
+    await i18n.changeLanguage('en')
+
+    const texto = getApiErrorMessage(erro(422, {
+      status: 422,
+      code: 'APPROVAL_BLOCKED',
+      params: { reason: 'MOTIVO_QUE_ESTE_SITE_NAO_CONHECE' },
+      message: 'Não é possível aprovar este pedido agora: motivo novo. O pedido continua pendente.',
+    }))
+
+    expect(texto).toBe(
+      'Não é possível aprovar este pedido agora: motivo novo. O pedido continua pendente.',
+    )
+    expect(texto).not.toContain('errors.codes.')
   })
 })
 

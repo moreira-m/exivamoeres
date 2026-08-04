@@ -46,6 +46,7 @@ class ErrorCodeIntegrationTest extends TeamIntegrationTestBase {
     @Autowired MockMvc mockMvc;
     @Autowired JwtService jwtService;
     @Autowired UserRepository userRepository;
+    @Autowired com.exivamoeres.controller.ApiExceptionHandler handler;
 
     @Test
     void personagemDeOutroWorldTrazCodigoEOsTresValores() {
@@ -171,18 +172,68 @@ class ErrorCodeIntegrationTest extends TeamIntegrationTestBase {
     }
 
     @Test
-    void recusaAindaNaoConvertidaContinuaFuncionandoSemCodigo() {
+    void oDonoNaoPodeSairDoProprioTimeAgoraTemCodigo() {
+        // ⚠️ Este teste afirmava o contrário até 01/08/2026 (`getCode()).isNull()`): era o
+        // exemplo de "recusa ainda não convertida". O T18 converteu, e a assertiva virou o
+        // oposto — o que é o jeito certo de a suíte registrar o avanço da migração.
         Ctx ctx = timeCom("CodeLegacyWorld", "CodeLegacy", null);
 
-        // "O dono não pode sair do próprio time" ainda não tem código — e é exatamente o
-        // que a migração incremental do T2 permite: a frase em português continua chegando.
         assertThatThrownBy(() -> listService.leaveList(ctx.ownerId, ctx.listId))
                 .asInstanceOf(type(BusinessRuleException.class))
                 .satisfies(e -> {
-                    assertThat(e.getCode()).isNull();
-                    assertThat(e.getParams()).isEmpty();
+                    assertThat(e.getCode()).isEqualTo(ErrorCode.OWNER_CANNOT_LEAVE);
+                    // A frase em português continua vindo: é a reserva e é o que vai ao log.
                     assertThat(e.getMessage()).isNotBlank();
                 });
+    }
+
+    @Test
+    void aReservaSemCodigoContinuaExistindoNoEnvelope() {
+        // A migração do T2 é incremental **por construção**, e o shape com `code` nulo é o
+        // que o frontend trata caindo no `message`. Depois do T18 não sobrou nenhuma recusa
+        // alcançável sem código (há teste varrendo o código-fonte para isso), então o
+        // caminho é exercitado direto no handler — em vez de fingir que existe um endpoint
+        // que ainda responde assim.
+        var envelope = handler.handleBusinessRule(new BusinessRuleException("Frase sem código"));
+
+        assertThat(envelope.code()).isNull();
+        assertThat(envelope.params()).isNull();
+        assertThat(envelope.message()).isEqualTo("Frase sem código");
+        assertThat(envelope.status()).isEqualTo(422);
+    }
+
+    @Test
+    void aRecusaDaAprovacaoLevaOMotivoAninhado() throws Exception {
+        // ⚠️ O caso especial do T18: a aprovação reembrulha a recusa de elegibilidade para
+        // explicar ao DONO que a culpa é do candidato — e **descartava o código** do motivo.
+        // O dono recebia duas frases em português concatenadas (a mensagem mais longa do
+        // produto) com `code: null`.
+        Ctx ctx = timeCom("CodeNestWorld", "CodeNest", null, JoinPolicy.MANUAL_APPROVAL);
+        User quemPede = createUser("code-nest-cand@teste.com");
+        Character candidato = createCharacter("Code Nest Cand", "CodeNestWorld", quemPede);
+        stubPremium("Code Nest Cand", "CodeNestWorld", 500, "Elite Knight");
+        listService.joinByShareCode(quemPede.getId(), ctx.shareCode,
+                new JoinListRequest(candidato.getId()));
+        Long pedidoId = idDoPedidoPendente(ctx, quemPede.getId());
+        // Entre pedir e aprovar, o personagem virou Free Account (P15).
+        stubFreeAccount("Code Nest Cand", "CodeNestWorld");
+        // ⚠️ Sem limpar, o retrato Premium do `join` fica no cache de elegibilidade (1h) e a
+        // aprovação passa: o stub novo não é visto e o teste vira 204.
+        var cache = cacheManager.getCache("characterEligibility");
+        if (cache != null) {
+            cache.clear();
+        }
+
+        mockMvc.perform(post("/api/lists/{listId}/requests/{id}/approve", ctx.listId, pedidoId)
+                        .header("Authorization", "Bearer " + tokenDoDono(ctx)))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("APPROVAL_BLOCKED"))
+                // O motivo real vai **dentro**, como código — é o que deixa a tela montar
+                // "não foi possível aprovar porque ⟨motivo⟩" nos dois idiomas.
+                .andExpect(jsonPath("$.params.reason").value("FREE_ACCOUNT"))
+                // E os params do motivo vêm junto: sem eles a parte de dentro sairia com
+                // `{{character}}` na tela.
+                .andExpect(jsonPath("$.params.character").value("Code Nest Cand"));
     }
 
     @Test
@@ -208,15 +259,13 @@ class ErrorCodeIntegrationTest extends TeamIntegrationTestBase {
     }
 
     @Test
-    void oEnvelopeDeRecusaLegadaTrazCodigoNulo() throws Exception {
+    void oEnvelopeDaRecusaDoDonoTrazOCodigoNovo() throws Exception {
         Ctx ctx = timeCom("CodeHttpLegacyWorld", "CodeHttpLegacy", null);
 
-        // Sair do próprio time: recusa ainda não convertida. O campo existe no shape e vem
-        // nulo — é o que o frontend trata caindo no `message`.
         mockMvc.perform(post("/api/lists/{id}/leave", ctx.listId)
                         .header("Authorization", "Bearer " + tokenDoDono(ctx)))
                 .andExpect(status().isUnprocessableEntity())
-                .andExpect(jsonPath("$.code").doesNotExist())
+                .andExpect(jsonPath("$.code").value("OWNER_CANNOT_LEAVE"))
                 .andExpect(jsonPath("$.message").exists());
     }
 
@@ -258,6 +307,13 @@ class ErrorCodeIntegrationTest extends TeamIntegrationTestBase {
     private void entrar(Ctx ctx, Long characterId) {
         listService.joinByShareCode(donos.get(characterId), ctx.shareCode,
                 new JoinListRequest(characterId));
+    }
+
+    /** O id do pedido pendente daquele usuário no time. */
+    private Long idDoPedidoPendente(Ctx ctx, Long userId) {
+        return listService.getList(ctx.listId, ctx.ownerId).members().stream()
+                .filter(m -> m.userId().equals(userId))
+                .findFirst().orElseThrow().id();
     }
 
     /** Token do dono do time — para as chamadas HTTP. */

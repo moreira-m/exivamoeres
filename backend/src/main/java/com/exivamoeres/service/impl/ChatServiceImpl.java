@@ -4,8 +4,8 @@ import com.exivamoeres.domain.Character;
 import com.exivamoeres.domain.ChatMessage;
 import com.exivamoeres.domain.HuntingList;
 import com.exivamoeres.domain.User;
-import com.exivamoeres.domain.exception.BusinessRuleException;
 import com.exivamoeres.domain.exception.ResourceNotFoundException;
+import com.exivamoeres.domain.exception.TooManyRequestsException;
 import com.exivamoeres.dto.chat.ChatMessageResponse;
 import com.exivamoeres.repository.ChatMessageRepository;
 import com.exivamoeres.repository.HuntingListRepository;
@@ -54,7 +54,19 @@ public class ChatServiceImpl implements ChatService {
             // O chat não registrava **nada** até 30/07/2026 — nem a recusa. Quem dizia
             // "mandei e não apareceu" não deixava rastro nenhum no servidor.
             log.warn("chat.message.rate_limited listId={} userId={}", listId, userId);
-            throw new BusinessRuleException("Você está enviando mensagens rápido demais; aguarde um pouco");
+            // ⚠️ **429, não 422** (era BusinessRuleException — ver T18). Duas coisas
+            // estavam erradas nisso, e a segunda é a que ninguém veria:
+            //
+            //   1. todo outro limite do produto responde 429 (UserRateLimiter,
+            //      RateLimitFilter). O chat era o único falando 422, que significa
+            //      "corrija o payload" — e não há nada a corrigir, é só esperar;
+            //   2. o alerta `MuitosBloqueiosDeRateLimit` conta `status="429"`, então uma
+            //      enxurrada no chat era **invisível** para ele. O limite existe
+            //      justamente para o caso em que alguém está martelando.
+            //
+            // Dar um ErrorCode a esta recusa cimentaria o status errado.
+            throw new TooManyRequestsException(
+                    "Você está enviando mensagens rápido demais; aguarde um pouco");
         }
 
         HuntingList list = listRepository.findById(listId)

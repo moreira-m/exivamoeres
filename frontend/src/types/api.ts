@@ -199,6 +199,9 @@ export interface Page<T> {
  *
  * A frase de cada um vive em `errors.codes.<CODE>` nos **dois** idiomas — há teste varrendo
  * esta união. Código que o backend manda e este site não conhece cai no `message`.
+ *
+ * ⚠️ Espelho **conferido**, não copiado na fé: `scripts/error-codes-check.mjs` lê o
+ * `ErrorCode.java` e reprova o build se um valor faltar aqui ou nas traduções.
  */
 export type ErrorCode =
   | 'TEAM_FULL'
@@ -211,6 +214,24 @@ export type ErrorCode =
   | 'PENDING_REQUEST_EXISTS'
   | 'TEAM_NOT_ACCEPTING'
   | 'ACTIVE_TEAM_LIMIT'
+  | 'TEAM_LOCKED'
+  | 'RENEW_REQUIRES_ARCHIVED'
+  | 'TEAM_ALREADY_CLOSED'
+  | 'OWNER_CANNOT_LEAVE'
+  | 'OWNER_CANNOT_KICK_SELF'
+  | 'OWNER_BELOW_OWN_MINIMUM'
+  | 'COMPOSITION_EXCLUDES_MEMBER'
+  | 'NO_FREE_SLOT_FOR_VOCATION'
+  | 'COMPOSITION_TOO_LARGE'
+  | 'APPROVAL_BLOCKED'
+  | 'REQUEST_NOT_PENDING'
+  | 'NOT_A_MEMBER'
+  | 'CHARACTER_NOT_YOURS'
+  | 'CHARACTER_NOT_ACTIVE_MEMBER'
+  | 'CHARACTER_NOT_VERIFIED'
+  | 'ALREADY_CHARACTER_OWNER'
+  | 'CLAIM_ALREADY_PENDING'
+  | 'EMAIL_ALREADY_REGISTERED'
 
 export interface ApiErrorResponse {
   timestamp: string

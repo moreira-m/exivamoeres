@@ -8,6 +8,7 @@ import com.exivamoeres.domain.CharacterClaim;
 import com.exivamoeres.domain.ClaimStatus;
 import com.exivamoeres.domain.User;
 import com.exivamoeres.domain.exception.BusinessRuleException;
+import com.exivamoeres.dto.error.ErrorCode;
 import com.exivamoeres.domain.exception.ExternalServiceException;
 import com.exivamoeres.domain.exception.ResourceNotFoundException;
 import com.exivamoeres.dto.claim.ClaimResponse;
@@ -67,8 +68,11 @@ public class CharacterClaimServiceImpl implements CharacterClaimService {
         // personagem inexistente nunca aprovaria e só poluiria o job.
         TibiaCharacterSnapshot snapshot = fetchFromTibiaData(characterName);
         if (!snapshot.found()) {
-            throw new BusinessRuleException(
-                    "Personagem '" + characterName + "' não encontrado no Tibia.com");
+            // Reusa o código do fluxo de entrada (T2): é a mesma recusa, e a tela já
+            // tem a frase — código novo aqui seria a segunda maneira de dizer o mesmo.
+            throw new BusinessRuleException(ErrorCode.CHARACTER_NOT_FOUND,
+                    "Personagem '" + characterName + "' não encontrado no Tibia.com")
+                    .with("character", characterName);
         }
 
         Character character = characterSyncService.findOrCreateFromSnapshot(snapshot);
@@ -116,12 +120,13 @@ public class CharacterClaimServiceImpl implements CharacterClaimService {
 
     private void validateClaimAllowed(Character character, User claimant) {
         if (character.getOwner() != null && character.getOwner().getId().equals(claimant.getId())) {
-            throw new BusinessRuleException("Você já é o dono deste personagem");
+            throw new BusinessRuleException(ErrorCode.ALREADY_CHARACTER_OWNER,
+                    "Você já é o dono deste personagem");
         }
         boolean alreadyPending = claimRepository.existsByCharacterIdAndClaimantIdAndStatus(
                 character.getId(), claimant.getId(), ClaimStatus.PENDING);
         if (alreadyPending) {
-            throw new BusinessRuleException(
+            throw new BusinessRuleException(ErrorCode.CLAIM_ALREADY_PENDING,
                     "Você já tem um claim pendente para este personagem");
         }
     }

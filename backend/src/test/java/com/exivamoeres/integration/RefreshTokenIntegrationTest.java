@@ -72,6 +72,39 @@ class RefreshTokenIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
+    void reusarTokenJaRotacionadoDerrubaTodasAsSessoesDoUsuario() {
+        // Duas sessões do MESMO usuário: a que vai ser reusada e outra qualquer, que
+        // representa o dispositivo do ladrão (ou o do dono — não há como saber qual).
+        AuthResponse sessao = novaSessao();
+        String roubado = sessao.refreshToken();
+        String emUso = authService.refresh(roubado).refreshToken();
+
+        // O ladrão reapresenta a cópia que já foi rotacionada.
+        assertThatThrownBy(() -> authService.refresh(roubado))
+                .isInstanceOf(InvalidCredentialsException.class);
+
+        // Não basta recusar a tentativa: a sessão viva também cai, senão quem estiver
+        // com ela continua entrando por 14 dias.
+        assertThatThrownBy(() -> authService.refresh(emUso))
+                .as("a cadeia inteira do usuário precisa cair")
+                .isInstanceOf(InvalidCredentialsException.class);
+    }
+
+    @Test
+    void reusoDeUmUsuarioNaoDerrubaAsSessoesDeOutro() {
+        String roubado = novaSessao().refreshToken();
+        authService.refresh(roubado);
+        String deOutraPessoa = novaSessao().refreshToken();
+
+        assertThatThrownBy(() -> authService.refresh(roubado))
+                .isInstanceOf(InvalidCredentialsException.class);
+
+        assertThat(authService.refresh(deOutraPessoa).refreshToken())
+                .as("a reação é por usuário, não global")
+                .isNotBlank();
+    }
+
+    @Test
     void logoutRevogaOTokenParaRefreshesFuturos() {
         String rawToken = novaSessao().refreshToken();
 

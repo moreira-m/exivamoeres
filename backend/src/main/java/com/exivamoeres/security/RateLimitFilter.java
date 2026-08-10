@@ -14,9 +14,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.time.Duration;
-import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Rate limiting por IP nos endpoints que criam identidade:
@@ -31,8 +29,9 @@ import java.util.concurrent.ConcurrentHashMap;
  * O que uma conta já criada pode fazer é limitado por usuário, em
  * {@link com.exivamoeres.service.impl.UserRateLimiter}.
  *
- * NOTA: buckets em memória — suficiente para uma instância. Se o backend
- * escalar horizontalmente, migrar para o backend distribuído do Bucket4j.
+ * NOTA: buckets em memória (ver {@link RateLimitBuckets}) — suficiente para uma
+ * instância. Se o backend escalar horizontalmente, migrar para o backend
+ * distribuído do Bucket4j.
  */
 @Component
 @Slf4j
@@ -46,11 +45,12 @@ public class RateLimitFilter extends OncePerRequestFilter {
     private record Policy(Bandwidth bandwidth, String message) {
     }
 
-    private final Map<String, Bucket> buckets = new ConcurrentHashMap<>();
+    private final RateLimitBuckets buckets;
     private final Policy credentialPolicy;
     private final Policy anonymousPolicy;
 
-    public RateLimitFilter(RateLimitProperties properties) {
+    public RateLimitFilter(RateLimitProperties properties, RateLimitBuckets buckets) {
+        this.buckets = buckets;
         this.credentialPolicy = new Policy(
                 perDuration(properties.authPerMinute(), Duration.ofMinutes(1)),
                 "Muitas tentativas. Aguarde um minuto.");
@@ -70,11 +70,12 @@ public class RateLimitFilter extends OncePerRequestFilter {
             return;
         }
 
-        String ip = clientIp(request);
+        // O endereço vem do ClientIpFilter, que roda antes de o X-Forwarded-For ser
+        // consumido — sem ele, a chave abaixo seria um endereço que o cliente escolhe.
+        String ip = ClientIpFilter.of(request);
         // A chave inclui o caminho: estourar o limite de login não pode consumir
         // o de conta anônima (e vice-versa) — são limites diferentes.
-        Bucket bucket = buckets.computeIfAbsent(path + "|" + ip,
-                key -> Bucket.builder().addLimit(policy.bandwidth()).build());
+        Bucket bucket = buckets.forKey(path + "|" + ip, policy.bandwidth());
         if (bucket.tryConsume(1)) {
             filterChain.doFilter(request, response);
         } else {
@@ -103,9 +104,4 @@ public class RateLimitFilter extends OncePerRequestFilter {
                 .build();
     }
 
-    private String clientIp(HttpServletRequest request) {
-        // Atrás de proxy (Railway) o IP real chega no X-Forwarded-For.
-        String forwarded = request.getHeader("X-Forwarded-For");
-        return forwarded != null ? forwarded.split(",")[0].trim() : request.getRemoteAddr();
-    }
 }

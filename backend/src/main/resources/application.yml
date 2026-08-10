@@ -45,12 +45,15 @@ spring:
 
 server:
   port: 8080
-  # Railway (e proxies reversos em geral) terminam TLS e encaminham a
-  # requisição em HTTP puro internamente, sinalizando o scheme original via
-  # X-Forwarded-Proto/-Host/-Port. Sem confiar nesses headers, o Spring monta
-  # o redirect_uri do OAuth2 ({baseUrl}) como http://, causando
-  # redirect_uri_mismatch no Google/Discord em produção.
-  forward-headers-strategy: framework
+  # ⚠️ `forward-headers-strategy: framework` MOROU AQUI e foi removido de propósito.
+  # O motivo dele continua valendo — Railway termina TLS e encaminha em HTTP puro,
+  # sinalizando o original via X-Forwarded-Proto/-Host/-Port, e sem isso o Spring
+  # monta o redirect_uri do OAuth2 ({baseUrl}) como http:// e o Google/Discord
+  # respondem redirect_uri_mismatch. O que mudou foi QUEM registra o filtro: o
+  # registro do Boot é `HIGHEST_PRECEDENCE`, e como o filtro APAGA o
+  # X-Forwarded-For, nada conseguia ler o endereço real do cliente depois dele —
+  # o rate limit por IP acabava chaveado por um valor que o cliente escolhe.
+  # Agora os dois filtros são registrados, na ordem certa, em ForwardedHeadersConfig.
 
 # ----- Configurações próprias da aplicação -----
 app:

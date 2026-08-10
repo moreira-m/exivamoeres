@@ -64,13 +64,31 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
             // filtro: **revogado** é o sinal de token reaproveitado (S7, detecção de
             // reuso), e **expirado** é rotina. Misturados num `filter`, os dois viravam
             // a mesma linha de log e a diferença se perdia.
-            log.warn("auth.refresh_rejected reason={} userId={}",
-                    current.isRevoked() ? "revoked" : "expired", current.getUser().getId());
+            if (current.isRevoked()) {
+                derrubarSessoesDe(current.getUser().getId());
+            } else {
+                log.warn("auth.refresh_rejected reason=expired userId={}", current.getUser().getId());
+            }
             throw new InvalidCredentialsException(RECUSADO);
         }
 
         current.setRevoked(true);
         return new RotationResult(current.getUser(), issue(current.getUser()));
+    }
+
+    /**
+     * Um token já rotacionado voltou. Só há duas explicações, e nenhuma delas permite
+     * saber <b>quem</b> está apresentando: ou a cópia vazou, ou o dono ficou com uma
+     * sessão velha. Como não dá para distinguir o dono do ladrão, cai a cadeia inteira —
+     * quem for o dono entra de novo com a credencial dele; quem copiou fica sem nada.
+     *
+     * O logout de todos os dispositivos é o preço, e é barato perto da alternativa:
+     * antes, o sinal clássico de token roubado só virava uma linha de log, e a sessão
+     * que o ladrão já tinha rotacionado continuava válida por 14 dias.
+     */
+    private void derrubarSessoesDe(Long userId) {
+        int derrubadas = repository.revokeAllForUser(userId);
+        log.warn("auth.refresh.reuse_detected userId={} revokedSessions={}", userId, derrubadas);
     }
 
     @Override

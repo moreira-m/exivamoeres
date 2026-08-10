@@ -2,14 +2,13 @@ package com.exivamoeres.service.impl;
 
 import com.exivamoeres.config.RateLimitProperties;
 import com.exivamoeres.domain.exception.TooManyRequestsException;
+import com.exivamoeres.security.RateLimitBuckets;
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Rate limit por <b>usuário</b> das ações caras — as que o rate limit por IP do
@@ -26,8 +25,8 @@ import java.util.concurrent.ConcurrentHashMap;
  *       loop enche o sino de quatro pessoas.</li>
  * </ul>
  *
- * Buckets em memória — mesma limitação single-instance do RateLimitFilter e do
- * ChatRateLimiter.
+ * Buckets em {@link RateLimitBuckets} — mesma limitação single-instance do
+ * RateLimitFilter e do ChatRateLimiter.
  */
 @Component
 @Slf4j
@@ -37,11 +36,12 @@ public class UserRateLimiter {
     private static final String TIBIADATA = "tibiadata";
     private static final String TEAM_UPDATE = "team-update";
 
-    private final Map<String, Bucket> buckets = new ConcurrentHashMap<>();
+    private final RateLimitBuckets buckets;
     private final RateLimitProperties properties;
 
-    public UserRateLimiter(RateLimitProperties properties) {
+    public UserRateLimiter(RateLimitProperties properties, RateLimitBuckets buckets) {
         this.properties = properties;
+        this.buckets = buckets;
     }
 
     /** Lança 429 se o usuário já criou times demais na última hora. */
@@ -70,20 +70,17 @@ public class UserRateLimiter {
     }
 
     private void consume(String action, Long userId, int perHour, String message) {
-        Bucket bucket = buckets.computeIfAbsent(action + ":" + userId,
-                key -> newBucket(perHour));
+        Bucket bucket = buckets.forKey(action + ":" + userId, porHora(perHour));
         if (!bucket.tryConsume(1)) {
             log.warn("ratelimit.user.exceeded action={} userId={} limit={}/h", action, userId, perHour);
             throw new TooManyRequestsException(message);
         }
     }
 
-    private Bucket newBucket(int perHour) {
-        return Bucket.builder()
-                .addLimit(Bandwidth.builder()
-                        .capacity(perHour)
-                        .refillGreedy(perHour, Duration.ofHours(1))
-                        .build())
+    private Bandwidth porHora(int perHour) {
+        return Bandwidth.builder()
+                .capacity(perHour)
+                .refillGreedy(perHour, Duration.ofHours(1))
                 .build();
     }
 }

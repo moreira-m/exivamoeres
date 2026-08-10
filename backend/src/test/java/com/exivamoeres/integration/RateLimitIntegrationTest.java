@@ -72,6 +72,21 @@ class RateLimitIntegrationTest extends IntegrationTestBase {
         mockMvc.perform(anonymousLogin(ip)).andExpect(status().isCreated());
     }
 
+    @Test
+    void clienteQueForjaOInicioDoXForwardedForNaoEscapaDoLimite() throws Exception {
+        // O que o proxy escreve fica no FIM; o começo é o que o cliente mandou. Lendo a
+        // primeira entrada, bastava variar o prefixo a cada tentativa para ganhar um
+        // balde novo — o limite de conta anônima não valia nada.
+        String real = "203.0.113.50";
+        for (int i = 1; i <= 3; i++) {
+            mockMvc.perform(anonymousLogin("10.0.0." + i + ", " + real))
+                    .andExpect(status().isCreated());
+        }
+
+        mockMvc.perform(anonymousLogin("198.51.100.77, " + real))
+                .andExpect(status().isTooManyRequests());
+    }
+
     private MockHttpServletRequestBuilder anonymousLogin(String ip) {
         return post("/api/auth/anonymous")
                 .header("X-Forwarded-For", ip)

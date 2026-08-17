@@ -21,14 +21,14 @@
     <java.version>21</java.version>
     <!-- Sobrescreve a versão gerenciada pelo Boot: necessária para compilar
          com JDKs mais novos que 24. -->
-    <lombok.version>1.18.42</lombok.version>
+    <lombok.version>1.18.46</lombok.version>
     <!-- Versões >= 1.21.4 negociam a versão da API do Docker — necessário
          com Docker Engine 28.4+/29. -->
     <testcontainers.version>1.21.4</testcontainers.version>
-    <jjwt.version>0.12.6</jjwt.version>
-    <resilience4j.version>2.2.0</resilience4j.version>
+    <jjwt.version>0.13.0</jjwt.version>
+    <resilience4j.version>2.4.0</resilience4j.version>
     <bucket4j.version>8.10.1</bucket4j.version>
-    <wiremock.version>3.9.1</wiremock.version>
+    <wiremock.version>3.13.2</wiremock.version>
   </properties>
 
   <dependencies>
